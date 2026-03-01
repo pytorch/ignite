@@ -1,0 +1,31 @@
+﻿ParamScheduler
+==============
+
+.. currentmodule:: ignite.handlers.param_scheduler
+
+.. autoclass:: ParamScheduler
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~ParamScheduler.simulate_values
+   
+   
+   
+   
+   
+   

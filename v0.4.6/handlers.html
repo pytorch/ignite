@@ -1,0 +1,1063 @@
+
+
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta name="author" content="PyTorch-Ignite Contributors">
+  <meta name="creator" content="PyTorch-Ignite Contributors">
+  <meta name="publisher" content="PyTorch-Ignite Contributors">
+  <meta name="generator" content="Sphinx 5.3.0">
+  <meta name="description" content="High-level library to help with training and evaluating neural networks in PyTorch flexibly and transparently.">
+  <meta name="keywords" content="pytorch, pytorch ignite, ignite, engine, events, handlers, metrics">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#ee4c2c">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@pytorch_ignite">
+  <meta name="twitter:creator" content="@pytorch_ignite">
+  <meta name="twitter:description" content="High-level library to help with training and evaluating neural networks in PyTorch flexibly and transparently.">
+  <meta name="twitter:title" content="ignite.handlers &mdash; PyTorch-Ignite v0.4.6 Documentation">
+  <meta name="twitter:image" content="https://raw.githubusercontent.com/pytorch/ignite/master/assets/logo/ignite_logo.png">
+  <meta name="twitter:image:alt" content="PyTorch-Ignite logo">
+
+  <meta property="og:title" content="ignite.handlers &mdash; PyTorch-Ignite v0.4.6 Documentation">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://pytorch.org/ignite/">
+  <meta property="og:site_name" content="PyTorch-Ignite">
+  <meta property="og:image" content="https://raw.githubusercontent.com/pytorch/ignite/master/assets/logo/ignite_logo.png">
+  <meta property="og:image:alt" content="PyTorch-Ignite logo">
+  <meta property="og:description" content="High-level library to help with training and evaluating neural networks in PyTorch flexibly and transparently.">
+
+  <link rel="preconnect" href="https://BH4D9OD16A-dsn.algolia.net" crossorigin />
+
+  
+  <title>ignite.handlers &mdash; PyTorch-Ignite v0.4.6 Documentation</title>
+  
+
+  
+  
+    <link rel="shortcut icon" type="image/svg+xml" href="_static/ignite_logomark.svg"/>
+  
+  
+  
+    <link rel="canonical" href="https://pytorch.org/ignite/handlers.html"/>
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="preload" href="_static/css/theme.css" as="style" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!-- <link rel="stylesheet" href="_static/pygments.css" type="text/css" /> -->
+  <link rel="preload" href="_static/pygments.css" as="style" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="preload" href="_static/css/theme.css" as="style" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="preload" href="_static/copybutton.css" as="style" />
+  <link rel="stylesheet" href="_static/copybutton.css" type="text/css" />
+  <link rel="preload" href="_static/togglebutton.css" as="style" />
+  <link rel="stylesheet" href="_static/togglebutton.css" type="text/css" />
+  <link rel="preload" href="_static/banner.css" as="style" />
+  <link rel="stylesheet" href="_static/banner.css" type="text/css" />
+  <link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" as="style" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" type="text/css" />
+  <link rel="preload" href="_static/katex-math.css" as="style" />
+  <link rel="stylesheet" href="_static/katex-math.css" type="text/css" />
+  <link rel="preload" href="_static/sphinx-design.5ea377869091fd0449014c60fc090103.min.css" as="style" />
+  <link rel="stylesheet" href="_static/sphinx-design.5ea377869091fd0449014c60fc090103.min.css" type="text/css" />
+    <link rel="preload" href="_static/css/ignite_theme.css" as="style" />
+    <link rel="stylesheet" href="_static/css/ignite_theme.css" type="text/css" />
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/@docsearch/css@3" as="style" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@docsearch/css@3" type="text/css" />
+    <link rel="author" title="About these documents" href="about.html" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Checkpoint" href="generated/ignite.handlers.checkpoint.Checkpoint.html" />
+    <link rel="prev" title="supervised_evaluation_step_amp" href="generated/ignite.engine.supervised_evaluation_step_amp.html" /> 
+
+  <!-- katex links / this needs to be loaded before fonts.html -->
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/katex.min.css" crossorigin="anonymous">
+<script async src="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/katex.min.js" crossorigin="anonymous"></script>
+
+<!-- Preload the theme fonts -->
+
+<link rel="preload" href="_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="_static/fonts/IBMPlexMono/IBMPlexMono-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+
+<!-- Preload the katex fonts -->
+
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Math-Italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Main-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Main-Bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Size1-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Size4-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Size2-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Size3-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Caligraphic-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-5FELLLFHCP"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-5FELLLFHCP');
+  </script>
+</head>
+
+<div class="container-fluid header-holder tutorials-header" id="header-holder">
+  <div class="container">
+
+    <a class="header-logo" href="/ignite" aria-label="PyTorch-Ignite"></a>
+
+    <div class="header-container">
+
+      <div class="main-menu">
+        <ul>
+          <li>
+            <a href="https://pytorch-ignite.ai/tutorials/beginner/01-getting-started/">Quickstart</a>
+          </li>
+
+          <li>
+            <a href="https://pytorch-ignite.ai/concepts/">Concepts</a>
+          </li>
+
+          <!-- <li>
+            <a href="https://pytorch-ignite.ai/tutorials/beginner/01-getting-started/#complete-code">Examples</a>
+          </li> -->
+
+          <li>
+            <a href="https://pytorch-ignite.ai/how-to-guides/">FAQ</a>
+          </li>
+
+          <li>
+            <a href="https://github.com/pytorch/ignite" target="_blank" rel="noopener noreferrer">GitHub</a>
+          </li>
+
+          <li>
+            <a href="https://pytorch-ignite.ai/about/community/">About us</a>
+          </li>
+
+          <li>
+            <a href="https://pytorch-ignite.ai">⊳ pytorch-ignite.ai</a>
+          </li>
+
+
+        </ul>
+      </div>
+
+      <!-- <a class="main-menu-open-button" href="#" data-behavior="open-mobile-menu"></a> -->
+    </div>
+
+  </div>
+</div>
+
+
+<body class="pytorch-body">
+
+   
+
+    
+
+    <div class="table-of-contents-link-wrapper">
+      <span>Table of Contents</span>
+      <div class="toggle-table-of-contents" data-behavior="toggle-table-of-contents"></div>
+    </div>
+
+    <nav data-toggle="wy-nav-shift" class="pytorch-left-menu" id="pytorch-left-menu">
+      <div class="pytorch-side-scroll">
+        <div class="pytorch-menu pytorch-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          <div class="pytorch-left-menu-search">
+            
+
+            
+              
+              
+                <div class="version">
+                  v0.4.6
+                </div>
+              
+            
+
+            <div id="docsearch"></div>
+
+            
+          </div>
+
+          
+            
+            
+              
+            
+            
+              <p class="caption" role="heading"><span class="caption-text">Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="concepts.html">Concepts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Package Reference</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="engine.html">ignite.engine</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">ignite.handlers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="metrics.html">ignite.metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="distributed.html">ignite.distributed</a></li>
+<li class="toctree-l1"><a class="reference internal" href="exceptions.html">ignite.exceptions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="utils.html">ignite.utils</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Contrib Package Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="contrib/engines.html">ignite.contrib.engines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contrib/metrics.html">ignite.contrib.metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contrib/handlers.html">ignite.contrib.handlers</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Team</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://pytorch.org/ignite/master/about.html">About us</a></li>
+<li class="toctree-l1"><a class="reference internal" href="governance.html">PyTorch-Ignite governance</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+
+      <div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: v0.4.6
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../v0.3.0/handlers.html">v0.3.0</a></dd>
+            <dd><a href="../v0.4.0.post1/handlers.html">v0.4.0.post1</a></dd>
+            <dd><a href="../v0.4.1/handlers.html">v0.4.1</a></dd>
+            <dd><a href="../v0.4.10/handlers.html">v0.4.10</a></dd>
+            <dd><a href="../v0.4.11/handlers.html">v0.4.11</a></dd>
+            <dd><a href="../v0.4.12/handlers.html">v0.4.12</a></dd>
+            <dd><a href="../v0.4.13/handlers.html">v0.4.13</a></dd>
+            <dd><a href="../v0.4.2/handlers.html">v0.4.2</a></dd>
+            <dd><a href="../v0.4.3/handlers.html">v0.4.3</a></dd>
+            <dd><a href="../v0.4.4.post1/handlers.html">v0.4.4.post1</a></dd>
+            <dd><a href="../v0.4.5/handlers.html">v0.4.5</a></dd>
+            <dd><a href="handlers.html">v0.4.6</a></dd>
+            <dd><a href="../v0.4.7/handlers.html">v0.4.7</a></dd>
+            <dd><a href="../v0.4.8/handlers.html">v0.4.8</a></dd>
+            <dd><a href="../v0.4.9/handlers.html">v0.4.9</a></dd>
+            <dd><a href="../v0.4rc.0.post1/handlers.html">v0.4rc.0.post1</a></dd>
+            <dd><a href="../v0.5.0.post2/handlers.html">v0.5.0.post2</a></dd>
+            <dd><a href="../v0.5.1/handlers.html">v0.5.1</a></dd>
+            <dd><a href="../v0.5.2/handlers.html">v0.5.2</a></dd>
+            <dd><a href="../v0.5.3/handlers.html">v0.5.3</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="../master/handlers.html">master</a></dd>
+        </dl>
+    </div>
+</div>
+
+    </nav>
+
+    <div class="pytorch-container">
+      <div class="pytorch-page-level-bar" id="pytorch-page-level-bar">
+        <div class="pytorch-breadcrumbs-wrapper">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="pytorch-breadcrumbs">
+    
+      <li>
+        <a href="index.html">
+          
+            Docs
+          
+        </a> &gt;
+      </li>
+
+        
+      <li>ignite.handlers</li>
+    
+    
+      <li class="pytorch-breadcrumbs-aside">
+        
+            
+            <a href="_sources/handlers.rst.txt" rel="nofollow"><img src="_static/images/view-page-source-icon.svg"></a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+</div>
+        </div>
+
+        <div class="pytorch-shortcuts-wrapper" id="pytorch-shortcuts-wrapper">
+          Shortcuts
+        </div>
+      </div>
+
+      <section data-toggle="wy-nav-shift" id="pytorch-content-wrap" class="pytorch-content-wrap">
+        <div class="pytorch-content-left">
+
+        
+          
+          <div class="rst-content">
+          
+            <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
+             <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
+              
+  <section id="ignite-handlers">
+<h1>ignite.handlers<a class="headerlink" href="#ignite-handlers" title="Permalink to this heading">#</a></h1>
+<section id="complete-list-of-handlers">
+<h2>Complete list of handlers<a class="headerlink" href="#complete-list-of-handlers" title="Permalink to this heading">#</a></h2>
+<table class="autosummary longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.handlers.checkpoint.Checkpoint.html#ignite.handlers.checkpoint.Checkpoint" title="ignite.handlers.checkpoint.Checkpoint"><code class="xref py py-obj docutils literal notranslate"><span class="pre">checkpoint.Checkpoint</span></code></a></p></td>
+<td><p>Checkpoint handler can be used to periodically save and load objects which have attribute <code class="docutils literal notranslate"><span class="pre">state_dict/load_state_dict</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.handlers.DiskSaver.html#ignite.handlers.DiskSaver" title="ignite.handlers.DiskSaver"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DiskSaver</span></code></a></p></td>
+<td><p>Handler that saves input checkpoint on a disk.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.handlers.checkpoint.ModelCheckpoint.html#ignite.handlers.checkpoint.ModelCheckpoint" title="ignite.handlers.checkpoint.ModelCheckpoint"><code class="xref py py-obj docutils literal notranslate"><span class="pre">checkpoint.ModelCheckpoint</span></code></a></p></td>
+<td><p>ModelCheckpoint handler can be used to periodically save objects to disk only.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.handlers.ema_handler.EMAHandler.html#ignite.handlers.ema_handler.EMAHandler" title="ignite.handlers.ema_handler.EMAHandler"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ema_handler.EMAHandler</span></code></a></p></td>
+<td><p>Exponential moving average (EMA) handler can be used to compute a smoothed version of model.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.handlers.early_stopping.EarlyStopping.html#ignite.handlers.early_stopping.EarlyStopping" title="ignite.handlers.early_stopping.EarlyStopping"><code class="xref py py-obj docutils literal notranslate"><span class="pre">early_stopping.EarlyStopping</span></code></a></p></td>
+<td><p>EarlyStopping handler can be used to stop the training if no improvement after a given number of events.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.handlers.lr_finder.FastaiLRFinder.html#ignite.handlers.lr_finder.FastaiLRFinder" title="ignite.handlers.lr_finder.FastaiLRFinder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">lr_finder.FastaiLRFinder</span></code></a></p></td>
+<td><p>Learning rate finder handler for supervised trainers.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.handlers.terminate_on_nan.TerminateOnNan.html#ignite.handlers.terminate_on_nan.TerminateOnNan" title="ignite.handlers.terminate_on_nan.TerminateOnNan"><code class="xref py py-obj docutils literal notranslate"><span class="pre">terminate_on_nan.TerminateOnNan</span></code></a></p></td>
+<td><p>TerminateOnNan handler can be used to stop the training if the <cite>process_function</cite>'s output contains a NaN or infinite number or <cite>torch.tensor</cite>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.handlers.TimeLimit.html#ignite.handlers.TimeLimit" title="ignite.handlers.TimeLimit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TimeLimit</span></code></a></p></td>
+<td><p>TimeLimit handler can be used to control training time for computing environments where session time is limited.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.handlers.timing.Timer.html#ignite.handlers.timing.Timer" title="ignite.handlers.timing.Timer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">timing.Timer</span></code></a></p></td>
+<td><p>Timer object can be used to measure (average) time between events.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.handlers.global_step_from_engine.html#ignite.handlers.global_step_from_engine" title="ignite.handlers.global_step_from_engine"><code class="xref py py-obj docutils literal notranslate"><span class="pre">global_step_from_engine</span></code></a></p></td>
+<td><p>Helper method to setup <cite>global_step_transform</cite> function using another engine.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.handlers.stores.EpochOutputStore.html#ignite.handlers.stores.EpochOutputStore" title="ignite.handlers.stores.EpochOutputStore"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stores.EpochOutputStore</span></code></a></p></td>
+<td><p>EpochOutputStore handler to save output prediction and target history after every epoch, could be useful for e.g., visualization purposes.</p></td>
+</tr>
+</tbody>
+</table>
+<table class="autosummary longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.handlers.checkpoint.BaseSaveHandler.html#ignite.handlers.checkpoint.BaseSaveHandler" title="ignite.handlers.checkpoint.BaseSaveHandler"><code class="xref py py-obj docutils literal notranslate"><span class="pre">checkpoint.BaseSaveHandler</span></code></a></p></td>
+<td><p>Base class for save handlers</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.handlers.param_scheduler.ParamScheduler.html#ignite.handlers.param_scheduler.ParamScheduler" title="ignite.handlers.param_scheduler.ParamScheduler"><code class="xref py py-obj docutils literal notranslate"><span class="pre">param_scheduler.ParamScheduler</span></code></a></p></td>
+<td><p>An abstract class for updating an optimizer's parameter value during training.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="parameter-scheduler">
+<span id="param-scheduler-label"></span><h2>Parameter scheduler<a class="headerlink" href="#parameter-scheduler" title="Permalink to this heading">#</a></h2>
+<table class="autosummary longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.handlers.param_scheduler.ConcatScheduler.html#ignite.handlers.param_scheduler.ConcatScheduler" title="ignite.handlers.param_scheduler.ConcatScheduler"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ConcatScheduler</span></code></a></p></td>
+<td><p>Concat a list of parameter schedulers.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.handlers.param_scheduler.CosineAnnealingScheduler.html#ignite.handlers.param_scheduler.CosineAnnealingScheduler" title="ignite.handlers.param_scheduler.CosineAnnealingScheduler"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CosineAnnealingScheduler</span></code></a></p></td>
+<td><p>Anneals 'start_value' to 'end_value' over each cycle.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.handlers.param_scheduler.CyclicalScheduler.html#ignite.handlers.param_scheduler.CyclicalScheduler" title="ignite.handlers.param_scheduler.CyclicalScheduler"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CyclicalScheduler</span></code></a></p></td>
+<td><p>An abstract class for updating an optimizer's parameter value over a cycle of some size.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.handlers.param_scheduler.LRScheduler.html#ignite.handlers.param_scheduler.LRScheduler" title="ignite.handlers.param_scheduler.LRScheduler"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LRScheduler</span></code></a></p></td>
+<td><p>A wrapper class to call <cite>torch.optim.lr_scheduler</cite> objects as <cite>ignite</cite> handlers.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.handlers.param_scheduler.LinearCyclicalScheduler.html#ignite.handlers.param_scheduler.LinearCyclicalScheduler" title="ignite.handlers.param_scheduler.LinearCyclicalScheduler"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LinearCyclicalScheduler</span></code></a></p></td>
+<td><p>Linearly adjusts param value to 'end_value' for a half-cycle, then linearly adjusts it back to 'start_value' for a half-cycle.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.handlers.param_scheduler.ParamGroupScheduler.html#ignite.handlers.param_scheduler.ParamGroupScheduler" title="ignite.handlers.param_scheduler.ParamGroupScheduler"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ParamGroupScheduler</span></code></a></p></td>
+<td><p>Scheduler helper to group multiple schedulers into one.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.handlers.param_scheduler.ParamScheduler.html#ignite.handlers.param_scheduler.ParamScheduler" title="ignite.handlers.param_scheduler.ParamScheduler"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ParamScheduler</span></code></a></p></td>
+<td><p>An abstract class for updating an optimizer's parameter value during training.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.handlers.param_scheduler.PiecewiseLinear.html#ignite.handlers.param_scheduler.PiecewiseLinear" title="ignite.handlers.param_scheduler.PiecewiseLinear"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PiecewiseLinear</span></code></a></p></td>
+<td><p>Piecewise linear parameter scheduler</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.handlers.param_scheduler.create_lr_scheduler_with_warmup.html#ignite.handlers.param_scheduler.create_lr_scheduler_with_warmup" title="ignite.handlers.param_scheduler.create_lr_scheduler_with_warmup"><code class="xref py py-obj docutils literal notranslate"><span class="pre">create_lr_scheduler_with_warmup</span></code></a></p></td>
+<td><p>Helper method to create a learning rate scheduler with a linear warm-up.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="more-on-parameter-scheduling">
+<h2>More on parameter scheduling<a class="headerlink" href="#more-on-parameter-scheduling" title="Permalink to this heading">#</a></h2>
+<p>In this section there are visual examples of various parameter schedulings that can be achieved.</p>
+<section id="example-with-cosineannealingscheduler">
+<h3>Example with <a class="reference internal" href="generated/ignite.handlers.param_scheduler.CosineAnnealingScheduler.html#ignite.handlers.param_scheduler.CosineAnnealingScheduler" title="ignite.handlers.param_scheduler.CosineAnnealingScheduler"><code class="xref py py-class docutils literal notranslate"><span class="pre">CosineAnnealingScheduler</span></code></a><a class="headerlink" href="#example-with-cosineannealingscheduler" title="Permalink to this heading">#</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pylab</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ignite.handlers</span><span class="w"> </span><span class="kn">import</span> <span class="n">CosineAnnealingScheduler</span>
+
+<span class="n">lr_values_1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">CosineAnnealingScheduler</span><span class="o">.</span><span class="n">simulate_values</span><span class="p">(</span><span class="n">num_events</span><span class="o">=</span><span class="mi">75</span><span class="p">,</span> <span class="n">param_name</span><span class="o">=</span><span class="s1">&#39;lr&#39;</span><span class="p">,</span>
+                                                            <span class="n">start_value</span><span class="o">=</span><span class="mf">1e-1</span><span class="p">,</span> <span class="n">end_value</span><span class="o">=</span><span class="mf">2e-2</span><span class="p">,</span> <span class="n">cycle_size</span><span class="o">=</span><span class="mi">20</span><span class="p">))</span>
+
+<span class="n">lr_values_2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">CosineAnnealingScheduler</span><span class="o">.</span><span class="n">simulate_values</span><span class="p">(</span><span class="n">num_events</span><span class="o">=</span><span class="mi">75</span><span class="p">,</span> <span class="n">param_name</span><span class="o">=</span><span class="s1">&#39;lr&#39;</span><span class="p">,</span>
+                                                                <span class="n">start_value</span><span class="o">=</span><span class="mf">1e-1</span><span class="p">,</span> <span class="n">end_value</span><span class="o">=</span><span class="mf">2e-2</span><span class="p">,</span> <span class="n">cycle_size</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">cycle_mult</span><span class="o">=</span><span class="mf">1.3</span><span class="p">))</span>
+
+<span class="n">lr_values_3</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">CosineAnnealingScheduler</span><span class="o">.</span><span class="n">simulate_values</span><span class="p">(</span><span class="n">num_events</span><span class="o">=</span><span class="mi">75</span><span class="p">,</span> <span class="n">param_name</span><span class="o">=</span><span class="s1">&#39;lr&#39;</span><span class="p">,</span>
+                                                                <span class="n">start_value</span><span class="o">=</span><span class="mf">1e-1</span><span class="p">,</span> <span class="n">end_value</span><span class="o">=</span><span class="mf">2e-2</span><span class="p">,</span>
+                                                                <span class="n">cycle_size</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">start_value_mult</span><span class="o">=</span><span class="mf">0.7</span><span class="p">))</span>
+
+<span class="n">lr_values_4</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">CosineAnnealingScheduler</span><span class="o">.</span><span class="n">simulate_values</span><span class="p">(</span><span class="n">num_events</span><span class="o">=</span><span class="mi">75</span><span class="p">,</span> <span class="n">param_name</span><span class="o">=</span><span class="s1">&#39;lr&#39;</span><span class="p">,</span>
+                                                                <span class="n">start_value</span><span class="o">=</span><span class="mf">1e-1</span><span class="p">,</span> <span class="n">end_value</span><span class="o">=</span><span class="mf">2e-2</span><span class="p">,</span>
+                                                                <span class="n">cycle_size</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">end_value_mult</span><span class="o">=</span><span class="mf">0.1</span><span class="p">))</span>
+
+
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">25</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">141</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Cosine annealing&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">lr_values_1</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">lr_values_1</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;learning rate&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;events&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;values&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.12</span><span class="p">])</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">142</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Cosine annealing with cycle_mult=1.3&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">lr_values_2</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">lr_values_2</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;learning rate&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;events&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;values&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.12</span><span class="p">])</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">143</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Cosine annealing with start_value_mult=0.7&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">lr_values_3</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">lr_values_3</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;learning rate&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;events&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;values&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.12</span><span class="p">])</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">144</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Cosine annealing with end_value_mult=0.1&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">lr_values_4</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">lr_values_4</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;learning rate&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;events&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;values&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.12</span><span class="p">])</span>
+</pre></div>
+</div>
+<img alt="_images/cosine_annealing_example.png" src="_images/cosine_annealing_example.png" />
+</section>
+<section id="example-with-ignite-handlers-param-scheduler-linearcyclicalscheduler">
+<h3>Example with <a class="reference internal" href="generated/ignite.handlers.param_scheduler.LinearCyclicalScheduler.html#ignite.handlers.param_scheduler.LinearCyclicalScheduler" title="ignite.handlers.param_scheduler.LinearCyclicalScheduler"><code class="xref py py-class docutils literal notranslate"><span class="pre">ignite.handlers.param_scheduler.LinearCyclicalScheduler</span></code></a><a class="headerlink" href="#example-with-ignite-handlers-param-scheduler-linearcyclicalscheduler" title="Permalink to this heading">#</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pylab</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ignite.handlers</span><span class="w"> </span><span class="kn">import</span> <span class="n">LinearCyclicalScheduler</span>
+
+<span class="n">lr_values_1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">LinearCyclicalScheduler</span><span class="o">.</span><span class="n">simulate_values</span><span class="p">(</span><span class="n">num_events</span><span class="o">=</span><span class="mi">75</span><span class="p">,</span> <span class="n">param_name</span><span class="o">=</span><span class="s1">&#39;lr&#39;</span><span class="p">,</span>
+                                                                <span class="n">start_value</span><span class="o">=</span><span class="mf">1e-1</span><span class="p">,</span> <span class="n">end_value</span><span class="o">=</span><span class="mf">2e-2</span><span class="p">,</span> <span class="n">cycle_size</span><span class="o">=</span><span class="mi">20</span><span class="p">))</span>
+
+<span class="n">lr_values_2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">LinearCyclicalScheduler</span><span class="o">.</span><span class="n">simulate_values</span><span class="p">(</span><span class="n">num_events</span><span class="o">=</span><span class="mi">75</span><span class="p">,</span> <span class="n">param_name</span><span class="o">=</span><span class="s1">&#39;lr&#39;</span><span class="p">,</span>
+                                                                <span class="n">start_value</span><span class="o">=</span><span class="mf">1e-1</span><span class="p">,</span> <span class="n">end_value</span><span class="o">=</span><span class="mf">2e-2</span><span class="p">,</span> <span class="n">cycle_size</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">cycle_mult</span><span class="o">=</span><span class="mf">1.3</span><span class="p">))</span>
+
+<span class="n">lr_values_3</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">LinearCyclicalScheduler</span><span class="o">.</span><span class="n">simulate_values</span><span class="p">(</span><span class="n">num_events</span><span class="o">=</span><span class="mi">75</span><span class="p">,</span> <span class="n">param_name</span><span class="o">=</span><span class="s1">&#39;lr&#39;</span><span class="p">,</span>
+                                                                <span class="n">start_value</span><span class="o">=</span><span class="mf">1e-1</span><span class="p">,</span> <span class="n">end_value</span><span class="o">=</span><span class="mf">2e-2</span><span class="p">,</span>
+                                                                <span class="n">cycle_size</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">start_value_mult</span><span class="o">=</span><span class="mf">0.7</span><span class="p">))</span>
+
+<span class="n">lr_values_4</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">LinearCyclicalScheduler</span><span class="o">.</span><span class="n">simulate_values</span><span class="p">(</span><span class="n">num_events</span><span class="o">=</span><span class="mi">75</span><span class="p">,</span> <span class="n">param_name</span><span class="o">=</span><span class="s1">&#39;lr&#39;</span><span class="p">,</span>
+                                                                <span class="n">start_value</span><span class="o">=</span><span class="mf">1e-1</span><span class="p">,</span> <span class="n">end_value</span><span class="o">=</span><span class="mf">2e-2</span><span class="p">,</span>
+                                                                <span class="n">cycle_size</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">end_value_mult</span><span class="o">=</span><span class="mf">0.1</span><span class="p">))</span>
+
+
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">25</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">141</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Linear cyclical scheduler&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">lr_values_1</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">lr_values_1</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;learning rate&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;events&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;values&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.12</span><span class="p">])</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">142</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Linear cyclical scheduler with cycle_mult=1.3&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">lr_values_2</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">lr_values_2</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;learning rate&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;events&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;values&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.12</span><span class="p">])</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">143</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Linear cyclical scheduler with start_value_mult=0.7&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">lr_values_3</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">lr_values_3</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;learning rate&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;events&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;values&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.12</span><span class="p">])</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">144</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Linear cyclical scheduler with end_value_mult=0.1&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">lr_values_4</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">lr_values_4</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;learning rate&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;events&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;values&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.12</span><span class="p">])</span>
+</pre></div>
+</div>
+<img alt="_images/linear_cyclical_example.png" src="_images/linear_cyclical_example.png" />
+</section>
+<section id="example-with-ignite-handlers-param-scheduler-concatscheduler">
+<h3>Example with <a class="reference internal" href="generated/ignite.handlers.param_scheduler.ConcatScheduler.html#ignite.handlers.param_scheduler.ConcatScheduler" title="ignite.handlers.param_scheduler.ConcatScheduler"><code class="xref py py-class docutils literal notranslate"><span class="pre">ignite.handlers.param_scheduler.ConcatScheduler</span></code></a><a class="headerlink" href="#example-with-ignite-handlers-param-scheduler-concatscheduler" title="Permalink to this heading">#</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pylab</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ignite.handlers</span><span class="w"> </span><span class="kn">import</span> <span class="n">LinearCyclicalScheduler</span><span class="p">,</span> <span class="n">CosineAnnealingScheduler</span><span class="p">,</span> <span class="n">ConcatScheduler</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
+<span class="n">t1</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="mi">1</span><span class="p">],</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">optimizer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">SGD</span><span class="p">([</span><span class="n">t1</span><span class="p">],</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+
+
+<span class="n">scheduler_1</span> <span class="o">=</span> <span class="n">LinearCyclicalScheduler</span><span class="p">(</span><span class="n">optimizer</span><span class="p">,</span> <span class="s2">&quot;lr&quot;</span><span class="p">,</span> <span class="n">start_value</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">end_value</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">cycle_size</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span>
+<span class="n">scheduler_2</span> <span class="o">=</span> <span class="n">CosineAnnealingScheduler</span><span class="p">(</span><span class="n">optimizer</span><span class="p">,</span> <span class="s2">&quot;lr&quot;</span><span class="p">,</span> <span class="n">start_value</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">end_value</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">cycle_size</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+<span class="n">durations</span> <span class="o">=</span> <span class="p">[</span><span class="mi">15</span><span class="p">,</span> <span class="p">]</span>
+
+<span class="n">lr_values_1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ConcatScheduler</span><span class="o">.</span><span class="n">simulate_values</span><span class="p">(</span><span class="n">num_events</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">schedulers</span><span class="o">=</span><span class="p">[</span><span class="n">scheduler_1</span><span class="p">,</span> <span class="n">scheduler_2</span><span class="p">],</span> <span class="n">durations</span><span class="o">=</span><span class="n">durations</span><span class="p">))</span>
+
+
+<span class="n">t1</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="mi">1</span><span class="p">],</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">optimizer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">SGD</span><span class="p">([</span><span class="n">t1</span><span class="p">],</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+
+<span class="n">scheduler_1</span> <span class="o">=</span> <span class="n">LinearCyclicalScheduler</span><span class="p">(</span><span class="n">optimizer</span><span class="p">,</span> <span class="s2">&quot;lr&quot;</span><span class="p">,</span> <span class="n">start_value</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">end_value</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">cycle_size</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span>
+<span class="n">scheduler_2</span> <span class="o">=</span> <span class="n">CosineAnnealingScheduler</span><span class="p">(</span><span class="n">optimizer</span><span class="p">,</span> <span class="s2">&quot;momentum&quot;</span><span class="p">,</span> <span class="n">start_value</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">end_value</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">cycle_size</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+<span class="n">durations</span> <span class="o">=</span> <span class="p">[</span><span class="mi">15</span><span class="p">,</span> <span class="p">]</span>
+
+<span class="n">lr_values_2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ConcatScheduler</span><span class="o">.</span><span class="n">simulate_values</span><span class="p">(</span><span class="n">num_events</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">schedulers</span><span class="o">=</span><span class="p">[</span><span class="n">scheduler_1</span><span class="p">,</span> <span class="n">scheduler_2</span><span class="p">],</span> <span class="n">durations</span><span class="o">=</span><span class="n">durations</span><span class="p">,</span>
+                                                        <span class="n">param_names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;lr&quot;</span><span class="p">,</span> <span class="s2">&quot;momentum&quot;</span><span class="p">]))</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">25</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">131</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Concat scheduler of linear + cosine annealing&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">lr_values_1</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">lr_values_1</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;learning rate&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;events&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;values&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">132</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Concat scheduler of linear LR scheduler</span><span class="se">\n</span><span class="s2"> and cosine annealing on momentum&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">lr_values_2</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">lr_values_2</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;learning rate&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;events&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;values&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">133</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Concat scheduler of linear LR scheduler</span><span class="se">\n</span><span class="s2"> and cosine annealing on momentum&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">lr_values_2</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">lr_values_2</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;momentum&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;events&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;values&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+</pre></div>
+</div>
+<img alt="_images/concat_example.png" src="_images/concat_example.png" />
+<section id="piecewise-linear-scheduler">
+<h4>Piecewise linear scheduler<a class="headerlink" href="#piecewise-linear-scheduler" title="Permalink to this heading">#</a></h4>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pylab</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ignite.handlers</span><span class="w"> </span><span class="kn">import</span> <span class="n">LinearCyclicalScheduler</span><span class="p">,</span> <span class="n">ConcatScheduler</span>
+
+<span class="n">scheduler_1</span> <span class="o">=</span> <span class="n">LinearCyclicalScheduler</span><span class="p">(</span><span class="n">optimizer</span><span class="p">,</span> <span class="s2">&quot;lr&quot;</span><span class="p">,</span> <span class="n">start_value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">end_value</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span> <span class="n">cycle_size</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+<span class="n">scheduler_2</span> <span class="o">=</span> <span class="n">LinearCyclicalScheduler</span><span class="p">(</span><span class="n">optimizer</span><span class="p">,</span> <span class="s2">&quot;lr&quot;</span><span class="p">,</span> <span class="n">start_value</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span> <span class="n">end_value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">cycle_size</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+<span class="n">durations</span> <span class="o">=</span> <span class="p">[</span><span class="mi">25</span><span class="p">,</span> <span class="p">]</span>
+
+<span class="n">lr_values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ConcatScheduler</span><span class="o">.</span><span class="n">simulate_values</span><span class="p">(</span><span class="n">num_events</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">schedulers</span><span class="o">=</span><span class="p">[</span><span class="n">scheduler_1</span><span class="p">,</span> <span class="n">scheduler_2</span><span class="p">],</span> <span class="n">durations</span><span class="o">=</span><span class="n">durations</span><span class="p">))</span>
+
+
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Piecewise linear scheduler&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">lr_values</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">lr_values</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;learning rate&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;events&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;values&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+</pre></div>
+</div>
+<img alt="_images/piecewise_linear.png" src="_images/piecewise_linear.png" />
+</section>
+</section>
+<section id="example-with-ignite-handlers-param-scheduler-lrscheduler">
+<h3>Example with <a class="reference internal" href="generated/ignite.handlers.param_scheduler.LRScheduler.html#ignite.handlers.param_scheduler.LRScheduler" title="ignite.handlers.param_scheduler.LRScheduler"><code class="xref py py-class docutils literal notranslate"><span class="pre">ignite.handlers.param_scheduler.LRScheduler</span></code></a><a class="headerlink" href="#example-with-ignite-handlers-param-scheduler-lrscheduler" title="Permalink to this heading">#</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pylab</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ignite.handlers</span><span class="w"> </span><span class="kn">import</span> <span class="n">LRScheduler</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.optim.lr_scheduler</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExponentialLR</span><span class="p">,</span> <span class="n">StepLR</span><span class="p">,</span> <span class="n">CosineAnnealingLR</span>
+
+<span class="n">tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="mi">1</span><span class="p">],</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">optimizer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">SGD</span><span class="p">([</span><span class="n">tensor</span><span class="p">],</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+
+<span class="n">lr_scheduler_1</span> <span class="o">=</span> <span class="n">StepLR</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">step_size</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">0.77</span><span class="p">)</span>
+<span class="n">lr_scheduler_2</span> <span class="o">=</span> <span class="n">ExponentialLR</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">0.98</span><span class="p">)</span>
+<span class="n">lr_scheduler_3</span> <span class="o">=</span> <span class="n">CosineAnnealingLR</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">T_max</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">eta_min</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span>
+
+<span class="n">lr_values_1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">LRScheduler</span><span class="o">.</span><span class="n">simulate_values</span><span class="p">(</span><span class="n">num_events</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">lr_scheduler</span><span class="o">=</span><span class="n">lr_scheduler_1</span><span class="p">))</span>
+<span class="n">lr_values_2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">LRScheduler</span><span class="o">.</span><span class="n">simulate_values</span><span class="p">(</span><span class="n">num_events</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">lr_scheduler</span><span class="o">=</span><span class="n">lr_scheduler_2</span><span class="p">))</span>
+<span class="n">lr_values_3</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">LRScheduler</span><span class="o">.</span><span class="n">simulate_values</span><span class="p">(</span><span class="n">num_events</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">lr_scheduler</span><span class="o">=</span><span class="n">lr_scheduler_3</span><span class="p">))</span>
+
+
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">25</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">131</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Torch LR scheduler wrapping StepLR&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">lr_values_1</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">lr_values_1</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;learning rate&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;events&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;values&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">132</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Torch LR scheduler wrapping ExponentialLR&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">lr_values_2</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">lr_values_2</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;learning rate&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;events&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;values&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">133</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Torch LR scheduler wrapping CosineAnnealingLR&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">lr_values_3</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">lr_values_3</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;learning rate&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;events&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;values&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+</pre></div>
+</div>
+<img alt="_images/lr_scheduler.png" src="_images/lr_scheduler.png" />
+<section id="concatenate-with-torch-schedulers">
+<h4>Concatenate with torch schedulers<a class="headerlink" href="#concatenate-with-torch-schedulers" title="Permalink to this heading">#</a></h4>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pylab</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ignite.handlers</span><span class="w"> </span><span class="kn">import</span> <span class="n">LRScheduler</span><span class="p">,</span> <span class="n">ConcatScheduler</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.optim.lr_scheduler</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExponentialLR</span><span class="p">,</span> <span class="n">StepLR</span>
+
+<span class="n">t1</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="mi">1</span><span class="p">],</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">optimizer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">SGD</span><span class="p">([</span><span class="n">t1</span><span class="p">],</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+
+<span class="n">scheduler_1</span> <span class="o">=</span> <span class="n">LinearCyclicalScheduler</span><span class="p">(</span><span class="n">optimizer</span><span class="p">,</span> <span class="s2">&quot;lr&quot;</span><span class="p">,</span> <span class="n">start_value</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span> <span class="n">end_value</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">cycle_size</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span>
+<span class="n">lr_scheduler</span> <span class="o">=</span> <span class="n">ExponentialLR</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">0.7</span><span class="p">)</span>
+<span class="n">scheduler_2</span> <span class="o">=</span> <span class="n">LRScheduler</span><span class="p">(</span><span class="n">lr_scheduler</span><span class="o">=</span><span class="n">lr_scheduler</span><span class="p">)</span>
+<span class="n">durations</span> <span class="o">=</span> <span class="p">[</span><span class="mi">15</span><span class="p">,</span> <span class="p">]</span>
+<span class="n">lr_values_1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ConcatScheduler</span><span class="o">.</span><span class="n">simulate_values</span><span class="p">(</span><span class="n">num_events</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">schedulers</span><span class="o">=</span><span class="p">[</span><span class="n">scheduler_1</span><span class="p">,</span> <span class="n">scheduler_2</span><span class="p">],</span> <span class="n">durations</span><span class="o">=</span><span class="n">durations</span><span class="p">))</span>
+
+
+<span class="n">scheduler_1</span> <span class="o">=</span> <span class="n">LinearCyclicalScheduler</span><span class="p">(</span><span class="n">optimizer</span><span class="p">,</span> <span class="s2">&quot;lr&quot;</span><span class="p">,</span> <span class="n">start_value</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span> <span class="n">end_value</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">cycle_size</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span>
+<span class="n">lr_scheduler</span> <span class="o">=</span> <span class="n">StepLR</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">step_size</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">0.7</span><span class="p">)</span>
+<span class="n">scheduler_2</span> <span class="o">=</span> <span class="n">LRScheduler</span><span class="p">(</span><span class="n">lr_scheduler</span><span class="o">=</span><span class="n">lr_scheduler</span><span class="p">)</span>
+<span class="n">durations</span> <span class="o">=</span> <span class="p">[</span><span class="mi">15</span><span class="p">,</span> <span class="p">]</span>
+<span class="n">lr_values_2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ConcatScheduler</span><span class="o">.</span><span class="n">simulate_values</span><span class="p">(</span><span class="n">num_events</span><span class="o">=</span><span class="mi">75</span><span class="p">,</span> <span class="n">schedulers</span><span class="o">=</span><span class="p">[</span><span class="n">scheduler_1</span><span class="p">,</span> <span class="n">scheduler_2</span><span class="p">],</span> <span class="n">durations</span><span class="o">=</span><span class="n">durations</span><span class="p">))</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">121</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Concat scheduler of linear + ExponentialLR&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">lr_values_1</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">lr_values_1</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;learning rate&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;events&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;values&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">122</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Concat scheduler of linear + StepLR&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">lr_values_2</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">lr_values_2</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;learning rate&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;events&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;values&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+</pre></div>
+</div>
+<img alt="_images/concat_linear_exp_step_lr.png" src="_images/concat_linear_exp_step_lr.png" />
+</section>
+</section>
+</section>
+</section>
+
+
+             </article>
+             
+            </div>
+            <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="generated/ignite.handlers.checkpoint.Checkpoint.html" class="btn btn-neutral float-right" title="Checkpoint" accesskey="n" rel="next">Next
+          <img src="_static/images/chevron-right-orange.svg" alt="right arrow" class="next-page">
+        </a>
+      
+      
+        <a href="generated/ignite.engine.supervised_evaluation_step_amp.html" class="btn btn-neutral" title="supervised_evaluation_step_amp" accesskey="p" rel="prev">
+          <img src="_static/images/chevron-right-orange.svg" alt="left arrow" class="previous-page"> Previous
+        </a>
+      
+    </div>
+  
+
+  
+
+    <hr>
+
+  
+
+  <div role="contentinfo">
+    <table>
+      <tr>
+        <td>
+            <p>
+                &copy; Copyright 2026, PyTorch-Ignite Contributors.
+              Last updated on 07/09/2021, 10:17:57 PM.
+            </p>
+            
+              <div>
+                Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+              </div>
+          
+        </td>
+        <td>
+            
+              <div>
+                <a href="https://www.netlify.com" target="_blank" rel="noopener noreferrer">
+                  <img
+                  src="_static/img/netlify-light.svg"
+                  alt="Deploys by Netlify"
+                  width=114
+                  height=51 />
+                </a>
+              </div>
+            
+        </td>
+      </tr>
+    </table>
+  </div> 
+
+</footer>
+          </div>
+        </div>
+
+        <div class="pytorch-content-right" id="pytorch-content-right">
+          <div class="pytorch-right-menu" id="pytorch-right-menu">
+            <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
+              <ul>
+<li><a class="reference internal" href="#">ignite.handlers</a><ul>
+<li><a class="reference internal" href="#complete-list-of-handlers">Complete list of handlers</a><ul>
+</ul>
+</li>
+<li><a class="reference internal" href="#parameter-scheduler">Parameter scheduler</a></li>
+<li><a class="reference internal" href="#more-on-parameter-scheduling">More on parameter scheduling</a><ul>
+<li><a class="reference internal" href="#example-with-cosineannealingscheduler">Example with <code class="xref py py-class docutils literal notranslate"><span class="pre">CosineAnnealingScheduler</span></code></a></li>
+<li><a class="reference internal" href="#example-with-ignite-handlers-param-scheduler-linearcyclicalscheduler">Example with <code class="xref py py-class docutils literal notranslate"><span class="pre">ignite.handlers.param_scheduler.LinearCyclicalScheduler</span></code></a></li>
+<li><a class="reference internal" href="#example-with-ignite-handlers-param-scheduler-concatscheduler">Example with <code class="xref py py-class docutils literal notranslate"><span class="pre">ignite.handlers.param_scheduler.ConcatScheduler</span></code></a><ul>
+<li><a class="reference internal" href="#piecewise-linear-scheduler">Piecewise linear scheduler</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#example-with-ignite-handlers-param-scheduler-lrscheduler">Example with <code class="xref py py-class docutils literal notranslate"><span class="pre">ignite.handlers.param_scheduler.LRScheduler</span></code></a><ul>
+<li><a class="reference internal" href="#concatenate-with-torch-schedulers">Concatenate with torch schedulers</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+  
+
+     
+       <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+         <script src="_static/jquery.js"></script>
+         <script src="_static/underscore.js"></script>
+         <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+         <script src="_static/doctools.js"></script>
+         <script src="_static/sphinx_highlight.js"></script>
+         <script src="_static/clipboard.min.js"></script>
+         <script src="_static/copybutton.js"></script>
+         <script>let toggleHintShow = 'Show default setup';</script>
+         <script>let toggleHintHide = 'Hide default setup';</script>
+         <script>let toggleOpenOnPrint = 'true';</script>
+         <script src="_static/togglebutton.js"></script>
+         <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+         <script src="_static/design-tabs.js"></script>
+     
+
+  
+
+  <script type="text/javascript" src="_static/js/vendor/popper.min.js"></script>
+  <script type="text/javascript" src="_static/js/vendor/bootstrap.min.js"></script>
+  <script type="text/javascript" src="_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+  <!-- Begin Footer -->
+
+  <!-- commented out for Ignite -->
+
+  <div class="container-fluid docs-tutorials-resources" id="docs-tutorials-resources">
+    <!-- <div class="container">
+      <div class="row">
+        <div class="text-center col-md-4">
+          <h2>Docs</h2>
+          <p>Access comprehensive developer documentation for PyTorch</p>
+          <a class="with-right-arrow" href="https://pytorch.org/ignite/index.html">View Docs</a>
+        </div>
+
+        <div class="text-center col-md-4">
+          <h2>Tutorials</h2>
+          <p>Get in-depth tutorials for beginners and advanced developers</p>
+          <a class="with-right-arrow" href="">View Tutorials</a>
+        </div>
+
+        <div class="text-center col-md-4">
+          <h2>Resources</h2>
+          <p>Find development resources and get your questions answered</p>
+          <a class="with-right-arrow" href="">View Resources</a>
+        </div>
+      </div>
+    </div> -->
+  </div>
+
+  <!-- <footer class="site-footer">
+    <div class="container footer-container">
+      <div class="footer-logo-wrapper">
+        <a href="https://pytorch-ignite.ai" class="footer-logo"></a>
+      </div>
+
+      <div class="footer-links-wrapper">
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title"><a href="https://pytorch-ignite.ai">PyTorch</a></li>
+            <li><a href="">Get Started</a></li>
+            <li><a href="">Features</a></li>
+            <li><a href="">Ecosystem</a></li>
+            <li><a href="">Blog</a></li>
+            <li><a href="">Resources</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title"><a href="">Support</a></li>
+            <li><a href="">Tutorials</a></li>
+            <li><a href="https://pytorch.org/ignite/index.html">Docs</a></li>
+            <li><a href="" target="_blank">Discuss</a></li>
+            <li><a href="https://github.com/pytorch/ignite/issues" target="_blank">Github Issues</a></li>
+            <li><a href="" target="_blank">Slack</a></li>
+            <li><a href="https://github.com/pytorch/ignite/blob/master/CONTRIBUTING.md" target="_blank">Contributing</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links-col follow-us-col">
+          <ul>
+            <li class="list-title">Follow Us</li>
+            <li>
+              <div id="mc_embed_signup">
+                <form
+                  action="https://twitter.us14.list-manage.com/subscribe/post?u=75419c71fe0a935e53dfa4a3f&id=91d0dccd39"
+                  method="post"
+                  id="mc-embedded-subscribe-form"
+                  name="mc-embedded-subscribe-form"
+                  class="email-subscribe-form validate"
+                  target="_blank"
+                  novalidate>
+                  <div id="mc_embed_signup_scroll" class="email-subscribe-form-fields-wrapper">
+                    <div class="mc-field-group">
+                      <label for="mce-EMAIL" style="display:none;">Email Address</label>
+                      <input type="email" value="" name="EMAIL" class="required email" id="mce-EMAIL" placeholder="Email Address">
+                    </div>
+
+                    <div id="mce-responses" class="clear">
+                      <div class="response" id="mce-error-response" style="display:none"></div>
+                      <div class="response" id="mce-success-response" style="display:none"></div>
+                    </div>    <!~~ real people should not fill this in and expect good things - do not remove this or risk form bot signups ~~>
+
+                    <div style="position: absolute; left: -5000px;" aria-hidden="true"><input type="text" name="b_75419c71fe0a935e53dfa4a3f_91d0dccd39" tabindex="-1" value=""></div>
+
+                    <div class="clear">
+                      <input type="submit" value="" name="subscribe" id="mc-embedded-subscribe" class="button email-subscribe-button">
+                    </div>
+                  </div>
+                </form>
+              </div>
+
+            </li>
+          </ul>
+
+          <div class="footer-social-icons">
+            <a href="" target="_blank" class="facebook"></a>
+            <a href="" target="_blank" class="twitter"></a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer> -->
+
+
+  <!-- end of commented out for Ignite -->
+
+  <!-- <div class="cookie-banner-wrapper">
+  <div class="container">
+    <p class="gdpr-notice">To analyze traffic and optimize your experience, we serve cookies on this site. By clicking or navigating, you agree to allow our usage of cookies. As the current maintainers of this site, Facebook’s Cookies Policy applies. Learn more, including about available controls: <a href="https://www.facebook.com/policies/cookies/">Cookies Policy</a>.</p>
+    <img class="close-button" src="_static/images/pytorch-x.svg">
+  </div>
+</div> -->
+
+  <!-- End Footer -->
+
+  <!-- Begin Mobile Menu -->
+  <!--
+  <div class="mobile-main-menu">
+    <div class="container-fluid">
+      <div class="container">
+        <div class="mobile-main-menu-header-container">
+          <a class="header-logo" href="https://pytorch-ignite.ai" aria-label="PyTorch"></a>
+          <a class="main-menu-close-button" href="#" data-behavior="close-mobile-menu"></a>
+        </div>
+      </div>
+    </div>
+
+    <div class="mobile-main-menu-links-container">
+      <div class="main-menu">
+        <ul>
+          <li>
+            <a href="#">Get Started</a>
+          </li>
+
+          <li>
+            <a href="#">Features</a>
+          </li>
+
+          <li>
+            <a href="#">Ecosystem</a>
+          </li>
+
+          <li>
+            <a href="">Blog</a>
+          </li>
+
+          <li>
+            <a href="">Tutorials</a>
+          </li>
+
+          <li>
+            <a href="https://pytorch.org/ignite/index.html">Docs</a>
+          </li>
+
+          <li>
+            <a href="">Resources</a>
+          </li>
+
+          <li>
+            <a href="https://github.com/pytorch/ignite">Github</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  -->
+  <!-- End Mobile Menu -->
+
+  <script type="text/javascript" src="_static/js/vendor/anchor.min.js"></script>
+
+  <script type="text/javascript">
+    var collapsedSections = []
+    $(document).ready(function() {
+      mobileMenu.bind();
+      mobileTOC.bind();
+      pytorchAnchors.bind();
+      sideMenus.bind();
+      scrollToAnchor.bind();
+      highlightNavigation.bind();
+
+      // Add class to links that have code blocks, since we cannot create links in code blocks
+      $("article.pytorch-article a span.pre").each(function(e) {
+        $(this).closest("a").addClass("has-code");
+      });
+    })
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@docsearch/js@3"></script>
+  <script type="text/javascript">
+  let VERSION
+  if ('v0.4.6'.startsWith('v')) {
+    VERSION = 'v0.4.6'
+  } else {
+    VERSION = 'master'
+  }
+  docsearch({
+    container: '#docsearch',
+    appId: '7EWYE1JCT3',
+    apiKey: '841e93e60c16975ba1bd8c7c716eed82',
+    indexName: 'pytorch-ignite',
+    placeholder: 'Search PyTorch-Ignite docs',
+    searchParameters: {
+      facetFilters: [`version:${VERSION}`, 'tags:API-reference'],
+    }
+  });
+  </script>
+</body>
+</html>

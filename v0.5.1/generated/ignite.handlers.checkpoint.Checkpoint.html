@@ -1,0 +1,1213 @@
+
+
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta name="author" content="PyTorch-Ignite Contributors">
+  <meta name="creator" content="PyTorch-Ignite Contributors">
+  <meta name="publisher" content="PyTorch-Ignite Contributors">
+  <meta name="generator" content="Sphinx 5.3.0">
+  <meta name="description" content="High-level library to help with training and evaluating neural networks in PyTorch flexibly and transparently.">
+  <meta name="keywords" content="pytorch, pytorch ignite, ignite, engine, events, handlers, metrics">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#ee4c2c">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@pytorch_ignite">
+  <meta name="twitter:creator" content="@pytorch_ignite">
+  <meta name="twitter:description" content="High-level library to help with training and evaluating neural networks in PyTorch flexibly and transparently.">
+  <meta name="twitter:title" content="Checkpoint &mdash; PyTorch-Ignite v0.5.1 Documentation">
+  <meta name="twitter:image" content="https://raw.githubusercontent.com/pytorch/ignite/master/assets/logo/ignite_logo.png">
+  <meta name="twitter:image:alt" content="PyTorch-Ignite logo">
+
+  <meta property="og:title" content="Checkpoint &mdash; PyTorch-Ignite v0.5.1 Documentation">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://pytorch.org/ignite/">
+  <meta property="og:site_name" content="PyTorch-Ignite">
+  <meta property="og:image" content="https://raw.githubusercontent.com/pytorch/ignite/master/assets/logo/ignite_logo.png">
+  <meta property="og:image:alt" content="PyTorch-Ignite logo">
+  <meta property="og:description" content="High-level library to help with training and evaluating neural networks in PyTorch flexibly and transparently.">
+
+  <link rel="preconnect" href="https://BH4D9OD16A-dsn.algolia.net" crossorigin />
+
+  
+  <title>Checkpoint &mdash; PyTorch-Ignite v0.5.1 Documentation</title>
+  
+
+  
+  
+    <link rel="shortcut icon" type="image/svg+xml" href="../_static/ignite_logomark.svg"/>
+  
+  
+  
+    <link rel="canonical" href="https://pytorch.org/ignite/generated/ignite.handlers.checkpoint.Checkpoint.html"/>
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="preload" href="../_static/css/theme.css" as="style" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!-- <link rel="stylesheet" href="../_static/pygments.css" type="text/css" /> -->
+  <link rel="preload" href="../_static/pygments.css" as="style" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="preload" href="../_static/css/theme.css" as="style" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="preload" href="../_static/copybutton.css" as="style" />
+  <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
+  <link rel="preload" href="../_static/togglebutton.css" as="style" />
+  <link rel="stylesheet" href="../_static/togglebutton.css" type="text/css" />
+  <link rel="preload" href="../_static/banner.css" as="style" />
+  <link rel="stylesheet" href="../_static/banner.css" type="text/css" />
+  <link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" as="style" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" type="text/css" />
+  <link rel="preload" href="../_static/katex-math.css" as="style" />
+  <link rel="stylesheet" href="../_static/katex-math.css" type="text/css" />
+  <link rel="preload" href="../_static/sphinx-design.5ea377869091fd0449014c60fc090103.min.css" as="style" />
+  <link rel="stylesheet" href="../_static/sphinx-design.5ea377869091fd0449014c60fc090103.min.css" type="text/css" />
+    <link rel="preload" href="../_static/css/ignite_theme.css" as="style" />
+    <link rel="stylesheet" href="../_static/css/ignite_theme.css" type="text/css" />
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/@docsearch/css@3" as="style" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@docsearch/css@3" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="DiskSaver" href="ignite.handlers.DiskSaver.html" />
+    <link rel="prev" title="ignite.handlers" href="../handlers.html" /> 
+
+  <!-- katex links / this needs to be loaded before fonts.html -->
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/katex.min.css" crossorigin="anonymous">
+<script async src="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/katex.min.js" crossorigin="anonymous"></script>
+
+<!-- Preload the theme fonts -->
+
+<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/IBMPlexMono/IBMPlexMono-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+
+<!-- Preload the katex fonts -->
+
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Math-Italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Main-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Main-Bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Size1-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Size4-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Size2-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Size3-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Caligraphic-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-5FELLLFHCP"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-5FELLLFHCP');
+  </script>
+</head>
+
+<div class="container-fluid header-holder tutorials-header" id="header-holder">
+  <div class="container">
+
+    <a class="header-logo" href="/ignite" aria-label="PyTorch-Ignite"></a>
+
+    <div class="header-container">
+
+      <div class="main-menu">
+        <ul>
+          <li>
+            <a href="https://pytorch-ignite.ai/tutorials/beginner/01-getting-started/">Quickstart</a>
+          </li>
+
+          <li>
+            <a href="https://pytorch-ignite.ai/concepts/">Concepts</a>
+          </li>
+
+          <!-- <li>
+            <a href="https://pytorch-ignite.ai/tutorials/beginner/01-getting-started/#complete-code">Examples</a>
+          </li> -->
+
+          <li>
+            <a href="https://pytorch-ignite.ai/how-to-guides/">FAQ</a>
+          </li>
+
+          <li>
+            <a href="https://github.com/pytorch/ignite" target="_blank" rel="noopener noreferrer">GitHub</a>
+          </li>
+
+          <li>
+            <a href="https://pytorch-ignite.ai/about/community/">About us</a>
+          </li>
+
+          <li>
+            <a href="https://pytorch-ignite.ai">⊳ pytorch-ignite.ai</a>
+          </li>
+
+
+        </ul>
+      </div>
+
+      <!-- <a class="main-menu-open-button" href="#" data-behavior="open-mobile-menu"></a> -->
+    </div>
+
+  </div>
+</div>
+
+
+<body class="pytorch-body">
+
+   
+
+    
+
+    <div class="table-of-contents-link-wrapper">
+      <span>Table of Contents</span>
+      <div class="toggle-table-of-contents" data-behavior="toggle-table-of-contents"></div>
+    </div>
+
+    <nav data-toggle="wy-nav-shift" class="pytorch-left-menu" id="pytorch-left-menu">
+      <div class="pytorch-side-scroll">
+        <div class="pytorch-menu pytorch-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          <div class="pytorch-left-menu-search">
+            
+
+            
+              
+              
+                <div class="version">
+                  v0.5.1
+                </div>
+              
+            
+
+            <div id="docsearch"></div>
+
+            
+          </div>
+
+          
+            
+            
+              
+            
+            
+              <p class="caption" role="heading"><span class="caption-text">Package Reference</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../engine.html">ignite.engine</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../handlers.html">ignite.handlers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../metrics.html">ignite.metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distributed.html">ignite.distributed</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../exceptions.html">ignite.exceptions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../utils.html">ignite.utils</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Contrib Package Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../contrib/engines.html">ignite.contrib.engines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contrib/metrics.html">ignite.contrib.metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contrib/handlers.html">ignite.contrib.handlers</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+
+      <div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: v0.5.1
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../v0.4.0.post1/index.html">v0.4.0.post1</a></dd>
+            <dd><a href="../../v0.4.1/index.html">v0.4.1</a></dd>
+            <dd><a href="../../v0.4.10/generated/ignite.handlers.checkpoint.Checkpoint.html">v0.4.10</a></dd>
+            <dd><a href="../../v0.4.11/generated/ignite.handlers.checkpoint.Checkpoint.html">v0.4.11</a></dd>
+            <dd><a href="../../v0.4.12/generated/ignite.handlers.checkpoint.Checkpoint.html">v0.4.12</a></dd>
+            <dd><a href="../../v0.4.13/generated/ignite.handlers.checkpoint.Checkpoint.html">v0.4.13</a></dd>
+            <dd><a href="../../v0.4.2/index.html">v0.4.2</a></dd>
+            <dd><a href="../../v0.4.3/index.html">v0.4.3</a></dd>
+            <dd><a href="../../v0.4.4.post1/index.html">v0.4.4.post1</a></dd>
+            <dd><a href="../../v0.4.5/generated/ignite.handlers.checkpoint.Checkpoint.html">v0.4.5</a></dd>
+            <dd><a href="../../v0.4.6/generated/ignite.handlers.checkpoint.Checkpoint.html">v0.4.6</a></dd>
+            <dd><a href="../../v0.4.7/generated/ignite.handlers.checkpoint.Checkpoint.html">v0.4.7</a></dd>
+            <dd><a href="../../v0.4.8/generated/ignite.handlers.checkpoint.Checkpoint.html">v0.4.8</a></dd>
+            <dd><a href="../../v0.4.9/generated/ignite.handlers.checkpoint.Checkpoint.html">v0.4.9</a></dd>
+            <dd><a href="../../v0.4rc.0.post1/index.html">v0.4rc.0.post1</a></dd>
+            <dd><a href="../../v0.5.0.post2/generated/ignite.handlers.checkpoint.Checkpoint.html">v0.5.0.post2</a></dd>
+            <dd><a href="ignite.handlers.checkpoint.Checkpoint.html">v0.5.1</a></dd>
+            <dd><a href="../../v0.5.2/generated/ignite.handlers.checkpoint.Checkpoint.html">v0.5.2</a></dd>
+            <dd><a href="../../v0.5.3/generated/ignite.handlers.checkpoint.Checkpoint.html">v0.5.3</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="../../master/generated/ignite.handlers.checkpoint.Checkpoint.html">master</a></dd>
+        </dl>
+    </div>
+</div>
+
+    </nav>
+
+    <div class="pytorch-container">
+      <div class="pytorch-page-level-bar" id="pytorch-page-level-bar">
+        <div class="pytorch-breadcrumbs-wrapper">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="pytorch-breadcrumbs">
+    
+      <li>
+        <a href="../index.html">
+          
+            Docs
+          
+        </a> &gt;
+      </li>
+
+        
+          <li><a href="../handlers.html">ignite.handlers</a> &gt;</li>
+        
+      <li>Checkpoint</li>
+    
+    
+      <li class="pytorch-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/generated/ignite.handlers.checkpoint.Checkpoint.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+</div>
+        </div>
+
+        <div class="pytorch-shortcuts-wrapper" id="pytorch-shortcuts-wrapper">
+          Shortcuts
+        </div>
+      </div>
+
+      <section data-toggle="wy-nav-shift" id="pytorch-content-wrap" class="pytorch-content-wrap">
+        <div class="pytorch-content-left">
+
+        
+          
+          <div class="rst-content">
+          
+            <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
+             <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
+              
+  <section id="checkpoint">
+<h1>Checkpoint<a class="headerlink" href="#checkpoint" title="Permalink to this heading">#</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="ignite.handlers.checkpoint.Checkpoint">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ignite.handlers.checkpoint.</span></span><span class="sig-name descname"><span class="pre">Checkpoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">to_save</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_handler</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename_prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">score_function</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">score_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_saved</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_step_transform</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename_pattern</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_self</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">greater_or_equal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_on_rank</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ignite/handlers/checkpoint.html#Checkpoint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ignite.handlers.checkpoint.Checkpoint" title="Permalink to this definition">#</a></dt>
+<dd><p>Checkpoint handler can be used to periodically save and load objects which have attribute
+<code class="docutils literal notranslate"><span class="pre">state_dict/load_state_dict</span></code>. This class can use specific save handlers to store on the disk or a cloud
+storage, etc. The Checkpoint handler (if used with <a class="reference internal" href="ignite.handlers.DiskSaver.html#ignite.handlers.DiskSaver" title="ignite.handlers.DiskSaver"><code class="xref py py-class docutils literal notranslate"><span class="pre">DiskSaver</span></code></a>) also handles automatically
+moving data on TPU to CPU before writing the checkpoint.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>to_save</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Mapping" title="(in Python v3.14)"><em>Mapping</em></a>) – Dictionary with the objects to save. Objects should have implemented <code class="docutils literal notranslate"><span class="pre">state_dict</span></code> and
+<code class="docutils literal notranslate"><span class="pre">load_state_dict</span></code> methods. If contains objects of type torch <a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html">DistributedDataParallel</a> or
+<a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.DataParallel.html">DataParallel</a>, their internal wrapped model is automatically saved (to avoid additional key <code class="docutils literal notranslate"><span class="pre">module.</span></code> in
+the state dictionary).</p></li>
+<li><p><strong>save_handler</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.14)"><em>Union</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><em>Path</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a><em>, </em><a class="reference internal" href="ignite.handlers.checkpoint.BaseSaveHandler.html#ignite.handlers.checkpoint.BaseSaveHandler" title="ignite.handlers.checkpoint.BaseSaveHandler"><em>BaseSaveHandler</em></a><em>]</em>) – String, function or callable object.
+used to save engine and other provided objects. Function receives two objects: checkpoint as a dictionary
+and filename. If <code class="docutils literal notranslate"><span class="pre">save_handler</span></code> is callable class, it can
+inherit of <a class="reference internal" href="ignite.handlers.checkpoint.BaseSaveHandler.html#ignite.handlers.checkpoint.BaseSaveHandler" title="ignite.handlers.checkpoint.BaseSaveHandler"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseSaveHandler</span></code></a> and optionally implement <code class="docutils literal notranslate"><span class="pre">remove</span></code> method
+to keep a fixed number of saved checkpoints. In case if user needs to save engine’s checkpoint on a disk,
+<code class="docutils literal notranslate"><span class="pre">save_handler</span></code> can be defined with <a class="reference internal" href="ignite.handlers.DiskSaver.html#ignite.handlers.DiskSaver" title="ignite.handlers.DiskSaver"><code class="xref py py-class docutils literal notranslate"><span class="pre">DiskSaver</span></code></a> or a string specifying
+directory name can be passed to <code class="docutils literal notranslate"><span class="pre">save_handler</span></code>.</p></li>
+<li><p><strong>filename_prefix</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Prefix for the file name to which objects will be saved. See Note for details.</p></li>
+<li><p><strong>score_function</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><em>Optional</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a><em>]</em>) – If not None, it should be a function taking a single argument,
+<a class="reference internal" href="ignite.engine.engine.Engine.html#ignite.engine.engine.Engine" title="ignite.engine.engine.Engine"><code class="xref py py-class docutils literal notranslate"><span class="pre">Engine</span></code></a> object, and returning a score (<cite>float</cite>). Objects with highest scores
+will be retained.</p></li>
+<li><p><strong>score_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><em>Optional</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>]</em>) – If <code class="docutils literal notranslate"><span class="pre">score_function</span></code> not None, it is possible to store its value using
+<code class="docutils literal notranslate"><span class="pre">score_name</span></code>. If <code class="docutils literal notranslate"><span class="pre">score_function</span></code> is None, <code class="docutils literal notranslate"><span class="pre">score_name</span></code> can be used alone to define <code class="docutils literal notranslate"><span class="pre">score_function</span></code>
+as <code class="docutils literal notranslate"><span class="pre">Checkpoint.get_default_score_fn(score_name)</span></code> by default.</p></li>
+<li><p><strong>n_saved</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><em>Optional</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>]</em>) – Number of objects that should be kept on disk. Older files will be removed. If set to
+<cite>None</cite>, all objects are kept.</p></li>
+<li><p><strong>global_step_transform</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><em>Optional</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a><em>]</em>) – global step transform function to output a desired global step.
+Input of the function is <code class="docutils literal notranslate"><span class="pre">(engine,</span> <span class="pre">event_name)</span></code>. Output of function should be an integer.
+Default is None, global_step based on attached engine. If provided, uses function output as global_step.
+To setup global step from another engine, please use <a class="reference internal" href="ignite.handlers.global_step_from_engine.html#ignite.handlers.global_step_from_engine" title="ignite.handlers.global_step_from_engine"><code class="xref py py-meth docutils literal notranslate"><span class="pre">global_step_from_engine()</span></code></a>.</p></li>
+<li><p><strong>filename_pattern</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><em>Optional</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>]</em>) – If <code class="docutils literal notranslate"><span class="pre">filename_pattern</span></code> is provided, this pattern will be used to render
+checkpoint filenames. If the pattern is not defined, the default pattern would be used. See Note for
+details.</p></li>
+<li><p><strong>include_self</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Whether to include the <cite>state_dict</cite> of this object in the checkpoint. If <cite>True</cite>, then
+there must not be another object in <code class="docutils literal notranslate"><span class="pre">to_save</span></code> with key <code class="docutils literal notranslate"><span class="pre">checkpointer</span></code>.</p></li>
+<li><p><strong>greater_or_equal</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – if <cite>True</cite>, the latest equally scored model is stored. Otherwise, the first model.
+Default, <cite>False</cite>.</p></li>
+<li><p><strong>save_on_rank</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Which rank to save the objects on, in the distributed configuration. If <code class="docutils literal notranslate"><span class="pre">save_handler</span></code> is
+string or <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code></a>, this is also used to instantiate a <a class="reference internal" href="ignite.handlers.DiskSaver.html#ignite.handlers.DiskSaver" title="ignite.handlers.DiskSaver"><code class="xref py py-class docutils literal notranslate"><span class="pre">DiskSaver</span></code></a>.</p></li>
+</ul>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This class stores a single file as a dictionary of provided objects to save.
+The filename is defined by <code class="docutils literal notranslate"><span class="pre">filename_pattern</span></code> and by default has the following
+structure: <code class="docutils literal notranslate"><span class="pre">{filename_prefix}_{name}_{suffix}.{ext}</span></code> where</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">filename_prefix</span></code> is the argument passed to the constructor,</p></li>
+<li><p><cite>name</cite> is the key in <code class="docutils literal notranslate"><span class="pre">to_save</span></code> if a single object is to store, otherwise <cite>name</cite> is “checkpoint”.</p></li>
+<li><p><cite>suffix</cite> is composed as following <code class="docutils literal notranslate"><span class="pre">{global_step}_{score_name}={score}</span></code>.</p></li>
+</ul>
+</div>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 12%" />
+<col style="width: 24%" />
+<col style="width: 47%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>score_function</p></th>
+<th class="head"><p>score_name</p></th>
+<th class="head"><p>global_step_transform</p></th>
+<th class="head"><p>suffix</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>None</p></td>
+<td><p>None</p></td>
+<td><p>None</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{engine.state.iteration}</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>X</p></td>
+<td><p>None</p></td>
+<td><p>None</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{score}</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>X</p></td>
+<td><p>None</p></td>
+<td><p>X</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{global_step}_{score}</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>X</p></td>
+<td><p>X</p></td>
+<td><p>X</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{global_step}_{score_name}={score}</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>None</p></td>
+<td><p>None</p></td>
+<td><p>X</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{global_step}</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>X</p></td>
+<td><p>X</p></td>
+<td><p>None</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{score_name}={score}</span></code></p></td>
+</tr>
+</tbody>
+</table>
+<p>Above <cite>global_step</cite> defined by the output of <cite>global_step_transform</cite> and <cite>score</cite> defined by the output
+of <cite>score_function</cite>.</p>
+<p>By default, none of <code class="docutils literal notranslate"><span class="pre">score_function</span></code>, <code class="docutils literal notranslate"><span class="pre">score_name</span></code>, <code class="docutils literal notranslate"><span class="pre">global_step_transform</span></code> is defined, then suffix is
+setup by attached engine’s current iteration. The filename will be
+<cite>{filename_prefix}_{name}_{engine.state.iteration}.{ext}</cite>.</p>
+<p>For example, <code class="docutils literal notranslate"><span class="pre">score_name=&quot;neg_val_loss&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">score_function</span></code> that returns <cite>-loss</cite> (as objects with highest
+scores will be retained), then saved filename will be <code class="docutils literal notranslate"><span class="pre">{filename_prefix}_{name}_neg_val_loss=-0.1234.pt</span></code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">filename_pattern</span></code> is given, it will be used to render the filenames. <code class="docutils literal notranslate"><span class="pre">filename_pattern</span></code> is a string
+that can contain <code class="docutils literal notranslate"><span class="pre">{filename_prefix}</span></code>, <code class="docutils literal notranslate"><span class="pre">{name}</span></code>, <code class="docutils literal notranslate"><span class="pre">{score}</span></code>, <code class="docutils literal notranslate"><span class="pre">{score_name}</span></code> and <code class="docutils literal notranslate"><span class="pre">{global_step}</span></code> as
+templates.</p>
+<p>For example, let <code class="docutils literal notranslate"><span class="pre">filename_pattern=&quot;{global_step}-{name}-{score}.pt&quot;</span></code> then the saved filename will be
+<code class="docutils literal notranslate"><span class="pre">30000-checkpoint-94.pt</span></code></p>
+<p><strong>Warning:</strong> Please, keep in mind that if filename collide with already used one to saved a checkpoint,
+new checkpoint will replace the older one. This means that filename like <code class="docutils literal notranslate"><span class="pre">checkpoint.pt</span></code> will be saved
+every call and will always be overwritten by newer checkpoints.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>To get the last stored filename, handler exposes attribute <code class="docutils literal notranslate"><span class="pre">last_checkpoint</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">handler</span> <span class="o">=</span> <span class="n">Checkpoint</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<span class="o">...</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">handler</span><span class="o">.</span><span class="n">last_checkpoint</span><span class="p">)</span>
+<span class="o">&gt;</span> <span class="n">checkpoint_12345</span><span class="o">.</span><span class="n">pt</span>
+</pre></div>
+</div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This class is distributed configuration-friendly: it is not required to instantiate the class in rank 0 only
+process. This class supports automatically distributed configuration and if used with
+<a class="reference internal" href="ignite.handlers.DiskSaver.html#ignite.handlers.DiskSaver" title="ignite.handlers.DiskSaver"><code class="xref py py-class docutils literal notranslate"><span class="pre">DiskSaver</span></code></a>, checkpoint is stored by rank 0 process.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>When running on XLA devices or using <a class="reference external" href="https://docs.pytorch.org/docs/stable/distributed.optim.html#torch.distributed.optim.ZeroRedundancyOptimizer" title="(in PyTorch v2.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ZeroRedundancyOptimizer</span></code></a>, it
+should be run in all processes, otherwise application can get stuck while saving the checkpoint.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Wrong:</span>
+<span class="c1"># if idist.get_rank() == 0:</span>
+<span class="c1">#     handler = Checkpoint(...)</span>
+<span class="c1">#     trainer.add_event_handler(Events.ITERATION_COMPLETED(every=1000), handler)</span>
+
+<span class="c1"># Correct:</span>
+<span class="n">handler</span> <span class="o">=</span> <span class="n">Checkpoint</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<span class="n">trainer</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">ITERATION_COMPLETED</span><span class="p">(</span><span class="n">every</span><span class="o">=</span><span class="mi">1000</span><span class="p">),</span> <span class="n">handler</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p class="rubric">Examples</p>
+<p>Attach the handler to make checkpoints during training:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ignite.engine</span><span class="w"> </span><span class="kn">import</span> <span class="n">Engine</span><span class="p">,</span> <span class="n">Events</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ignite.handlers</span><span class="w"> </span><span class="kn">import</span> <span class="n">Checkpoint</span>
+
+<span class="n">trainer</span> <span class="o">=</span> <span class="o">...</span>
+<span class="n">model</span> <span class="o">=</span> <span class="o">...</span>
+<span class="n">optimizer</span> <span class="o">=</span> <span class="o">...</span>
+<span class="n">lr_scheduler</span> <span class="o">=</span> <span class="o">...</span>
+
+<span class="n">to_save</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="n">model</span><span class="p">,</span> <span class="s1">&#39;optimizer&#39;</span><span class="p">:</span> <span class="n">optimizer</span><span class="p">,</span> <span class="s1">&#39;lr_scheduler&#39;</span><span class="p">:</span> <span class="n">lr_scheduler</span><span class="p">,</span> <span class="s1">&#39;trainer&#39;</span><span class="p">:</span> <span class="n">trainer</span><span class="p">}</span>
+
+<span class="k">if</span> <span class="p">(</span><span class="n">checkpoint_iters</span><span class="p">):</span>
+    <span class="c1"># A: Output is &quot;checkpoint_&lt;iteration&gt;.pt&quot;</span>
+    <span class="n">handler</span> <span class="o">=</span> <span class="n">Checkpoint</span><span class="p">(</span>
+        <span class="n">to_save</span><span class="p">,</span> <span class="s1">&#39;/tmp/models&#39;</span><span class="p">,</span> <span class="n">n_saved</span><span class="o">=</span><span class="mi">2</span>
+    <span class="p">)</span>
+    <span class="n">trainer</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">ITERATION_COMPLETED</span><span class="p">(</span><span class="n">every</span><span class="o">=</span><span class="mi">1000</span><span class="p">),</span> <span class="n">handler</span><span class="p">)</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="c1"># B:Output is &quot;checkpoint_&lt;epoch&gt;.pt&quot;</span>
+    <span class="n">gst</span> <span class="o">=</span> <span class="k">lambda</span> <span class="o">*</span><span class="n">_</span><span class="p">:</span> <span class="n">trainer</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">epoch</span>
+    <span class="n">handler</span> <span class="o">=</span> <span class="n">Checkpoint</span><span class="p">(</span>
+        <span class="n">to_save</span><span class="p">,</span> <span class="s1">&#39;/tmp/models&#39;</span><span class="p">,</span> <span class="n">n_saved</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">global_step_transform</span><span class="o">=</span><span class="n">gst</span>
+    <span class="p">)</span>
+    <span class="n">trainer</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">EPOCH_COMPLETED</span><span class="p">,</span> <span class="n">handler</span><span class="p">)</span>
+
+<span class="n">trainer</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">data_loader</span><span class="p">,</span> <span class="n">max_epochs</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span>
+<span class="o">&gt;</span> <span class="n">A</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;checkpoint_7000.pt&quot;</span><span class="p">,</span> <span class="s2">&quot;checkpoint_8000.pt&quot;</span><span class="p">,</span> <span class="p">]</span>
+<span class="o">&gt;</span> <span class="n">B</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;checkpoint_5.pt&quot;</span><span class="p">,</span> <span class="s2">&quot;checkpoint_6.pt&quot;</span><span class="p">,</span> <span class="p">]</span>
+</pre></div>
+</div>
+<p>Attach the handler to an evaluator to save best model during the training
+according to computed validation metric:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ignite.engine</span><span class="w"> </span><span class="kn">import</span> <span class="n">Engine</span><span class="p">,</span> <span class="n">Events</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ignite.handlers</span><span class="w"> </span><span class="kn">import</span> <span class="n">Checkpoint</span><span class="p">,</span> <span class="n">global_step_from_engine</span>
+
+<span class="n">trainer</span> <span class="o">=</span> <span class="o">...</span>
+<span class="n">evaluator</span> <span class="o">=</span> <span class="o">...</span>
+<span class="c1"># Setup Accuracy metric computation on evaluator.</span>
+<span class="c1"># evaluator.state.metrics contain &#39;accuracy&#39;,</span>
+<span class="c1"># which will be used to define ``score_function`` automatically.</span>
+<span class="c1"># Run evaluation on epoch completed event</span>
+<span class="c1"># ...</span>
+
+<span class="n">to_save</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="n">model</span><span class="p">}</span>
+<span class="n">handler</span> <span class="o">=</span> <span class="n">Checkpoint</span><span class="p">(</span>
+    <span class="n">to_save</span><span class="p">,</span> <span class="s1">&#39;/tmp/models&#39;</span><span class="p">,</span>
+    <span class="n">n_saved</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">filename_prefix</span><span class="o">=</span><span class="s1">&#39;best&#39;</span><span class="p">,</span>
+    <span class="n">score_name</span><span class="o">=</span><span class="s2">&quot;accuracy&quot;</span><span class="p">,</span>
+    <span class="n">global_step_transform</span><span class="o">=</span><span class="n">global_step_from_engine</span><span class="p">(</span><span class="n">trainer</span><span class="p">)</span>
+<span class="p">)</span>
+
+<span class="n">evaluator</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">COMPLETED</span><span class="p">,</span> <span class="n">handler</span><span class="p">)</span>
+
+<span class="n">trainer</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">data_loader</span><span class="p">,</span> <span class="n">max_epochs</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="o">&gt;</span> <span class="p">[</span><span class="s2">&quot;best_model_9_accuracy=0.77.pt&quot;</span><span class="p">,</span> <span class="s2">&quot;best_model_10_accuracy=0.78.pt&quot;</span><span class="p">,</span> <span class="p">]</span>
+</pre></div>
+</div>
+<p>Customise the <code class="docutils literal notranslate"><span class="pre">save_handler</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">handler</span> <span class="o">=</span> <span class="n">Checkpoint</span><span class="p">(</span>
+    <span class="n">to_save</span><span class="p">,</span> <span class="n">save_handler</span><span class="o">=</span><span class="n">DiskSaver</span><span class="p">(</span><span class="s1">&#39;/tmp/models&#39;</span><span class="p">,</span> <span class="n">create_dir</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span> <span class="n">n_saved</span><span class="o">=</span><span class="mi">2</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 0.4.3: </span></p>
+<ul class="simple">
+<li><p>Checkpoint can save model with same filename.</p></li>
+<li><p>Added <code class="docutils literal notranslate"><span class="pre">greater_or_equal</span></code> argument.</p></li>
+</ul>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 0.4.7: </span></p>
+<ul class="simple">
+<li><p><cite>score_name</cite> can be used to define <cite>score_function</cite> automatically without providing <cite>score_function</cite>.</p></li>
+<li><p><cite>save_handler</cite> automatically saves to disk if path to directory is provided.</p></li>
+<li><p><cite>save_on_rank</cite> saves objects on this rank in a distributed configuration.</p></li>
+</ul>
+</div>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ignite.handlers.checkpoint.Checkpoint.get_default_score_fn" title="ignite.handlers.checkpoint.Checkpoint.get_default_score_fn"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_default_score_fn</span></code></a></p></td>
+<td><p>Helper method to get default score function based on the metric name.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ignite.handlers.checkpoint.Checkpoint.load_objects" title="ignite.handlers.checkpoint.Checkpoint.load_objects"><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_objects</span></code></a></p></td>
+<td><p>Helper method to apply <code class="docutils literal notranslate"><span class="pre">load_state_dict</span></code> on the objects from <code class="docutils literal notranslate"><span class="pre">to_load</span></code> using states from <code class="docutils literal notranslate"><span class="pre">checkpoint</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ignite.handlers.checkpoint.Checkpoint.load_state_dict" title="ignite.handlers.checkpoint.Checkpoint.load_state_dict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_state_dict</span></code></a></p></td>
+<td><p>Method replaces internal state of the class with provided state dict data.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ignite.handlers.checkpoint.Checkpoint.reload_objects" title="ignite.handlers.checkpoint.Checkpoint.reload_objects"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reload_objects</span></code></a></p></td>
+<td><p>Helper method to apply <code class="docutils literal notranslate"><span class="pre">load_state_dict</span></code> on the objects from <code class="docutils literal notranslate"><span class="pre">to_load</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ignite.handlers.checkpoint.Checkpoint.reset" title="ignite.handlers.checkpoint.Checkpoint.reset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reset</span></code></a></p></td>
+<td><p>Method to reset saved checkpoint names.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ignite.handlers.checkpoint.Checkpoint.setup_filename_pattern" title="ignite.handlers.checkpoint.Checkpoint.setup_filename_pattern"><code class="xref py py-obj docutils literal notranslate"><span class="pre">setup_filename_pattern</span></code></a></p></td>
+<td><p>Helper method to get the default filename pattern for a checkpoint.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ignite.handlers.checkpoint.Checkpoint.state_dict" title="ignite.handlers.checkpoint.Checkpoint.state_dict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">state_dict</span></code></a></p></td>
+<td><p>Method returns state dict with saved items: list of <code class="docutils literal notranslate"><span class="pre">(priority,</span> <span class="pre">filename)</span></code> pairs.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py class">
+<dt class="sig sig-object py" id="ignite.handlers.checkpoint.Checkpoint.Item">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Item</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">priority</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ignite.handlers.checkpoint.Checkpoint.Item" title="Permalink to this definition">#</a></dt>
+<dd><p>Create new instance of Item(priority, filename)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>priority</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – </p></li>
+<li><p><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – </p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ignite.handlers.checkpoint.Checkpoint.Item.filename">
+<span class="sig-name descname"><span class="pre">filename</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></em><a class="headerlink" href="#ignite.handlers.checkpoint.Checkpoint.Item.filename" title="Permalink to this definition">#</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ignite.handlers.checkpoint.Checkpoint.Item.priority">
+<span class="sig-name descname"><span class="pre">priority</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></em><a class="headerlink" href="#ignite.handlers.checkpoint.Checkpoint.Item.priority" title="Permalink to this definition">#</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ignite.handlers.checkpoint.Checkpoint.get_default_score_fn">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_default_score_fn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metric_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">score_sign</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ignite/handlers/checkpoint.html#Checkpoint.get_default_score_fn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ignite.handlers.checkpoint.Checkpoint.get_default_score_fn" title="Permalink to this definition">#</a></dt>
+<dd><p>Helper method to get default score function based on the metric name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>metric_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – metric name to get the value from <code class="docutils literal notranslate"><span class="pre">engine.state.metrics</span></code>.
+Engine is the one to which <a class="reference internal" href="#ignite.handlers.checkpoint.Checkpoint" title="ignite.handlers.checkpoint.Checkpoint"><code class="xref py py-class docutils literal notranslate"><span class="pre">Checkpoint</span></code></a> handler is added.</p></li>
+<li><p><strong>score_sign</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – sign of the score: 1.0 or -1.0. For error-like metrics, e.g. smaller is better,
+a negative score sign should be used (objects with larger score are retained). Default, 1.0.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a></p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ignite.handlers</span><span class="w"> </span><span class="kn">import</span> <span class="n">Checkpoint</span>
+
+<span class="n">best_acc_score</span> <span class="o">=</span> <span class="n">Checkpoint</span><span class="o">.</span><span class="n">get_default_score_fn</span><span class="p">(</span><span class="s2">&quot;accuracy&quot;</span><span class="p">)</span>
+
+<span class="n">best_model_handler</span> <span class="o">=</span> <span class="n">Checkpoint</span><span class="p">(</span>
+    <span class="n">to_save</span><span class="p">,</span> <span class="n">save_handler</span><span class="p">,</span> <span class="n">score_name</span><span class="o">=</span><span class="s2">&quot;val_accuracy&quot;</span><span class="p">,</span> <span class="n">score_function</span><span class="o">=</span><span class="n">best_acc_score</span>
+<span class="p">)</span>
+<span class="n">evaluator</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">COMPLETED</span><span class="p">,</span> <span class="n">best_model_handler</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Usage with error-like metric:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ignite.handlers</span><span class="w"> </span><span class="kn">import</span> <span class="n">Checkpoint</span>
+
+<span class="n">neg_loss_score</span> <span class="o">=</span> <span class="n">Checkpoint</span><span class="o">.</span><span class="n">get_default_score_fn</span><span class="p">(</span><span class="s2">&quot;loss&quot;</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">)</span>
+
+<span class="n">best_model_handler</span> <span class="o">=</span> <span class="n">Checkpoint</span><span class="p">(</span>
+    <span class="n">to_save</span><span class="p">,</span> <span class="n">save_handler</span><span class="p">,</span> <span class="n">score_name</span><span class="o">=</span><span class="s2">&quot;val_neg_loss&quot;</span><span class="p">,</span> <span class="n">score_function</span><span class="o">=</span><span class="n">neg_loss_score</span>
+<span class="p">)</span>
+<span class="n">evaluator</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">COMPLETED</span><span class="p">,</span> <span class="n">best_model_handler</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="versionadded">
+<p><span class="versionmodified added">New in version 0.4.3.</span></p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ignite.handlers.checkpoint.Checkpoint.load_objects">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">load_objects</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">to_load</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">checkpoint</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ignite/handlers/checkpoint.html#Checkpoint.load_objects"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ignite.handlers.checkpoint.Checkpoint.load_objects" title="Permalink to this definition">#</a></dt>
+<dd><p>Helper method to apply <code class="docutils literal notranslate"><span class="pre">load_state_dict</span></code> on the objects from <code class="docutils literal notranslate"><span class="pre">to_load</span></code> using states from <code class="docutils literal notranslate"><span class="pre">checkpoint</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>to_load</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Mapping" title="(in Python v3.14)"><em>Mapping</em></a>) – a dictionary with objects, e.g. <cite>{“model”: model, “optimizer”: optimizer, …}</cite></p></li>
+<li><p><strong>checkpoint</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.14)"><em>Union</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Mapping" title="(in Python v3.14)"><em>Mapping</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><em>Path</em></a><em>]</em>) – a path, a string filepath or a dictionary with state_dicts to load, e.g.
+<cite>{“model”: model_state_dict, “optimizer”: opt_state_dict}</cite>. If <cite>to_load</cite> contains a single key,
+then checkpoint can contain directly corresponding state_dict.</p></li>
+<li><p><strong>kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Keyword arguments accepted for <cite>nn.Module.load_state_dict()</cite>. Passing <cite>strict=False</cite> enables
+the user to load part of the pretrained model (useful for example, in Transfer Learning)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">ignite.engine</span><span class="w"> </span><span class="kn">import</span> <span class="n">Engine</span><span class="p">,</span> <span class="n">Events</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ignite.handlers</span><span class="w"> </span><span class="kn">import</span> <span class="n">ModelCheckpoint</span><span class="p">,</span> <span class="n">Checkpoint</span>
+
+<span class="n">trainer</span> <span class="o">=</span> <span class="n">Engine</span><span class="p">(</span><span class="k">lambda</span> <span class="n">engine</span><span class="p">,</span> <span class="n">batch</span><span class="p">:</span> <span class="kc">None</span><span class="p">)</span>
+
+<span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">()</span> <span class="k">as</span> <span class="n">tmpdirname</span><span class="p">:</span>
+    <span class="n">handler</span> <span class="o">=</span> <span class="n">ModelCheckpoint</span><span class="p">(</span><span class="n">tmpdirname</span><span class="p">,</span> <span class="s1">&#39;myprefix&#39;</span><span class="p">,</span> <span class="n">n_saved</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">create_dir</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">model</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="n">optimizer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">SGD</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+
+    <span class="n">to_save</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;weights&quot;</span><span class="p">:</span> <span class="n">model</span><span class="p">,</span> <span class="s2">&quot;optimizer&quot;</span><span class="p">:</span> <span class="n">optimizer</span><span class="p">}</span>
+
+    <span class="n">trainer</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">EPOCH_COMPLETED</span><span class="p">(</span><span class="n">every</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span> <span class="n">handler</span><span class="p">,</span> <span class="n">to_save</span><span class="p">)</span>
+    <span class="n">trainer</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="mi">5</span><span class="p">)</span>
+
+    <span class="n">to_load</span> <span class="o">=</span> <span class="n">to_save</span>
+    <span class="n">checkpoint_fp</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">tmpdirname</span><span class="p">)</span> <span class="o">/</span> <span class="s1">&#39;myprefix_checkpoint_40.pt&#39;</span>
+    <span class="n">checkpoint</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">checkpoint_fp</span><span class="p">)</span>
+    <span class="n">Checkpoint</span><span class="o">.</span><span class="n">load_objects</span><span class="p">(</span><span class="n">to_load</span><span class="o">=</span><span class="n">to_load</span><span class="p">,</span> <span class="n">checkpoint</span><span class="o">=</span><span class="n">checkpoint</span><span class="p">)</span>
+
+    <span class="c1"># or using a string for checkpoint filepath</span>
+
+    <span class="n">to_load</span> <span class="o">=</span> <span class="n">to_save</span>
+    <span class="n">checkpoint_fp</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">tmpdirname</span><span class="p">)</span> <span class="o">/</span> <span class="s1">&#39;myprefix_checkpoint_40.pt&#39;</span>
+    <span class="n">Checkpoint</span><span class="o">.</span><span class="n">load_objects</span><span class="p">(</span><span class="n">to_load</span><span class="o">=</span><span class="n">to_load</span><span class="p">,</span> <span class="n">checkpoint</span><span class="o">=</span><span class="n">checkpoint_fp</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">to_load</span></code> contains objects of type torch <a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html">DistributedDataParallel</a> or
+<a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.DataParallel.html">DataParallel</a>, method <code class="docutils literal notranslate"><span class="pre">load_state_dict</span></code> will applied to their internal wrapped model (<code class="docutils literal notranslate"><span class="pre">obj.module</span></code>).</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ignite.handlers.checkpoint.Checkpoint.load_state_dict">
+<span class="sig-name descname"><span class="pre">load_state_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state_dict</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ignite/handlers/checkpoint.html#Checkpoint.load_state_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ignite.handlers.checkpoint.Checkpoint.load_state_dict" title="Permalink to this definition">#</a></dt>
+<dd><p>Method replaces internal state of the class with provided state dict data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>state_dict</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Mapping" title="(in Python v3.14)"><em>Mapping</em></a>) – a dict with “saved” key and list of <code class="docutils literal notranslate"><span class="pre">(priority,</span> <span class="pre">filename)</span></code> pairs as values.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ignite.handlers.checkpoint.Checkpoint.reload_objects">
+<span class="sig-name descname"><span class="pre">reload_objects</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">to_load</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">load_kwargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">filename_components</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ignite/handlers/checkpoint.html#Checkpoint.reload_objects"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ignite.handlers.checkpoint.Checkpoint.reload_objects" title="Permalink to this definition">#</a></dt>
+<dd><p>Helper method to apply <code class="docutils literal notranslate"><span class="pre">load_state_dict</span></code> on the objects from <code class="docutils literal notranslate"><span class="pre">to_load</span></code>. Filename components such as
+name, score and global state can be configured.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>to_load</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Mapping" title="(in Python v3.14)"><em>Mapping</em></a>) – a dictionary with objects, e.g. <cite>{“model”: model, “optimizer”: optimizer, …}</cite></p></li>
+<li><p><strong>load_kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><em>Optional</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.14)"><em>Dict</em></a><em>]</em>) – Keyword arguments accepted for <cite>nn.Module.load_state_dict()</cite>. Passing <cite>strict=False</cite> enables
+the user to load part of the pretrained model (useful for example, in Transfer Learning)</p></li>
+<li><p><strong>filename_components</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Filename components used to define the checkpoint file path.
+Keyword arguments accepted are <cite>name</cite>, <cite>score</cite> and <cite>global_state</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">ignite.engine</span><span class="w"> </span><span class="kn">import</span> <span class="n">Engine</span><span class="p">,</span> <span class="n">Events</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ignite.handlers</span><span class="w"> </span><span class="kn">import</span> <span class="n">ModelCheckpoint</span>
+
+<span class="n">trainer</span> <span class="o">=</span> <span class="n">Engine</span><span class="p">(</span><span class="k">lambda</span> <span class="n">engine</span><span class="p">,</span> <span class="n">batch</span><span class="p">:</span> <span class="kc">None</span><span class="p">)</span>
+
+<span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">()</span> <span class="k">as</span> <span class="n">tmpdirname</span><span class="p">:</span>
+    <span class="n">checkpoint</span> <span class="o">=</span> <span class="n">ModelCheckpoint</span><span class="p">(</span><span class="n">tmpdirname</span><span class="p">,</span> <span class="s1">&#39;myprefix&#39;</span><span class="p">,</span> <span class="n">n_saved</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">create_dir</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">model</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="n">optimizer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">SGD</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+
+    <span class="n">to_save</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;weights&quot;</span><span class="p">:</span> <span class="n">model</span><span class="p">,</span> <span class="s2">&quot;optimizer&quot;</span><span class="p">:</span> <span class="n">optimizer</span><span class="p">}</span>
+
+    <span class="n">trainer</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">EPOCH_COMPLETED</span><span class="p">(</span><span class="n">every</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span> <span class="n">checkpoint</span><span class="p">,</span> <span class="n">to_save</span><span class="p">)</span>
+    <span class="n">trainer</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="mi">5</span><span class="p">)</span>
+
+    <span class="n">to_load</span> <span class="o">=</span> <span class="n">to_save</span>
+    <span class="c1"># load checkpoint myprefix_checkpoint_40.pt</span>
+    <span class="n">checkpoint</span><span class="o">.</span><span class="n">reload_objects</span><span class="p">(</span><span class="n">to_load</span><span class="o">=</span><span class="n">to_load</span><span class="p">,</span> <span class="n">global_step</span><span class="o">=</span><span class="mi">40</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">to_load</span></code> contains objects of type torch <a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html">DistributedDataParallel</a> or
+<a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.DataParallel.html">DataParallel</a>, method <code class="docutils literal notranslate"><span class="pre">load_state_dict</span></code> will applied to their internal wrapped model (<code class="docutils literal notranslate"><span class="pre">obj.module</span></code>).</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This method works only when the <code class="docutils literal notranslate"><span class="pre">save_handler</span></code> is of types string,
+<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code></a> or <a class="reference internal" href="ignite.handlers.DiskSaver.html#ignite.handlers.DiskSaver" title="ignite.handlers.checkpoint.DiskSaver"><code class="xref py py-class docutils literal notranslate"><span class="pre">DiskSaver</span></code></a>.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ignite.handlers.checkpoint.Checkpoint.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ignite/handlers/checkpoint.html#Checkpoint.reset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ignite.handlers.checkpoint.Checkpoint.reset" title="Permalink to this definition">#</a></dt>
+<dd><p>Method to reset saved checkpoint names.</p>
+<p>Use this method if the engine will independently run multiple times:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ignite.handlers</span><span class="w"> </span><span class="kn">import</span> <span class="n">Checkpoint</span>
+
+<span class="n">trainer</span> <span class="o">=</span> <span class="o">...</span>
+<span class="n">checkpointer</span> <span class="o">=</span> <span class="n">Checkpoint</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+
+<span class="n">trainer</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">COMPLETED</span><span class="p">,</span> <span class="n">checkpointer</span><span class="p">)</span>
+<span class="n">trainer</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">STARTED</span><span class="p">,</span> <span class="n">checkpointer</span><span class="o">.</span><span class="n">reset</span><span class="p">)</span>
+
+<span class="c1"># fold 0</span>
+<span class="n">trainer</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">data0</span><span class="p">,</span> <span class="n">max_epochs</span><span class="o">=</span><span class="n">max_epochs</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Last checkpoint:&quot;</span><span class="p">,</span> <span class="n">checkpointer</span><span class="o">.</span><span class="n">last_checkpoint</span><span class="p">)</span>
+
+<span class="c1"># fold 1</span>
+<span class="n">trainer</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">data1</span><span class="p">,</span> <span class="n">max_epochs</span><span class="o">=</span><span class="n">max_epochs</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Last checkpoint:&quot;</span><span class="p">,</span> <span class="n">checkpointer</span><span class="o">.</span><span class="n">last_checkpoint</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="versionadded">
+<p><span class="versionmodified added">New in version 0.4.3.</span></p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ignite.handlers.checkpoint.Checkpoint.setup_filename_pattern">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">setup_filename_pattern</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">with_prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_score</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_score_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_global_step</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ignite/handlers/checkpoint.html#Checkpoint.setup_filename_pattern"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ignite.handlers.checkpoint.Checkpoint.setup_filename_pattern" title="Permalink to this definition">#</a></dt>
+<dd><p>Helper method to get the default filename pattern for a checkpoint.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>with_prefix</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – If True, the <code class="docutils literal notranslate"><span class="pre">filename_prefix</span></code> is added to the filename pattern:
+<code class="docutils literal notranslate"><span class="pre">{filename_prefix}_{name}...</span></code>. Default, True.</p></li>
+<li><p><strong>with_score</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – If True, <code class="docutils literal notranslate"><span class="pre">score</span></code> is added to the filename pattern: <code class="docutils literal notranslate"><span class="pre">..._{score}.{ext}</span></code>.
+Default, True. At least one of <code class="docutils literal notranslate"><span class="pre">with_score</span></code> and <code class="docutils literal notranslate"><span class="pre">with_global_step</span></code> should be True.</p></li>
+<li><p><strong>with_score_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – If True, <code class="docutils literal notranslate"><span class="pre">score_name</span></code> is added to the filename pattern:
+<code class="docutils literal notranslate"><span class="pre">..._{score_name}={score}.{ext}</span></code>. If activated, argument <code class="docutils literal notranslate"><span class="pre">with_score</span></code> should be
+also True, otherwise an error is raised. Default, True.</p></li>
+<li><p><strong>with_global_step</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – If True, <code class="docutils literal notranslate"><span class="pre">{global_step}</span></code> is added to the
+filename pattern: <code class="docutils literal notranslate"><span class="pre">...{name}_{global_step}...</span></code>.
+At least one of <code class="docutils literal notranslate"><span class="pre">with_score</span></code> and <code class="docutils literal notranslate"><span class="pre">with_global_step</span></code> should be True.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ignite.handlers</span><span class="w"> </span><span class="kn">import</span> <span class="n">Checkpoint</span>
+
+<span class="n">filename_pattern</span> <span class="o">=</span> <span class="n">Checkpoint</span><span class="o">.</span><span class="n">setup_filename_pattern</span><span class="p">()</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">filename_pattern</span><span class="p">)</span>
+<span class="o">&gt;</span> <span class="s2">&quot;</span><span class="si">{filename_prefix}</span><span class="s2">_</span><span class="si">{name}</span><span class="s2">_</span><span class="si">{global_step}</span><span class="s2">_</span><span class="si">{score_name}</span><span class="s2">=</span><span class="si">{score}</span><span class="s2">.</span><span class="si">{ext}</span><span class="s2">&quot;</span>
+</pre></div>
+</div>
+<div class="versionadded">
+<p><span class="versionmodified added">New in version 0.4.3.</span></p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ignite.handlers.checkpoint.Checkpoint.state_dict">
+<span class="sig-name descname"><span class="pre">state_dict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ignite/handlers/checkpoint.html#Checkpoint.state_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ignite.handlers.checkpoint.Checkpoint.state_dict" title="Permalink to this definition">#</a></dt>
+<dd><p>Method returns state dict with saved items: list of <code class="docutils literal notranslate"><span class="pre">(priority,</span> <span class="pre">filename)</span></code> pairs.
+Can be used to save internal state of the class.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/collections.html#collections.OrderedDict" title="(in Python v3.14)"><em>OrderedDict</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+             </article>
+             
+            </div>
+            <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="ignite.handlers.DiskSaver.html" class="btn btn-neutral float-right" title="DiskSaver" accesskey="n" rel="next">Next
+          <img src="../_static/images/chevron-right-orange.svg" alt="right arrow" class="next-page">
+        </a>
+      
+      
+        <a href="../handlers.html" class="btn btn-neutral" title="ignite.handlers" accesskey="p" rel="prev">
+          <img src="../_static/images/chevron-right-orange.svg" alt="left arrow" class="previous-page"> Previous
+        </a>
+      
+    </div>
+  
+
+  
+
+    <hr>
+
+  
+
+  <div role="contentinfo">
+    <table>
+      <tr>
+        <td>
+            <p>
+                &copy; Copyright 2026, PyTorch-Ignite Contributors.
+              Last updated on 03/01/2026, 6:40:50 PM.
+            </p>
+            
+              <div>
+                Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+              </div>
+          
+        </td>
+        <td>
+            
+              <div>
+                <a href="https://www.netlify.com" target="_blank" rel="noopener noreferrer">
+                  <img
+                  src="_static/img/netlify-light.svg"
+                  alt="Deploys by Netlify"
+                  width=114
+                  height=51 />
+                </a>
+              </div>
+            
+        </td>
+      </tr>
+    </table>
+  </div> 
+
+</footer>
+          </div>
+        </div>
+
+        <div class="pytorch-content-right" id="pytorch-content-right">
+          <div class="pytorch-right-menu" id="pytorch-right-menu">
+            <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
+              <ul>
+<li><a class="reference internal" href="#">Checkpoint</a><ul>
+<li><a class="reference internal" href="#ignite.handlers.checkpoint.Checkpoint"><code class="docutils literal notranslate"><span class="pre">Checkpoint</span></code></a><ul>
+<li><a class="reference internal" href="#ignite.handlers.checkpoint.Checkpoint.Item"><code class="docutils literal notranslate"><span class="pre">Checkpoint.Item</span></code></a><ul>
+<li><a class="reference internal" href="#ignite.handlers.checkpoint.Checkpoint.Item.filename"><code class="docutils literal notranslate"><span class="pre">Checkpoint.Item.filename</span></code></a></li>
+<li><a class="reference internal" href="#ignite.handlers.checkpoint.Checkpoint.Item.priority"><code class="docutils literal notranslate"><span class="pre">Checkpoint.Item.priority</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#ignite.handlers.checkpoint.Checkpoint.get_default_score_fn"><code class="docutils literal notranslate"><span class="pre">Checkpoint.get_default_score_fn()</span></code></a></li>
+<li><a class="reference internal" href="#ignite.handlers.checkpoint.Checkpoint.load_objects"><code class="docutils literal notranslate"><span class="pre">Checkpoint.load_objects()</span></code></a></li>
+<li><a class="reference internal" href="#ignite.handlers.checkpoint.Checkpoint.load_state_dict"><code class="docutils literal notranslate"><span class="pre">Checkpoint.load_state_dict()</span></code></a></li>
+<li><a class="reference internal" href="#ignite.handlers.checkpoint.Checkpoint.reload_objects"><code class="docutils literal notranslate"><span class="pre">Checkpoint.reload_objects()</span></code></a></li>
+<li><a class="reference internal" href="#ignite.handlers.checkpoint.Checkpoint.reset"><code class="docutils literal notranslate"><span class="pre">Checkpoint.reset()</span></code></a></li>
+<li><a class="reference internal" href="#ignite.handlers.checkpoint.Checkpoint.setup_filename_pattern"><code class="docutils literal notranslate"><span class="pre">Checkpoint.setup_filename_pattern()</span></code></a></li>
+<li><a class="reference internal" href="#ignite.handlers.checkpoint.Checkpoint.state_dict"><code class="docutils literal notranslate"><span class="pre">Checkpoint.state_dict()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+  
+
+     
+       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+         <script src="../_static/jquery.js"></script>
+         <script src="../_static/underscore.js"></script>
+         <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+         <script src="../_static/doctools.js"></script>
+         <script src="../_static/sphinx_highlight.js"></script>
+         <script src="../_static/clipboard.min.js"></script>
+         <script src="../_static/copybutton.js"></script>
+         <script>let toggleHintShow = 'Show default setup';</script>
+         <script>let toggleHintHide = 'Hide default setup';</script>
+         <script>let toggleOpenOnPrint = 'true';</script>
+         <script src="../_static/togglebutton.js"></script>
+         <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+         <script src="../_static/design-tabs.js"></script>
+     
+
+  
+
+  <script type="text/javascript" src="../_static/js/vendor/popper.min.js"></script>
+  <script type="text/javascript" src="../_static/js/vendor/bootstrap.min.js"></script>
+  <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+  <!-- Begin Footer -->
+
+  <!-- commented out for Ignite -->
+
+  <div class="container-fluid docs-tutorials-resources" id="docs-tutorials-resources">
+    <!-- <div class="container">
+      <div class="row">
+        <div class="text-center col-md-4">
+          <h2>Docs</h2>
+          <p>Access comprehensive developer documentation for PyTorch</p>
+          <a class="with-right-arrow" href="https://pytorch.org/ignite/index.html">View Docs</a>
+        </div>
+
+        <div class="text-center col-md-4">
+          <h2>Tutorials</h2>
+          <p>Get in-depth tutorials for beginners and advanced developers</p>
+          <a class="with-right-arrow" href="">View Tutorials</a>
+        </div>
+
+        <div class="text-center col-md-4">
+          <h2>Resources</h2>
+          <p>Find development resources and get your questions answered</p>
+          <a class="with-right-arrow" href="">View Resources</a>
+        </div>
+      </div>
+    </div> -->
+  </div>
+
+  <!-- <footer class="site-footer">
+    <div class="container footer-container">
+      <div class="footer-logo-wrapper">
+        <a href="https://pytorch-ignite.ai" class="footer-logo"></a>
+      </div>
+
+      <div class="footer-links-wrapper">
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title"><a href="https://pytorch-ignite.ai">PyTorch</a></li>
+            <li><a href="">Get Started</a></li>
+            <li><a href="">Features</a></li>
+            <li><a href="">Ecosystem</a></li>
+            <li><a href="">Blog</a></li>
+            <li><a href="">Resources</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title"><a href="">Support</a></li>
+            <li><a href="">Tutorials</a></li>
+            <li><a href="https://pytorch.org/ignite/index.html">Docs</a></li>
+            <li><a href="" target="_blank">Discuss</a></li>
+            <li><a href="https://github.com/pytorch/ignite/issues" target="_blank">Github Issues</a></li>
+            <li><a href="" target="_blank">Slack</a></li>
+            <li><a href="https://github.com/pytorch/ignite/blob/master/CONTRIBUTING.md" target="_blank">Contributing</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links-col follow-us-col">
+          <ul>
+            <li class="list-title">Follow Us</li>
+            <li>
+              <div id="mc_embed_signup">
+                <form
+                  action="https://twitter.us14.list-manage.com/subscribe/post?u=75419c71fe0a935e53dfa4a3f&id=91d0dccd39"
+                  method="post"
+                  id="mc-embedded-subscribe-form"
+                  name="mc-embedded-subscribe-form"
+                  class="email-subscribe-form validate"
+                  target="_blank"
+                  novalidate>
+                  <div id="mc_embed_signup_scroll" class="email-subscribe-form-fields-wrapper">
+                    <div class="mc-field-group">
+                      <label for="mce-EMAIL" style="display:none;">Email Address</label>
+                      <input type="email" value="" name="EMAIL" class="required email" id="mce-EMAIL" placeholder="Email Address">
+                    </div>
+
+                    <div id="mce-responses" class="clear">
+                      <div class="response" id="mce-error-response" style="display:none"></div>
+                      <div class="response" id="mce-success-response" style="display:none"></div>
+                    </div>    <!~~ real people should not fill this in and expect good things - do not remove this or risk form bot signups ~~>
+
+                    <div style="position: absolute; left: -5000px;" aria-hidden="true"><input type="text" name="b_75419c71fe0a935e53dfa4a3f_91d0dccd39" tabindex="-1" value=""></div>
+
+                    <div class="clear">
+                      <input type="submit" value="" name="subscribe" id="mc-embedded-subscribe" class="button email-subscribe-button">
+                    </div>
+                  </div>
+                </form>
+              </div>
+
+            </li>
+          </ul>
+
+          <div class="footer-social-icons">
+            <a href="" target="_blank" class="facebook"></a>
+            <a href="" target="_blank" class="twitter"></a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer> -->
+
+
+  <!-- end of commented out for Ignite -->
+
+  <!-- <div class="cookie-banner-wrapper">
+  <div class="container">
+    <p class="gdpr-notice">To analyze traffic and optimize your experience, we serve cookies on this site. By clicking or navigating, you agree to allow our usage of cookies. As the current maintainers of this site, Facebook’s Cookies Policy applies. Learn more, including about available controls: <a href="https://www.facebook.com/policies/cookies/">Cookies Policy</a>.</p>
+    <img class="close-button" src="../_static/images/pytorch-x.svg">
+  </div>
+</div> -->
+
+  <!-- End Footer -->
+
+  <!-- Begin Mobile Menu -->
+  <!--
+  <div class="mobile-main-menu">
+    <div class="container-fluid">
+      <div class="container">
+        <div class="mobile-main-menu-header-container">
+          <a class="header-logo" href="https://pytorch-ignite.ai" aria-label="PyTorch"></a>
+          <a class="main-menu-close-button" href="#" data-behavior="close-mobile-menu"></a>
+        </div>
+      </div>
+    </div>
+
+    <div class="mobile-main-menu-links-container">
+      <div class="main-menu">
+        <ul>
+          <li>
+            <a href="#">Get Started</a>
+          </li>
+
+          <li>
+            <a href="#">Features</a>
+          </li>
+
+          <li>
+            <a href="#">Ecosystem</a>
+          </li>
+
+          <li>
+            <a href="">Blog</a>
+          </li>
+
+          <li>
+            <a href="">Tutorials</a>
+          </li>
+
+          <li>
+            <a href="https://pytorch.org/ignite/index.html">Docs</a>
+          </li>
+
+          <li>
+            <a href="">Resources</a>
+          </li>
+
+          <li>
+            <a href="https://github.com/pytorch/ignite">Github</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  -->
+  <!-- End Mobile Menu -->
+
+  <script type="text/javascript" src="../_static/js/vendor/anchor.min.js"></script>
+
+  <script type="text/javascript">
+    var collapsedSections = []
+    $(document).ready(function() {
+      mobileMenu.bind();
+      mobileTOC.bind();
+      pytorchAnchors.bind();
+      sideMenus.bind();
+      scrollToAnchor.bind();
+      highlightNavigation.bind();
+
+      // Add class to links that have code blocks, since we cannot create links in code blocks
+      $("article.pytorch-article a span.pre").each(function(e) {
+        $(this).closest("a").addClass("has-code");
+      });
+    })
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@docsearch/js@3"></script>
+  <script type="text/javascript">
+  let VERSION
+  if ('v0.5.1'.startsWith('v')) {
+    VERSION = 'v0.5.1'
+  } else {
+    VERSION = 'master'
+  }
+  docsearch({
+    container: '#docsearch',
+    appId: '7EWYE1JCT3',
+    apiKey: '841e93e60c16975ba1bd8c7c716eed82',
+    indexName: 'pytorch-ignite',
+    placeholder: 'Search PyTorch-Ignite docs',
+    searchParameters: {
+      facetFilters: [`version:${VERSION}`, 'tags:API-reference'],
+    }
+  });
+  </script>
+</body>
+</html>

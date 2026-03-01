@@ -1,0 +1,39 @@
+﻿RocCurve
+========
+
+.. currentmodule:: ignite.contrib.metrics
+
+.. autoclass:: RocCurve
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~RocCurve.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   

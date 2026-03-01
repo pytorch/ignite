@@ -1,0 +1,11 @@
+﻿Events
+======
+
+.. currentmodule:: ignite.engine.events
+
+.. autoclass:: Events
+   :members:
+
+   
+   
+   

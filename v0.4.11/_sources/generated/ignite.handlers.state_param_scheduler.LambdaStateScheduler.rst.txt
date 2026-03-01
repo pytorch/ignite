@@ -1,0 +1,33 @@
+﻿LambdaStateScheduler
+====================
+
+.. currentmodule:: ignite.handlers.state_param_scheduler
+
+.. autoclass:: LambdaStateScheduler
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+      ~LambdaStateScheduler.get_param
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   

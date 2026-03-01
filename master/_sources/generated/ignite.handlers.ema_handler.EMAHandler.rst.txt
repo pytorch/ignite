@@ -1,0 +1,23 @@
+﻿EMAHandler
+==========
+
+.. currentmodule:: ignite.handlers.ema_handler
+
+.. autoclass:: EMAHandler
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+      ~EMAHandler.attach
+   
+   
+   
+   

@@ -1,0 +1,26 @@
+﻿BaseSaveHandler
+===============
+
+.. currentmodule:: ignite.handlers.checkpoint
+
+.. autoclass:: BaseSaveHandler
+   :members:
+   :special-members: __call__
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+
+      ~BaseSaveHandler.__call__
+   
+   
+   
+   
+      ~BaseSaveHandler.remove
+   
+   
+   
+   

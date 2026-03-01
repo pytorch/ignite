@@ -1,0 +1,35 @@
+﻿visdom\_logger
+==============
+
+.. automodule:: ignite.handlers.visdom_logger
+   :members:
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :nosignatures:
+   
+      GradsScalarHandler
+      OptimizerParamsHandler
+      OutputHandler
+      VisdomLogger
+      WeightsScalarHandler
+   
+   
+
+   
+   
+   
+
+
+

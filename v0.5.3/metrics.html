@@ -1,0 +1,1469 @@
+
+
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta name="author" content="PyTorch-Ignite Contributors">
+  <meta name="creator" content="PyTorch-Ignite Contributors">
+  <meta name="publisher" content="PyTorch-Ignite Contributors">
+  <meta name="generator" content="Sphinx 5.3.0">
+  <meta name="description" content="High-level library to help with training and evaluating neural networks in PyTorch flexibly and transparently.">
+  <meta name="keywords" content="pytorch, pytorch ignite, ignite, engine, events, handlers, metrics">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#ee4c2c">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@pytorch_ignite">
+  <meta name="twitter:creator" content="@pytorch_ignite">
+  <meta name="twitter:description" content="High-level library to help with training and evaluating neural networks in PyTorch flexibly and transparently.">
+  <meta name="twitter:title" content="ignite.metrics &mdash; PyTorch-Ignite v0.5.3 Documentation">
+  <meta name="twitter:image" content="https://raw.githubusercontent.com/pytorch/ignite/master/assets/logo/ignite_logo.png">
+  <meta name="twitter:image:alt" content="PyTorch-Ignite logo">
+
+  <meta property="og:title" content="ignite.metrics &mdash; PyTorch-Ignite v0.5.3 Documentation">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://pytorch.org/ignite/">
+  <meta property="og:site_name" content="PyTorch-Ignite">
+  <meta property="og:image" content="https://raw.githubusercontent.com/pytorch/ignite/master/assets/logo/ignite_logo.png">
+  <meta property="og:image:alt" content="PyTorch-Ignite logo">
+  <meta property="og:description" content="High-level library to help with training and evaluating neural networks in PyTorch flexibly and transparently.">
+
+  <link rel="preconnect" href="https://BH4D9OD16A-dsn.algolia.net" crossorigin />
+
+  
+  <title>ignite.metrics &mdash; PyTorch-Ignite v0.5.3 Documentation</title>
+  
+
+  
+  
+    <link rel="shortcut icon" type="image/svg+xml" href="_static/ignite_logomark.svg"/>
+  
+  
+  
+    <link rel="canonical" href="https://pytorch.org/ignite/metrics.html"/>
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="preload" href="_static/css/theme.css" as="style" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!-- <link rel="stylesheet" href="_static/pygments.css" type="text/css" /> -->
+  <link rel="preload" href="_static/pygments.css" as="style" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="preload" href="_static/css/theme.css" as="style" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="preload" href="_static/copybutton.css" as="style" />
+  <link rel="stylesheet" href="_static/copybutton.css" type="text/css" />
+  <link rel="preload" href="_static/togglebutton.css" as="style" />
+  <link rel="stylesheet" href="_static/togglebutton.css" type="text/css" />
+  <link rel="preload" href="_static/banner.css" as="style" />
+  <link rel="stylesheet" href="_static/banner.css" type="text/css" />
+  <link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" as="style" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" type="text/css" />
+  <link rel="preload" href="_static/katex-math.css" as="style" />
+  <link rel="stylesheet" href="_static/katex-math.css" type="text/css" />
+  <link rel="preload" href="_static/sphinx-design.5ea377869091fd0449014c60fc090103.min.css" as="style" />
+  <link rel="stylesheet" href="_static/sphinx-design.5ea377869091fd0449014c60fc090103.min.css" type="text/css" />
+    <link rel="preload" href="_static/css/ignite_theme.css" as="style" />
+    <link rel="stylesheet" href="_static/css/ignite_theme.css" type="text/css" />
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/@docsearch/css@3" as="style" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@docsearch/css@3" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Average" href="generated/ignite.metrics.Average.html" />
+    <link rel="prev" title="MultiStepStateScheduler" href="generated/ignite.handlers.state_param_scheduler.MultiStepStateScheduler.html" /> 
+
+  <!-- katex links / this needs to be loaded before fonts.html -->
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/katex.min.css" crossorigin="anonymous">
+<script async src="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/katex.min.js" crossorigin="anonymous"></script>
+
+<!-- Preload the theme fonts -->
+
+<link rel="preload" href="_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="_static/fonts/IBMPlexMono/IBMPlexMono-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+
+<!-- Preload the katex fonts -->
+
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Math-Italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Main-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Main-Bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Size1-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Size4-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Size2-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Size3-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Caligraphic-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-5FELLLFHCP"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-5FELLLFHCP');
+  </script>
+</head>
+
+<div class="container-fluid header-holder tutorials-header" id="header-holder">
+  <div class="container">
+
+    <a class="header-logo" href="/ignite" aria-label="PyTorch-Ignite"></a>
+
+    <div class="header-container">
+
+      <div class="main-menu">
+        <ul>
+          <li>
+            <a href="https://pytorch-ignite.ai/tutorials/beginner/01-getting-started/">Quickstart</a>
+          </li>
+
+          <li>
+            <a href="https://pytorch-ignite.ai/concepts/">Concepts</a>
+          </li>
+
+          <!-- <li>
+            <a href="https://pytorch-ignite.ai/tutorials/beginner/01-getting-started/#complete-code">Examples</a>
+          </li> -->
+
+          <li>
+            <a href="https://pytorch-ignite.ai/how-to-guides/">FAQ</a>
+          </li>
+
+          <li>
+            <a href="https://github.com/pytorch/ignite" target="_blank" rel="noopener noreferrer">GitHub</a>
+          </li>
+
+          <li>
+            <a href="https://pytorch-ignite.ai/about/community/">About us</a>
+          </li>
+
+          <li>
+            <a href="https://pytorch-ignite.ai">⊳ pytorch-ignite.ai</a>
+          </li>
+
+
+        </ul>
+      </div>
+
+      <!-- <a class="main-menu-open-button" href="#" data-behavior="open-mobile-menu"></a> -->
+    </div>
+
+  </div>
+</div>
+
+
+<body class="pytorch-body">
+
+   
+
+    
+
+    <div class="table-of-contents-link-wrapper">
+      <span>Table of Contents</span>
+      <div class="toggle-table-of-contents" data-behavior="toggle-table-of-contents"></div>
+    </div>
+
+    <nav data-toggle="wy-nav-shift" class="pytorch-left-menu" id="pytorch-left-menu">
+      <div class="pytorch-side-scroll">
+        <div class="pytorch-menu pytorch-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          <div class="pytorch-left-menu-search">
+            
+
+            
+              
+              
+                <div class="version">
+                  v0.5.3
+                </div>
+              
+            
+
+            <div id="docsearch"></div>
+
+            
+          </div>
+
+          
+            
+            
+              
+            
+            
+              <p class="caption" role="heading"><span class="caption-text">Package Reference</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="engine.html">ignite.engine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="handlers.html">ignite.handlers</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">ignite.metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="distributed.html">ignite.distributed</a></li>
+<li class="toctree-l1"><a class="reference internal" href="exceptions.html">ignite.exceptions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="utils.html">ignite.utils</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Contrib Package Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="contrib/engines.html">ignite.contrib.engines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contrib/metrics.html">ignite.contrib.metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contrib/handlers.html">ignite.contrib.handlers</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+
+      <div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: v0.5.3
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../v0.3.0/metrics.html">v0.3.0</a></dd>
+            <dd><a href="../v0.4.0.post1/metrics.html">v0.4.0.post1</a></dd>
+            <dd><a href="../v0.4.1/metrics.html">v0.4.1</a></dd>
+            <dd><a href="../v0.4.10/metrics.html">v0.4.10</a></dd>
+            <dd><a href="../v0.4.11/metrics.html">v0.4.11</a></dd>
+            <dd><a href="../v0.4.12/metrics.html">v0.4.12</a></dd>
+            <dd><a href="../v0.4.13/metrics.html">v0.4.13</a></dd>
+            <dd><a href="../v0.4.2/metrics.html">v0.4.2</a></dd>
+            <dd><a href="../v0.4.3/metrics.html">v0.4.3</a></dd>
+            <dd><a href="../v0.4.4.post1/metrics.html">v0.4.4.post1</a></dd>
+            <dd><a href="../v0.4.5/metrics.html">v0.4.5</a></dd>
+            <dd><a href="../v0.4.6/metrics.html">v0.4.6</a></dd>
+            <dd><a href="../v0.4.7/metrics.html">v0.4.7</a></dd>
+            <dd><a href="../v0.4.8/metrics.html">v0.4.8</a></dd>
+            <dd><a href="../v0.4.9/metrics.html">v0.4.9</a></dd>
+            <dd><a href="../v0.4rc.0.post1/metrics.html">v0.4rc.0.post1</a></dd>
+            <dd><a href="../v0.5.0.post2/metrics.html">v0.5.0.post2</a></dd>
+            <dd><a href="../v0.5.1/metrics.html">v0.5.1</a></dd>
+            <dd><a href="../v0.5.2/metrics.html">v0.5.2</a></dd>
+            <dd><a href="metrics.html">v0.5.3</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="../master/metrics.html">master</a></dd>
+        </dl>
+    </div>
+</div>
+
+    </nav>
+
+    <div class="pytorch-container">
+      <div class="pytorch-page-level-bar" id="pytorch-page-level-bar">
+        <div class="pytorch-breadcrumbs-wrapper">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="pytorch-breadcrumbs">
+    
+      <li>
+        <a href="index.html">
+          
+            Docs
+          
+        </a> &gt;
+      </li>
+
+        
+      <li>ignite.metrics</li>
+    
+    
+      <li class="pytorch-breadcrumbs-aside">
+        
+            
+            <a href="_sources/metrics.rst.txt" rel="nofollow"><img src="_static/images/view-page-source-icon.svg"></a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+</div>
+        </div>
+
+        <div class="pytorch-shortcuts-wrapper" id="pytorch-shortcuts-wrapper">
+          Shortcuts
+        </div>
+      </div>
+
+      <section data-toggle="wy-nav-shift" id="pytorch-content-wrap" class="pytorch-content-wrap">
+        <div class="pytorch-content-left">
+
+        
+          
+          <div class="rst-content">
+          
+            <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
+             <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
+              
+  <section id="ignite-metrics">
+<h1>ignite.metrics<a class="headerlink" href="#ignite-metrics" title="Permalink to this heading">#</a></h1>
+<p>Metrics provide a way to compute various quantities of interest in an online
+fashion without having to store the entire output history of a model.</p>
+<section id="attach-engine-api">
+<span id="attach-engine"></span><h2>Attach Engine API<a class="headerlink" href="#attach-engine-api" title="Permalink to this heading">#</a></h2>
+<p>The metrics as stated above are computed in a online fashion, which means that the metric instance accumulates some internal counters on
+each iteration and metric value is computed once the epoch is ended. Internal counters are reset after every epoch. In practice, this is done with the
+help of three methods: <a class="reference internal" href="generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.reset" title="ignite.metrics.metric.Metric.reset"><code class="xref py py-meth docutils literal notranslate"><span class="pre">reset()</span></code></a>, <a class="reference internal" href="generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.update" title="ignite.metrics.metric.Metric.update"><code class="xref py py-meth docutils literal notranslate"><span class="pre">update()</span></code></a> and <a class="reference internal" href="generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.compute" title="ignite.metrics.metric.Metric.compute"><code class="xref py py-meth docutils literal notranslate"><span class="pre">compute()</span></code></a>.</p>
+<p>Therefore, a user needs to attach the metric instance to the engine so that the above three methods can be triggered on execution of certain <a class="reference internal" href="generated/ignite.engine.events.Events.html#ignite.engine.events.Events" title="ignite.engine.events.Events"><code class="xref py py-class docutils literal notranslate"><span class="pre">Events</span></code></a>.
+The <a class="reference internal" href="generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.reset" title="ignite.metrics.metric.Metric.reset"><code class="xref py py-meth docutils literal notranslate"><span class="pre">reset()</span></code></a> method is triggered on <code class="docutils literal notranslate"><span class="pre">EPOCH_STARTED</span></code> event and it is responsible to reset the metric to its initial state. The <a class="reference internal" href="generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.update" title="ignite.metrics.metric.Metric.update"><code class="xref py py-meth docutils literal notranslate"><span class="pre">update()</span></code></a> method is triggered
+on <code class="docutils literal notranslate"><span class="pre">ITERATION_COMPLETED</span></code> event as it updates the state of the metric using the passed batch output. And <a class="reference internal" href="generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.compute" title="ignite.metrics.metric.Metric.compute"><code class="xref py py-meth docutils literal notranslate"><span class="pre">compute()</span></code></a> is triggered on <code class="docutils literal notranslate"><span class="pre">EPOCH_COMPLETED</span></code>
+event. It computes the metric based on its accumulated states. The metric value is computed using the output of the engine’s <code class="docutils literal notranslate"><span class="pre">process_function</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ignite.engine</span><span class="w"> </span><span class="kn">import</span> <span class="n">Engine</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ignite.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">Accuracy</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">process_function</span><span class="p">(</span><span class="n">engine</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
+    <span class="c1"># ...</span>
+    <span class="k">return</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">y</span>
+
+<span class="n">engine</span> <span class="o">=</span> <span class="n">Engine</span><span class="p">(</span><span class="n">process_function</span><span class="p">)</span>
+<span class="n">metric</span> <span class="o">=</span> <span class="n">Accuracy</span><span class="p">()</span>
+<span class="n">metric</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span><span class="n">engine</span><span class="p">,</span> <span class="s2">&quot;accuracy&quot;</span><span class="p">)</span>
+<span class="c1"># ...</span>
+<span class="n">state</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Accuracy: </span><span class="si">{</span><span class="n">state</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;accuracy&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>If the engine’s output is not in the format <code class="docutils literal notranslate"><span class="pre">(y_pred,</span> <span class="pre">y)</span></code> or <code class="docutils literal notranslate"><span class="pre">{'y_pred':</span> <span class="pre">y_pred,</span> <span class="pre">'y':</span> <span class="pre">y,</span> <span class="pre">...}</span></code>, the user can
+use the <code class="docutils literal notranslate"><span class="pre">output_transform</span></code> argument to transform it:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ignite.engine</span><span class="w"> </span><span class="kn">import</span> <span class="n">Engine</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ignite.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">Accuracy</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">process_function</span><span class="p">(</span><span class="n">engine</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
+    <span class="c1"># ...</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;y_pred&#39;</span><span class="p">:</span> <span class="n">y_pred</span><span class="p">,</span> <span class="s1">&#39;y_true&#39;</span><span class="p">:</span> <span class="n">y</span><span class="p">,</span> <span class="o">...</span><span class="p">}</span>
+
+<span class="n">engine</span> <span class="o">=</span> <span class="n">Engine</span><span class="p">(</span><span class="n">process_function</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">output_transform</span><span class="p">(</span><span class="n">output</span><span class="p">):</span>
+    <span class="c1"># `output` variable is returned by above `process_function`</span>
+    <span class="n">y_pred</span> <span class="o">=</span> <span class="n">output</span><span class="p">[</span><span class="s1">&#39;y_pred&#39;</span><span class="p">]</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">output</span><span class="p">[</span><span class="s1">&#39;y_true&#39;</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">y</span>  <span class="c1"># output format is according to `Accuracy` docs</span>
+
+<span class="n">metric</span> <span class="o">=</span> <span class="n">Accuracy</span><span class="p">(</span><span class="n">output_transform</span><span class="o">=</span><span class="n">output_transform</span><span class="p">)</span>
+<span class="n">metric</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span><span class="n">engine</span><span class="p">,</span> <span class="s2">&quot;accuracy&quot;</span><span class="p">)</span>
+<span class="c1"># ...</span>
+<span class="n">state</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Accuracy: </span><span class="si">{</span><span class="n">state</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;accuracy&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Please, be careful when using <code class="docutils literal notranslate"><span class="pre">lambda</span></code> functions to setup multiple <code class="docutils literal notranslate"><span class="pre">output_transform</span></code> for multiple metrics</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Wrong</span>
+<span class="c1"># metrics_group = [Accuracy(output_transform=lambda output: output[name]) for name in names]</span>
+<span class="c1"># As lambda can not store `name` and all `output_transform` will use the last `name`</span>
+
+<span class="c1"># A correct way. For example, using functools.partial</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">partial</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">ot_func</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">output</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+
+<span class="n">metrics_group</span> <span class="o">=</span> <span class="p">[</span><span class="n">Accuracy</span><span class="p">(</span><span class="n">output_transform</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="n">ot_func</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">))</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>For more details, see <a class="reference external" href="https://discuss.pytorch.org/t/evaluate-multiple-models-with-one-evaluator-results-weird-metrics/96695">here</a></p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Most of implemented metrics are adapted to distributed computations and reduce their internal states across supported
+devices before computing metric value. This can be helpful to run the evaluation on multiple nodes/GPU instances/TPUs
+with a distributed data sampler. Following code snippet shows in detail how to use metrics:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">device</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;cuda:</span><span class="si">{</span><span class="n">local_rank</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">parallel</span><span class="o">.</span><span class="n">DistributedDataParallel</span><span class="p">(</span><span class="n">model</span><span class="p">,</span>
+                                                  <span class="n">device_ids</span><span class="o">=</span><span class="p">[</span><span class="n">local_rank</span><span class="p">,</span> <span class="p">],</span>
+                                                  <span class="n">output_device</span><span class="o">=</span><span class="n">local_rank</span><span class="p">)</span>
+<span class="n">test_sampler</span> <span class="o">=</span> <span class="n">DistributedSampler</span><span class="p">(</span><span class="n">test_dataset</span><span class="p">)</span>
+<span class="n">test_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span>
+    <span class="n">test_dataset</span><span class="p">,</span>
+    <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
+    <span class="n">sampler</span><span class="o">=</span><span class="n">test_sampler</span><span class="p">,</span>
+    <span class="n">num_workers</span><span class="o">=</span><span class="n">num_workers</span><span class="p">,</span>
+    <span class="n">pin_memory</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
+
+<span class="n">evaluator</span> <span class="o">=</span> <span class="n">create_supervised_evaluator</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;accuracy&#39;</span><span class="p">:</span> <span class="n">Accuracy</span><span class="p">()},</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Metrics cannot be serialized using <cite>pickle</cite> module because the implementation is based on lambda functions.
+Therefore, use the third party library <cite>dill</cite> to overcome the limitation of <cite>pickle</cite>.</p>
+</div>
+</section>
+<section id="reset-update-compute-api">
+<h2>Reset, Update, Compute API<a class="headerlink" href="#reset-update-compute-api" title="Permalink to this heading">#</a></h2>
+<p>User can also call directly the following methods on the metric:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.reset" title="ignite.metrics.metric.Metric.reset"><code class="xref py py-meth docutils literal notranslate"><span class="pre">reset()</span></code></a> : resets internal variables and accumulators</p></li>
+<li><p><a class="reference internal" href="generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.update" title="ignite.metrics.metric.Metric.update"><code class="xref py py-meth docutils literal notranslate"><span class="pre">update()</span></code></a> : updates internal variables and accumulators with provided batch output <code class="docutils literal notranslate"><span class="pre">(y_pred,</span> <span class="pre">y)</span></code></p></li>
+<li><p><a class="reference internal" href="generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.compute" title="ignite.metrics.metric.Metric.compute"><code class="xref py py-meth docutils literal notranslate"><span class="pre">compute()</span></code></a> : computes custom metric and return the result</p></li>
+</ul>
+<p>This API gives a more fine-grained/custom usage on how to compute a metric. For example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ignite.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">Precision</span>
+
+<span class="c1"># Define the metric</span>
+<span class="n">precision</span> <span class="o">=</span> <span class="n">Precision</span><span class="p">()</span>
+
+<span class="c1"># Start accumulation:</span>
+<span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+    <span class="n">y_pred</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">precision</span><span class="o">.</span><span class="n">update</span><span class="p">((</span><span class="n">y_pred</span><span class="p">,</span> <span class="n">y</span><span class="p">))</span>
+
+<span class="c1"># Compute the result</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Precision: &quot;</span><span class="p">,</span> <span class="n">precision</span><span class="o">.</span><span class="n">compute</span><span class="p">())</span>
+
+<span class="c1"># Reset metric</span>
+<span class="n">precision</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+
+<span class="c1"># Start new accumulation:</span>
+<span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+    <span class="n">y_pred</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">precision</span><span class="o">.</span><span class="n">update</span><span class="p">((</span><span class="n">y_pred</span><span class="p">,</span> <span class="n">y</span><span class="p">))</span>
+
+<span class="c1"># Compute new result</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Precision: &quot;</span><span class="p">,</span> <span class="n">precision</span><span class="o">.</span><span class="n">compute</span><span class="p">())</span>
+</pre></div>
+</div>
+</section>
+<section id="metric-arithmetics">
+<h2>Metric arithmetics<a class="headerlink" href="#metric-arithmetics" title="Permalink to this heading">#</a></h2>
+<p>Metrics could be combined together to form new metrics. This could be done through arithmetics, such
+as <code class="docutils literal notranslate"><span class="pre">metric1</span> <span class="pre">+</span> <span class="pre">metric2</span></code>, use PyTorch operators, such as <code class="docutils literal notranslate"><span class="pre">(metric1</span> <span class="pre">+</span> <span class="pre">metric2).pow(2).mean()</span></code>,
+or use a lambda function, such as <code class="docutils literal notranslate"><span class="pre">MetricsLambda(lambda</span> <span class="pre">a,</span> <span class="pre">b:</span> <span class="pre">torch.mean(a</span> <span class="pre">+</span> <span class="pre">b),</span> <span class="pre">metric1,</span> <span class="pre">metric2)</span></code>.</p>
+<p>For example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ignite.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">Precision</span><span class="p">,</span> <span class="n">Recall</span>
+
+<span class="n">precision</span> <span class="o">=</span> <span class="n">Precision</span><span class="p">(</span><span class="n">average</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">recall</span> <span class="o">=</span> <span class="n">Recall</span><span class="p">(</span><span class="n">average</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">F1</span> <span class="o">=</span> <span class="p">(</span><span class="n">precision</span> <span class="o">*</span> <span class="n">recall</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">/</span> <span class="p">(</span><span class="n">precision</span> <span class="o">+</span> <span class="n">recall</span><span class="p">))</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This example computes the mean of F1 across classes. To combine
+precision and recall to get F1 or other F metrics, we have to be careful
+that <code class="docutils literal notranslate"><span class="pre">average=False</span></code>, i.e. to use the unaveraged precision and recall,
+otherwise we will not be computing F-beta metrics.</p>
+</div>
+<p>Metrics also support indexing operation (if metric’s result is a vector/matrix/tensor). For example, this can be useful to compute mean metric (e.g. precision, recall or IoU) ignoring the background:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ignite.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConfusionMatrix</span>
+
+<span class="n">cm</span> <span class="o">=</span> <span class="n">ConfusionMatrix</span><span class="p">(</span><span class="n">num_classes</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">iou_metric</span> <span class="o">=</span> <span class="n">IoU</span><span class="p">(</span><span class="n">cm</span><span class="p">)</span>
+<span class="n">iou_no_bg_metric</span> <span class="o">=</span> <span class="n">iou_metric</span><span class="p">[:</span><span class="mi">9</span><span class="p">]</span>  <span class="c1"># We assume that the background index is 9</span>
+<span class="n">mean_iou_no_bg_metric</span> <span class="o">=</span> <span class="n">iou_no_bg_metric</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+<span class="c1"># mean_iou_no_bg_metric.compute() -&gt; tensor(0.12345)</span>
+</pre></div>
+</div>
+</section>
+<section id="how-to-create-a-custom-metric">
+<h2>How to create a custom metric<a class="headerlink" href="#how-to-create-a-custom-metric" title="Permalink to this heading">#</a></h2>
+<p>To create a custom metric one needs to create a new class inheriting from <a class="reference internal" href="generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric" title="ignite.metrics.metric.Metric"><code class="xref py py-class docutils literal notranslate"><span class="pre">Metric</span></code></a> and override
+three methods :</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.reset" title="ignite.metrics.metric.Metric.reset"><code class="xref py py-meth docutils literal notranslate"><span class="pre">reset()</span></code></a> : resets internal variables and accumulators</p></li>
+<li><p><a class="reference internal" href="generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.update" title="ignite.metrics.metric.Metric.update"><code class="xref py py-meth docutils literal notranslate"><span class="pre">update()</span></code></a> : updates internal variables and accumulators with provided batch output <code class="docutils literal notranslate"><span class="pre">(y_pred,</span> <span class="pre">y)</span></code></p></li>
+<li><p><a class="reference internal" href="generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.compute" title="ignite.metrics.metric.Metric.compute"><code class="xref py py-meth docutils literal notranslate"><span class="pre">compute()</span></code></a> : computes custom metric and return the result</p></li>
+</ul>
+<p>For example, we would like to implement for illustration purposes a multi-class accuracy metric with some
+specific condition (e.g. ignore user-defined classes):</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ignite.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">Metric</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ignite.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">NotComputableError</span>
+
+<span class="c1"># These decorators helps with distributed settings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ignite.metrics.metric</span><span class="w"> </span><span class="kn">import</span> <span class="n">sync_all_reduce</span><span class="p">,</span> <span class="n">reinit__is_reduced</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">CustomAccuracy</span><span class="p">(</span><span class="n">Metric</span><span class="p">):</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ignored_class</span><span class="p">,</span> <span class="n">output_transform</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ignored_class</span> <span class="o">=</span> <span class="n">ignored_class</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_num_correct</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_num_examples</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">CustomAccuracy</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">output_transform</span><span class="o">=</span><span class="n">output_transform</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="nd">@reinit__is_reduced</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_num_correct</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_device</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_num_examples</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">CustomAccuracy</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+
+    <span class="nd">@reinit__is_reduced</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output</span><span class="p">):</span>
+        <span class="n">y_pred</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">output</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">detach</span><span class="p">(),</span> <span class="n">output</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+
+        <span class="n">indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">y_pred</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">y</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignored_class</span><span class="p">)</span>
+        <span class="n">mask</span> <span class="o">&amp;=</span> <span class="p">(</span><span class="n">indices</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignored_class</span><span class="p">)</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="n">indices</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+        <span class="n">correct</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">eq</span><span class="p">(</span><span class="n">indices</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_num_correct</span> <span class="o">+=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">correct</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_device</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_num_examples</span> <span class="o">+=</span> <span class="n">correct</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="nd">@sync_all_reduce</span><span class="p">(</span><span class="s2">&quot;_num_examples&quot;</span><span class="p">,</span> <span class="s2">&quot;_num_correct:SUM&quot;</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_examples</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">NotComputableError</span><span class="p">(</span><span class="s1">&#39;CustomAccuracy must have at least one example before it can be computed.&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_correct</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_examples</span>
+</pre></div>
+</div>
+<p>We imported necessary classes as <a class="reference internal" href="generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric" title="ignite.metrics.metric.Metric"><code class="xref py py-class docutils literal notranslate"><span class="pre">Metric</span></code></a>, <a class="reference internal" href="exceptions.html#ignite.exceptions.NotComputableError" title="ignite.exceptions.NotComputableError"><code class="xref py py-class docutils literal notranslate"><span class="pre">NotComputableError</span></code></a> and
+decorators to adapt the metric for distributed setting. In <code class="docutils literal notranslate"><span class="pre">reset</span></code> method, we reset internal variables <code class="docutils literal notranslate"><span class="pre">_num_correct</span></code>
+and <code class="docutils literal notranslate"><span class="pre">_num_examples</span></code> which are used to compute the custom metric. In <code class="docutils literal notranslate"><span class="pre">updated</span></code> method we define how to update
+the internal variables. And finally in <code class="docutils literal notranslate"><span class="pre">compute</span></code> method, we compute metric value.</p>
+<p>Notice that <code class="docutils literal notranslate"><span class="pre">_num_correct</span></code> is a tensor, since in <code class="docutils literal notranslate"><span class="pre">update</span></code> we accumulate tensor values. <code class="docutils literal notranslate"><span class="pre">_num_examples</span></code> is a python
+scalar since we accumulate normal integers. For differentiable metrics, you must detach the accumulated values before
+adding them to the internal variables.</p>
+<p>We can check this implementation in a simple case:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+
+<span class="n">m</span> <span class="o">=</span> <span class="n">CustomAccuracy</span><span class="p">(</span><span class="n">ignored_class</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+
+<span class="n">batch_size</span> <span class="o">=</span> <span class="mi">4</span>
+<span class="n">num_classes</span> <span class="o">=</span> <span class="mi">5</span>
+
+<span class="n">y_pred</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="p">))</span>
+
+<span class="n">m</span><span class="o">.</span><span class="n">update</span><span class="p">((</span><span class="n">y_pred</span><span class="p">,</span> <span class="n">y</span><span class="p">))</span>
+<span class="n">res</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">compute</span><span class="p">()</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">y_pred</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+<span class="c1"># Out: tensor([2, 2, 2, 3]) tensor([2, 1, 0, 0])</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">_num_correct</span><span class="p">,</span> <span class="n">m</span><span class="o">.</span><span class="n">_num_examples</span><span class="p">,</span> <span class="n">res</span><span class="p">)</span>
+<span class="c1"># Out: 1 3 0.3333333333333333</span>
+</pre></div>
+</div>
+</section>
+<section id="metrics-and-its-usages">
+<h2>Metrics and its usages<a class="headerlink" href="#metrics-and-its-usages" title="Permalink to this heading">#</a></h2>
+<p>By default, <cite>Metrics</cite> are epoch-wise, it means</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.reset" title="ignite.metrics.metric.Metric.reset"><code class="xref py py-meth docutils literal notranslate"><span class="pre">reset()</span></code></a> is triggered every <code class="docutils literal notranslate"><span class="pre">EPOCH_STARTED</span></code> (See <a class="reference internal" href="generated/ignite.engine.events.Events.html#ignite.engine.events.Events" title="ignite.engine.events.Events"><code class="xref py py-class docutils literal notranslate"><span class="pre">Events</span></code></a>).</p></li>
+<li><p><a class="reference internal" href="generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.update" title="ignite.metrics.metric.Metric.update"><code class="xref py py-meth docutils literal notranslate"><span class="pre">update()</span></code></a> is triggered every <code class="docutils literal notranslate"><span class="pre">ITERATION_COMPLETED</span></code>.</p></li>
+<li><p><a class="reference internal" href="generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.compute" title="ignite.metrics.metric.Metric.compute"><code class="xref py py-meth docutils literal notranslate"><span class="pre">compute()</span></code></a> is triggered every <code class="docutils literal notranslate"><span class="pre">EPOCH_COMPLETED</span></code>.</p></li>
+</ul>
+<p>Usages can be user defined by creating a class inheriting from <a class="reference internal" href="#ignite.metrics.metric.MetricUsage" title="ignite.metrics.metric.MetricUsage"><code class="xref py py-class docutils literal notranslate"><span class="pre">MetricUsage</span></code></a>. See the list below of usages.</p>
+<section id="complete-list-of-usages">
+<h3>Complete list of usages<a class="headerlink" href="#complete-list-of-usages" title="Permalink to this heading">#</a></h3>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference internal" href="#ignite.metrics.metric.MetricUsage" title="ignite.metrics.metric.MetricUsage"><code class="xref py py-class docutils literal notranslate"><span class="pre">MetricUsage</span></code></a></p></li>
+<li><p><a class="reference internal" href="#ignite.metrics.metric.EpochWise" title="ignite.metrics.metric.EpochWise"><code class="xref py py-class docutils literal notranslate"><span class="pre">EpochWise</span></code></a></p></li>
+<li><p><a class="reference internal" href="#ignite.metrics.metric.RunningEpochWise" title="ignite.metrics.metric.RunningEpochWise"><code class="xref py py-class docutils literal notranslate"><span class="pre">RunningEpochWise</span></code></a></p></li>
+<li><p><a class="reference internal" href="#ignite.metrics.metric.BatchWise" title="ignite.metrics.metric.BatchWise"><code class="xref py py-class docutils literal notranslate"><span class="pre">BatchWise</span></code></a></p></li>
+<li><p><a class="reference internal" href="#ignite.metrics.metric.RunningBatchWise" title="ignite.metrics.metric.RunningBatchWise"><code class="xref py py-class docutils literal notranslate"><span class="pre">RunningBatchWise</span></code></a></p></li>
+<li><p><a class="reference internal" href="#ignite.metrics.metric.SingleEpochRunningBatchWise" title="ignite.metrics.metric.SingleEpochRunningBatchWise"><code class="xref py py-class docutils literal notranslate"><span class="pre">SingleEpochRunningBatchWise</span></code></a></p></li>
+<li><p><a class="reference internal" href="#ignite.metrics.metric.BatchFiltered" title="ignite.metrics.metric.BatchFiltered"><code class="xref py py-class docutils literal notranslate"><span class="pre">BatchFiltered</span></code></a></p></li>
+</ul>
+</div></blockquote>
+</section>
+</section>
+<section id="metrics-and-distributed-computations">
+<h2>Metrics and distributed computations<a class="headerlink" href="#metrics-and-distributed-computations" title="Permalink to this heading">#</a></h2>
+<p>In the above example, <code class="docutils literal notranslate"><span class="pre">CustomAccuracy</span></code> has <code class="docutils literal notranslate"><span class="pre">reset</span></code>, <code class="docutils literal notranslate"><span class="pre">update</span></code>, <code class="docutils literal notranslate"><span class="pre">compute</span></code> methods decorated
+with <a class="reference internal" href="#ignite.metrics.metric.reinit__is_reduced" title="ignite.metrics.metric.reinit__is_reduced"><code class="xref py py-meth docutils literal notranslate"><span class="pre">reinit__is_reduced()</span></code></a>, <a class="reference internal" href="#ignite.metrics.metric.sync_all_reduce" title="ignite.metrics.metric.sync_all_reduce"><code class="xref py py-meth docutils literal notranslate"><span class="pre">sync_all_reduce()</span></code></a>. The purpose of these features is to adapt metrics in distributed
+computations on supported backend and devices (see <a class="reference internal" href="distributed.html"><span class="doc">ignite.distributed</span></a> for more details). More precisely, in the above
+example we added <code class="docutils literal notranslate"><span class="pre">&#64;sync_all_reduce(&quot;_num_examples&quot;,</span> <span class="pre">&quot;_num_correct:SUM&quot;)</span></code> over <code class="docutils literal notranslate"><span class="pre">compute</span></code> method. This means that when <code class="docutils literal notranslate"><span class="pre">compute</span></code>
+method is called, metric’s interal variables <code class="docutils literal notranslate"><span class="pre">self._num_examples</span></code> and <code class="docutils literal notranslate"><span class="pre">self._num_correct:SUM</span></code> are summed up over all participating
+devices. We specify the reduction operation <code class="docutils literal notranslate"><span class="pre">self._num_correct:SUM</span></code> or we keep the default <code class="docutils literal notranslate"><span class="pre">self._num_examples</span></code> as the default is <code class="docutils literal notranslate"><span class="pre">SUM</span></code>.
+We currently support four reduction operations (SUM, MAX, MIN, PRODUCT).
+Therefore, once collected, these internal variables can be used to compute the final metric value.</p>
+</section>
+<section id="complete-list-of-metrics">
+<h2>Complete list of metrics<a class="headerlink" href="#complete-list-of-metrics" title="Permalink to this heading">#</a></h2>
+<table class="autosummary longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.metrics.Average.html#ignite.metrics.Average" title="ignite.metrics.Average"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Average</span></code></a></p></td>
+<td><p>Helper class to compute arithmetic average of a single variable.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.metrics.GeometricAverage.html#ignite.metrics.GeometricAverage" title="ignite.metrics.GeometricAverage"><code class="xref py py-obj docutils literal notranslate"><span class="pre">GeometricAverage</span></code></a></p></td>
+<td><p>Helper class to compute geometric average of a single variable.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.metrics.VariableAccumulation.html#ignite.metrics.VariableAccumulation" title="ignite.metrics.VariableAccumulation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">VariableAccumulation</span></code></a></p></td>
+<td><p>Single variable accumulator helper to compute (arithmetic, geometric, harmonic) average of a single variable.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.metrics.Accuracy.html#ignite.metrics.Accuracy" title="ignite.metrics.Accuracy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Accuracy</span></code></a></p></td>
+<td><p>Calculates the accuracy for binary, multiclass and multilabel data.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.metrics.confusion_matrix.ConfusionMatrix.html#ignite.metrics.confusion_matrix.ConfusionMatrix" title="ignite.metrics.confusion_matrix.ConfusionMatrix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">confusion_matrix.ConfusionMatrix</span></code></a></p></td>
+<td><p>Calculates confusion matrix for multi-class data.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.metrics.ClassificationReport.html#ignite.metrics.ClassificationReport" title="ignite.metrics.ClassificationReport"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ClassificationReport</span></code></a></p></td>
+<td><p>Build a text report showing the main classification metrics.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.metrics.DiceCoefficient.html#ignite.metrics.DiceCoefficient" title="ignite.metrics.DiceCoefficient"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DiceCoefficient</span></code></a></p></td>
+<td><p>Calculates Dice Coefficient for a given <a class="reference internal" href="generated/ignite.metrics.confusion_matrix.ConfusionMatrix.html#ignite.metrics.confusion_matrix.ConfusionMatrix" title="ignite.metrics.confusion_matrix.ConfusionMatrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">ConfusionMatrix</span></code></a> metric.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.metrics.JaccardIndex.html#ignite.metrics.JaccardIndex" title="ignite.metrics.JaccardIndex"><code class="xref py py-obj docutils literal notranslate"><span class="pre">JaccardIndex</span></code></a></p></td>
+<td><p>Calculates the Jaccard Index using <a class="reference internal" href="generated/ignite.metrics.confusion_matrix.ConfusionMatrix.html#ignite.metrics.confusion_matrix.ConfusionMatrix" title="ignite.metrics.confusion_matrix.ConfusionMatrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">ConfusionMatrix</span></code></a> metric.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.metrics.IoU.html#ignite.metrics.IoU" title="ignite.metrics.IoU"><code class="xref py py-obj docutils literal notranslate"><span class="pre">IoU</span></code></a></p></td>
+<td><p>Calculates Intersection over Union using <a class="reference internal" href="generated/ignite.metrics.confusion_matrix.ConfusionMatrix.html#ignite.metrics.confusion_matrix.ConfusionMatrix" title="ignite.metrics.confusion_matrix.ConfusionMatrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">ConfusionMatrix</span></code></a> metric.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.metrics.mIoU.html#ignite.metrics.mIoU" title="ignite.metrics.mIoU"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mIoU</span></code></a></p></td>
+<td><p>Calculates mean Intersection over Union using <a class="reference internal" href="generated/ignite.metrics.confusion_matrix.ConfusionMatrix.html#ignite.metrics.confusion_matrix.ConfusionMatrix" title="ignite.metrics.confusion_matrix.ConfusionMatrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">ConfusionMatrix</span></code></a> metric.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.metrics.EpochMetric.html#ignite.metrics.EpochMetric" title="ignite.metrics.EpochMetric"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EpochMetric</span></code></a></p></td>
+<td><p>Class for metrics that should be computed on the entire output history of a model.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.metrics.Fbeta.html#ignite.metrics.Fbeta" title="ignite.metrics.Fbeta"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Fbeta</span></code></a></p></td>
+<td><p>Calculates F-beta score.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.metrics.Frequency.html#ignite.metrics.Frequency" title="ignite.metrics.Frequency"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Frequency</span></code></a></p></td>
+<td><p>Provides metrics for the number of examples processed per second.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.metrics.Loss.html#ignite.metrics.Loss" title="ignite.metrics.Loss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Loss</span></code></a></p></td>
+<td><p>Calculates the average loss according to the passed loss_fn.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.metrics.MeanAbsoluteError.html#ignite.metrics.MeanAbsoluteError" title="ignite.metrics.MeanAbsoluteError"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MeanAbsoluteError</span></code></a></p></td>
+<td><p>Calculates <a class="reference external" href="https://en.wikipedia.org/wiki/Mean_absolute_error">the mean absolute error</a>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.metrics.MeanAveragePrecision.html#ignite.metrics.MeanAveragePrecision" title="ignite.metrics.MeanAveragePrecision"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MeanAveragePrecision</span></code></a></p></td>
+<td><p>Calculate the mean average precision metric i.e. mean of the averaged-over-recall precision for classification task:.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.metrics.MeanPairwiseDistance.html#ignite.metrics.MeanPairwiseDistance" title="ignite.metrics.MeanPairwiseDistance"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MeanPairwiseDistance</span></code></a></p></td>
+<td><p>Calculates the mean <a class="reference external" href="https://docs.pytorch.org/docs/stable/generated/torch.nn.PairwiseDistance.html#torch.nn.PairwiseDistance" title="(in PyTorch v2.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">PairwiseDistance</span></code></a>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.metrics.MeanSquaredError.html#ignite.metrics.MeanSquaredError" title="ignite.metrics.MeanSquaredError"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MeanSquaredError</span></code></a></p></td>
+<td><p>Calculates the <a class="reference external" href="https://en.wikipedia.org/wiki/Mean_squared_error">mean squared error</a>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric" title="ignite.metrics.metric.Metric"><code class="xref py py-obj docutils literal notranslate"><span class="pre">metric.Metric</span></code></a></p></td>
+<td><p>Base class for all Metrics.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.metrics.metric_group.MetricGroup.html#ignite.metrics.metric_group.MetricGroup" title="ignite.metrics.metric_group.MetricGroup"><code class="xref py py-obj docutils literal notranslate"><span class="pre">metric_group.MetricGroup</span></code></a></p></td>
+<td><p>A class for grouping metrics so that user could manage them easier.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.metrics.metrics_lambda.MetricsLambda.html#ignite.metrics.metrics_lambda.MetricsLambda" title="ignite.metrics.metrics_lambda.MetricsLambda"><code class="xref py py-obj docutils literal notranslate"><span class="pre">metrics_lambda.MetricsLambda</span></code></a></p></td>
+<td><p>Apply a function to other metrics to obtain a new metric.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.metrics.MultiLabelConfusionMatrix.html#ignite.metrics.MultiLabelConfusionMatrix" title="ignite.metrics.MultiLabelConfusionMatrix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MultiLabelConfusionMatrix</span></code></a></p></td>
+<td><p>Calculates a confusion matrix for multi-labelled, multi-class data.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.metrics.MutualInformation.html#ignite.metrics.MutualInformation" title="ignite.metrics.MutualInformation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MutualInformation</span></code></a></p></td>
+<td><p>Calculates the <a class="reference external" href="https://en.wikipedia.org/wiki/Mutual_information">mutual information</a> between input <span class="math"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>X</mi></mrow><annotation encoding="application/x-tex">X</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.07847em;">X</span></span></span></span></span> and prediction <span class="math"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>Y</mi></mrow><annotation encoding="application/x-tex">Y</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.22222em;">Y</span></span></span></span></span>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.metrics.ObjectDetectionAvgPrecisionRecall.html#ignite.metrics.ObjectDetectionAvgPrecisionRecall" title="ignite.metrics.ObjectDetectionAvgPrecisionRecall"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ObjectDetectionAvgPrecisionRecall</span></code></a></p></td>
+<td><p>Calculate mean average precision &amp; recall for evaluating an object detector in the COCO way.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.metrics.CommonObjectDetectionMetrics.html#ignite.metrics.CommonObjectDetectionMetrics" title="ignite.metrics.CommonObjectDetectionMetrics"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CommonObjectDetectionMetrics</span></code></a></p></td>
+<td><p>Common Object Detection metrics.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.metrics.vision.object_detection_average_precision_recall.coco_tensor_list_to_dict_list.html#ignite.metrics.vision.object_detection_average_precision_recall.coco_tensor_list_to_dict_list" title="ignite.metrics.vision.object_detection_average_precision_recall.coco_tensor_list_to_dict_list"><code class="xref py py-obj docutils literal notranslate"><span class="pre">vision.object_detection_average_precision_recall.coco_tensor_list_to_dict_list</span></code></a></p></td>
+<td><p>Convert either of output's <cite>y_pred</cite> or <cite>y</cite> from list of <cite>(N, 6)</cite> tensors to list of str-to-tensor dictionaries, or keep them unchanged if they're already in the deisred format.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.metrics.precision.Precision.html#ignite.metrics.precision.Precision" title="ignite.metrics.precision.Precision"><code class="xref py py-obj docutils literal notranslate"><span class="pre">precision.Precision</span></code></a></p></td>
+<td><p>Calculates precision for binary, multiclass and multilabel data.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.metrics.PSNR.html#ignite.metrics.PSNR" title="ignite.metrics.PSNR"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PSNR</span></code></a></p></td>
+<td><p>Computes average <a class="reference external" href="https://en.wikipedia.org/wiki/Peak_signal-to-noise_ratio">Peak signal-to-noise ratio (PSNR)</a>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.metrics.recall.Recall.html#ignite.metrics.recall.Recall" title="ignite.metrics.recall.Recall"><code class="xref py py-obj docutils literal notranslate"><span class="pre">recall.Recall</span></code></a></p></td>
+<td><p>Calculates recall for binary, multiclass and multilabel data.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.metrics.RootMeanSquaredError.html#ignite.metrics.RootMeanSquaredError" title="ignite.metrics.RootMeanSquaredError"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RootMeanSquaredError</span></code></a></p></td>
+<td><p>Calculates the <a class="reference external" href="https://en.wikipedia.org/wiki/Root-mean-square_deviation">root mean squared error</a>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.metrics.RunningAverage.html#ignite.metrics.RunningAverage" title="ignite.metrics.RunningAverage"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RunningAverage</span></code></a></p></td>
+<td><p>Compute running average of a metric or the output of process function.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.metrics.SSIM.html#ignite.metrics.SSIM" title="ignite.metrics.SSIM"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SSIM</span></code></a></p></td>
+<td><p>Computes Structural Similarity Index Measure</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.metrics.TopKCategoricalAccuracy.html#ignite.metrics.TopKCategoricalAccuracy" title="ignite.metrics.TopKCategoricalAccuracy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TopKCategoricalAccuracy</span></code></a></p></td>
+<td><p>Calculates the top-k categorical accuracy.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.metrics.Bleu.html#ignite.metrics.Bleu" title="ignite.metrics.Bleu"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Bleu</span></code></a></p></td>
+<td><p>Calculates the <a class="reference external" href="https://en.wikipedia.org/wiki/BLEU">BLEU score</a>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.metrics.Rouge.html#ignite.metrics.Rouge" title="ignite.metrics.Rouge"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Rouge</span></code></a></p></td>
+<td><p>Calculates the Rouge score for multiples Rouge-N and Rouge-L metrics.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.metrics.RougeL.html#ignite.metrics.RougeL" title="ignite.metrics.RougeL"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RougeL</span></code></a></p></td>
+<td><p>Calculates the Rouge-L score.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.metrics.RougeN.html#ignite.metrics.RougeN" title="ignite.metrics.RougeN"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RougeN</span></code></a></p></td>
+<td><p>Calculates the Rouge-N score.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.metrics.InceptionScore.html#ignite.metrics.InceptionScore" title="ignite.metrics.InceptionScore"><code class="xref py py-obj docutils literal notranslate"><span class="pre">InceptionScore</span></code></a></p></td>
+<td><p>Calculates Inception Score.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.metrics.FID.html#ignite.metrics.FID" title="ignite.metrics.FID"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FID</span></code></a></p></td>
+<td><p>Calculates Frechet Inception Distance.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.metrics.CosineSimilarity.html#ignite.metrics.CosineSimilarity" title="ignite.metrics.CosineSimilarity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CosineSimilarity</span></code></a></p></td>
+<td><p>Calculates the mean of the <a class="reference external" href="https://en.wikipedia.org/wiki/Cosine_similarity">cosine similarity</a>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.metrics.Entropy.html#ignite.metrics.Entropy" title="ignite.metrics.Entropy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Entropy</span></code></a></p></td>
+<td><p>Calculates the mean of <a class="reference external" href="https://en.wikipedia.org/wiki/Entropy_(information_theory)">entropy</a>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.metrics.KLDivergence.html#ignite.metrics.KLDivergence" title="ignite.metrics.KLDivergence"><code class="xref py py-obj docutils literal notranslate"><span class="pre">KLDivergence</span></code></a></p></td>
+<td><p>Calculates the mean of <a class="reference external" href="https://en.wikipedia.org/wiki/Kullback%E2%80%93Leibler_divergence">Kullback-Leibler (KL) divergence</a>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.metrics.JSDivergence.html#ignite.metrics.JSDivergence" title="ignite.metrics.JSDivergence"><code class="xref py py-obj docutils literal notranslate"><span class="pre">JSDivergence</span></code></a></p></td>
+<td><p>Calculates the mean of <a class="reference external" href="https://en.wikipedia.org/wiki/Jensen%E2%80%93Shannon_divergence">Jensen-Shannon (JS) divergence</a>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.metrics.MaximumMeanDiscrepancy.html#ignite.metrics.MaximumMeanDiscrepancy" title="ignite.metrics.MaximumMeanDiscrepancy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MaximumMeanDiscrepancy</span></code></a></p></td>
+<td><p>Calculates the mean of <a class="reference external" href="https://www.onurtunali.com/ml/2019/03/08/maximum-mean-discrepancy-in-machine-learning.html">maximum mean discrepancy (MMD)</a>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.metrics.HSIC.html#ignite.metrics.HSIC" title="ignite.metrics.HSIC"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HSIC</span></code></a></p></td>
+<td><p>Calculates the <a class="reference external" href="https://papers.nips.cc/paper_files/paper/2007/hash/d5cfead94f5350c12c322b5b664544c1-Abstract.html">Hilbert-Schmidt Independence Criterion (HSIC)</a>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.metrics.AveragePrecision.html#ignite.metrics.AveragePrecision" title="ignite.metrics.AveragePrecision"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AveragePrecision</span></code></a></p></td>
+<td><p>Computes Average Precision accumulating predictions and the ground-truth during an epoch and applying <a class="reference external" href="https://scikit-learn.org/stable/modules/generated/sklearn.metrics.average_precision_score.html#sklearn.metrics.average_precision_score">sklearn.metrics.average_precision_score</a> .</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.metrics.CohenKappa.html#ignite.metrics.CohenKappa" title="ignite.metrics.CohenKappa"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CohenKappa</span></code></a></p></td>
+<td><p>Compute different types of Cohen's Kappa: Non-Wieghted, Linear, Quadratic.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.metrics.GpuInfo.html#ignite.metrics.GpuInfo" title="ignite.metrics.GpuInfo"><code class="xref py py-obj docutils literal notranslate"><span class="pre">GpuInfo</span></code></a></p></td>
+<td><p>Provides GPU information: a) used memory percentage, b) gpu utilization percentage values as Metric on each iterations.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.metrics.PrecisionRecallCurve.html#ignite.metrics.PrecisionRecallCurve" title="ignite.metrics.PrecisionRecallCurve"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PrecisionRecallCurve</span></code></a></p></td>
+<td><p>Compute precision-recall pairs for different probability thresholds for binary classification task by accumulating predictions and the ground-truth during an epoch and applying <a class="reference external" href="https://scikit-learn.org/stable/modules/generated/sklearn.metrics.precision_recall_curve.html#sklearn.metrics.precision_recall_curve">sklearn.metrics.precision_recall_curve</a> .</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.metrics.RocCurve.html#ignite.metrics.RocCurve" title="ignite.metrics.RocCurve"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RocCurve</span></code></a></p></td>
+<td><p>Compute Receiver operating characteristic (ROC) for binary classification task by accumulating predictions and the ground-truth during an epoch and applying <a class="reference external" href="https://scikit-learn.org/stable/modules/generated/sklearn.metrics.roc_curve.html#sklearn.metrics.roc_curve">sklearn.metrics.roc_curve</a> .</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.metrics.ROC_AUC.html#ignite.metrics.ROC_AUC" title="ignite.metrics.ROC_AUC"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ROC_AUC</span></code></a></p></td>
+<td><p>Computes Area Under the Receiver Operating Characteristic Curve (ROC AUC) accumulating predictions and the ground-truth during an epoch and applying <a class="reference external" href="https://scikit-learn.org/stable/modules/generated/sklearn.metrics.roc_auc_score.html#sklearn.metrics.roc_auc_score">sklearn.metrics.roc_auc_score</a> .</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.metrics.regression.CanberraMetric.html#ignite.metrics.regression.CanberraMetric" title="ignite.metrics.regression.CanberraMetric"><code class="xref py py-obj docutils literal notranslate"><span class="pre">regression.CanberraMetric</span></code></a></p></td>
+<td><p>Calculates the Canberra Metric.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.metrics.regression.FractionalAbsoluteError.html#ignite.metrics.regression.FractionalAbsoluteError" title="ignite.metrics.regression.FractionalAbsoluteError"><code class="xref py py-obj docutils literal notranslate"><span class="pre">regression.FractionalAbsoluteError</span></code></a></p></td>
+<td><p>Calculates the Fractional Absolute Error.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.metrics.regression.FractionalBias.html#ignite.metrics.regression.FractionalBias" title="ignite.metrics.regression.FractionalBias"><code class="xref py py-obj docutils literal notranslate"><span class="pre">regression.FractionalBias</span></code></a></p></td>
+<td><p>Calculates the Fractional Bias.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.metrics.regression.GeometricMeanAbsoluteError.html#ignite.metrics.regression.GeometricMeanAbsoluteError" title="ignite.metrics.regression.GeometricMeanAbsoluteError"><code class="xref py py-obj docutils literal notranslate"><span class="pre">regression.GeometricMeanAbsoluteError</span></code></a></p></td>
+<td><p>Calculates the Geometric Mean Absolute Error.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.metrics.regression.GeometricMeanRelativeAbsoluteError.html#ignite.metrics.regression.GeometricMeanRelativeAbsoluteError" title="ignite.metrics.regression.GeometricMeanRelativeAbsoluteError"><code class="xref py py-obj docutils literal notranslate"><span class="pre">regression.GeometricMeanRelativeAbsoluteError</span></code></a></p></td>
+<td><p>Calculates the Geometric Mean Relative Absolute Error.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.metrics.regression.ManhattanDistance.html#ignite.metrics.regression.ManhattanDistance" title="ignite.metrics.regression.ManhattanDistance"><code class="xref py py-obj docutils literal notranslate"><span class="pre">regression.ManhattanDistance</span></code></a></p></td>
+<td><p>Calculates the Manhattan Distance.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.metrics.regression.MaximumAbsoluteError.html#ignite.metrics.regression.MaximumAbsoluteError" title="ignite.metrics.regression.MaximumAbsoluteError"><code class="xref py py-obj docutils literal notranslate"><span class="pre">regression.MaximumAbsoluteError</span></code></a></p></td>
+<td><p>Calculates the Maximum Absolute Error.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.metrics.regression.MeanAbsoluteRelativeError.html#ignite.metrics.regression.MeanAbsoluteRelativeError" title="ignite.metrics.regression.MeanAbsoluteRelativeError"><code class="xref py py-obj docutils literal notranslate"><span class="pre">regression.MeanAbsoluteRelativeError</span></code></a></p></td>
+<td><p>Calculate Mean Absolute Relative Error (MARE), also known as Mean Absolute Percentage Error (MAPE).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.metrics.regression.MeanError.html#ignite.metrics.regression.MeanError" title="ignite.metrics.regression.MeanError"><code class="xref py py-obj docutils literal notranslate"><span class="pre">regression.MeanError</span></code></a></p></td>
+<td><p>Calculates the Mean Error.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.metrics.regression.MeanNormalizedBias.html#ignite.metrics.regression.MeanNormalizedBias" title="ignite.metrics.regression.MeanNormalizedBias"><code class="xref py py-obj docutils literal notranslate"><span class="pre">regression.MeanNormalizedBias</span></code></a></p></td>
+<td><p>Calculates the Mean Normalized Bias.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.metrics.regression.MedianAbsoluteError.html#ignite.metrics.regression.MedianAbsoluteError" title="ignite.metrics.regression.MedianAbsoluteError"><code class="xref py py-obj docutils literal notranslate"><span class="pre">regression.MedianAbsoluteError</span></code></a></p></td>
+<td><p>Calculates the Median Absolute Error.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.metrics.regression.MedianAbsolutePercentageError.html#ignite.metrics.regression.MedianAbsolutePercentageError" title="ignite.metrics.regression.MedianAbsolutePercentageError"><code class="xref py py-obj docutils literal notranslate"><span class="pre">regression.MedianAbsolutePercentageError</span></code></a></p></td>
+<td><p>Calculates the Median Absolute Percentage Error.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.metrics.regression.MedianRelativeAbsoluteError.html#ignite.metrics.regression.MedianRelativeAbsoluteError" title="ignite.metrics.regression.MedianRelativeAbsoluteError"><code class="xref py py-obj docutils literal notranslate"><span class="pre">regression.MedianRelativeAbsoluteError</span></code></a></p></td>
+<td><p>Calculates the Median Relative Absolute Error.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.metrics.regression.PearsonCorrelation.html#ignite.metrics.regression.PearsonCorrelation" title="ignite.metrics.regression.PearsonCorrelation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">regression.PearsonCorrelation</span></code></a></p></td>
+<td><p>Calculates the <a class="reference external" href="https://en.wikipedia.org/wiki/Pearson_correlation_coefficient">Pearson correlation coefficient</a>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.metrics.regression.SpearmanRankCorrelation.html#ignite.metrics.regression.SpearmanRankCorrelation" title="ignite.metrics.regression.SpearmanRankCorrelation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">regression.SpearmanRankCorrelation</span></code></a></p></td>
+<td><p>Calculates the <a class="reference external" href="https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient">Spearman's rank correlation coefficient</a>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.metrics.regression.KendallRankCorrelation.html#ignite.metrics.regression.KendallRankCorrelation" title="ignite.metrics.regression.KendallRankCorrelation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">regression.KendallRankCorrelation</span></code></a></p></td>
+<td><p>Calculates the <a class="reference external" href="https://en.wikipedia.org/wiki/Kendall_rank_correlation_coefficient">Kendall rank correlation coefficient</a>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.metrics.regression.R2Score.html#ignite.metrics.regression.R2Score" title="ignite.metrics.regression.R2Score"><code class="xref py py-obj docutils literal notranslate"><span class="pre">regression.R2Score</span></code></a></p></td>
+<td><p>Calculates the R-Squared, the <a class="reference external" href="https://en.wikipedia.org/wiki/Coefficient_of_determination">coefficient of determination</a>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.metrics.regression.WaveHedgesDistance.html#ignite.metrics.regression.WaveHedgesDistance" title="ignite.metrics.regression.WaveHedgesDistance"><code class="xref py py-obj docutils literal notranslate"><span class="pre">regression.WaveHedgesDistance</span></code></a></p></td>
+<td><p>Calculates the Wave Hedges Distance.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.metrics.clustering.SilhouetteScore.html#ignite.metrics.clustering.SilhouetteScore" title="ignite.metrics.clustering.SilhouetteScore"><code class="xref py py-obj docutils literal notranslate"><span class="pre">clustering.SilhouetteScore</span></code></a></p></td>
+<td><p>Calculates the <a class="reference external" href="https://en.wikipedia.org/wiki/Silhouette_(clustering)">silhouette score</a>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/ignite.metrics.clustering.DaviesBouldinScore.html#ignite.metrics.clustering.DaviesBouldinScore" title="ignite.metrics.clustering.DaviesBouldinScore"><code class="xref py py-obj docutils literal notranslate"><span class="pre">clustering.DaviesBouldinScore</span></code></a></p></td>
+<td><p>Calculates the <a class="reference external" href="https://en.wikipedia.org/wiki/Davies%E2%80%93Bouldin_index">Davies-Bouldin score</a>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/ignite.metrics.clustering.CalinskiHarabaszScore.html#ignite.metrics.clustering.CalinskiHarabaszScore" title="ignite.metrics.clustering.CalinskiHarabaszScore"><code class="xref py py-obj docutils literal notranslate"><span class="pre">clustering.CalinskiHarabaszScore</span></code></a></p></td>
+<td><p>Calculates the <a class="reference external" href="https://en.wikipedia.org/wiki/Calinski%E2%80%93Harabasz_index">Calinski-Harabasz score</a>.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Module ignite.metrics.regression provides implementations of metrics useful
+for regression tasks. Definitions of metrics are based on
+<a class="reference external" href="https://arxiv.org/abs/1809.03006">Botchkarev 2018</a>, page 30 “Appendix 2. Metrics mathematical definitions”.</p>
+</div>
+</section>
+<section id="helpers-for-customizing-metrics">
+<h2>Helpers for customizing metrics<a class="headerlink" href="#helpers-for-customizing-metrics" title="Permalink to this heading">#</a></h2>
+<section id="metricusage">
+<h3>MetricUsage<a class="headerlink" href="#metricusage" title="Permalink to this heading">#</a></h3>
+<dl class="py class">
+<dt class="sig sig-object py" id="ignite.metrics.metric.MetricUsage">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ignite.metrics.metric.</span></span><span class="sig-name descname"><span class="pre">MetricUsage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">started</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">completed</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iteration_completed</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite/metrics/metric.html#MetricUsage"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ignite.metrics.metric.MetricUsage" title="Permalink to this definition">#</a></dt>
+<dd><p>Base class for all usages of metrics.</p>
+<p>A usage of metric defines the events when a metric starts to compute, updates and completes.
+Valid events are from <a class="reference internal" href="generated/ignite.engine.events.Events.html#ignite.engine.events.Events" title="ignite.engine.events.Events"><code class="xref py py-class docutils literal notranslate"><span class="pre">Events</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>started</strong> (<a class="reference internal" href="generated/ignite.engine.events.Events.html#ignite.engine.events.Events" title="ignite.engine.events.Events"><em>Events</em></a>) – event when the metric starts to compute. This event will be associated to
+<a class="reference internal" href="generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.started" title="ignite.metrics.metric.Metric.started"><code class="xref py py-meth docutils literal notranslate"><span class="pre">started()</span></code></a>.</p></li>
+<li><p><strong>completed</strong> (<a class="reference internal" href="generated/ignite.engine.events.Events.html#ignite.engine.events.Events" title="ignite.engine.events.Events"><em>Events</em></a>) – event when the metric completes. This event will be associated to
+<a class="reference internal" href="generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.completed" title="ignite.metrics.metric.Metric.completed"><code class="xref py py-meth docutils literal notranslate"><span class="pre">completed()</span></code></a>.</p></li>
+<li><p><strong>iteration_completed</strong> (<a class="reference internal" href="generated/ignite.engine.events.CallableEventWithFilter.html#ignite.engine.events.CallableEventWithFilter" title="ignite.engine.events.CallableEventWithFilter"><em>CallableEventWithFilter</em></a>) – event when the metric updates. This event will be associated to
+<a class="reference internal" href="generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.iteration_completed" title="ignite.metrics.metric.Metric.iteration_completed"><code class="xref py py-meth docutils literal notranslate"><span class="pre">iteration_completed()</span></code></a>.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="epochwise">
+<h3>EpochWise<a class="headerlink" href="#epochwise" title="Permalink to this heading">#</a></h3>
+<dl class="py class">
+<dt class="sig sig-object py" id="ignite.metrics.metric.EpochWise">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ignite.metrics.metric.</span></span><span class="sig-name descname"><span class="pre">EpochWise</span></span><a class="reference internal" href="_modules/ignite/metrics/metric.html#EpochWise"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ignite.metrics.metric.EpochWise" title="Permalink to this definition">#</a></dt>
+<dd><p>Epoch-wise usage of Metrics. It’s the default and most common usage of metrics.</p>
+<p>Metric’s methods are triggered on the following engine events:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.started" title="ignite.metrics.metric.Metric.started"><code class="xref py py-meth docutils literal notranslate"><span class="pre">started()</span></code></a> on every <code class="docutils literal notranslate"><span class="pre">EPOCH_STARTED</span></code>
+(See <a class="reference internal" href="generated/ignite.engine.events.Events.html#ignite.engine.events.Events" title="ignite.engine.events.Events"><code class="xref py py-class docutils literal notranslate"><span class="pre">Events</span></code></a>).</p></li>
+<li><p><a class="reference internal" href="generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.iteration_completed" title="ignite.metrics.metric.Metric.iteration_completed"><code class="xref py py-meth docutils literal notranslate"><span class="pre">iteration_completed()</span></code></a> on every <code class="docutils literal notranslate"><span class="pre">ITERATION_COMPLETED</span></code>.</p></li>
+<li><p><a class="reference internal" href="generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.completed" title="ignite.metrics.metric.Metric.completed"><code class="xref py py-meth docutils literal notranslate"><span class="pre">completed()</span></code></a> on every <code class="docutils literal notranslate"><span class="pre">EPOCH_COMPLETED</span></code>.</p></li>
+</ul>
+<dl class="field-list simple">
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ignite.metrics.metric.EpochWise.usage_name">
+<span class="sig-name descname"><span class="pre">usage_name</span></span><a class="headerlink" href="#ignite.metrics.metric.EpochWise.usage_name" title="Permalink to this definition">#</a></dt>
+<dd><p>usage name string</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="runningepochwise">
+<h3>RunningEpochWise<a class="headerlink" href="#runningepochwise" title="Permalink to this heading">#</a></h3>
+<dl class="py class">
+<dt class="sig sig-object py" id="ignite.metrics.metric.RunningEpochWise">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ignite.metrics.metric.</span></span><span class="sig-name descname"><span class="pre">RunningEpochWise</span></span><a class="reference internal" href="_modules/ignite/metrics/metric.html#RunningEpochWise"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ignite.metrics.metric.RunningEpochWise" title="Permalink to this definition">#</a></dt>
+<dd><p>Running epoch-wise usage of Metrics. It’s the running version of the <a class="reference internal" href="#ignite.metrics.metric.EpochWise" title="ignite.metrics.metric.EpochWise"><code class="xref py py-class docutils literal notranslate"><span class="pre">EpochWise</span></code></a> metric
+usage. A metric with such a usage most likely accompanies an <a class="reference internal" href="#ignite.metrics.metric.EpochWise" title="ignite.metrics.metric.EpochWise"><code class="xref py py-class docutils literal notranslate"><span class="pre">EpochWise</span></code></a> one to compute
+a running measure of it e.g. running average.</p>
+<p>Metric’s methods are triggered on the following engine events:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.started" title="ignite.metrics.metric.Metric.started"><code class="xref py py-meth docutils literal notranslate"><span class="pre">started()</span></code></a> on every <code class="docutils literal notranslate"><span class="pre">STARTED</span></code>
+(See <a class="reference internal" href="generated/ignite.engine.events.Events.html#ignite.engine.events.Events" title="ignite.engine.events.Events"><code class="xref py py-class docutils literal notranslate"><span class="pre">Events</span></code></a>).</p></li>
+<li><p><a class="reference internal" href="generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.iteration_completed" title="ignite.metrics.metric.Metric.iteration_completed"><code class="xref py py-meth docutils literal notranslate"><span class="pre">iteration_completed()</span></code></a> on every <code class="docutils literal notranslate"><span class="pre">EPOCH_COMPLETED</span></code>.</p></li>
+<li><p><a class="reference internal" href="generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.completed" title="ignite.metrics.metric.Metric.completed"><code class="xref py py-meth docutils literal notranslate"><span class="pre">completed()</span></code></a> on every <code class="docutils literal notranslate"><span class="pre">EPOCH_COMPLETED</span></code>.</p></li>
+</ul>
+<dl class="field-list simple">
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ignite.metrics.metric.RunningEpochWise.usage_name">
+<span class="sig-name descname"><span class="pre">usage_name</span></span><a class="headerlink" href="#ignite.metrics.metric.RunningEpochWise.usage_name" title="Permalink to this definition">#</a></dt>
+<dd><p>usage name string</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="batchwise">
+<h3>BatchWise<a class="headerlink" href="#batchwise" title="Permalink to this heading">#</a></h3>
+<dl class="py class">
+<dt class="sig sig-object py" id="ignite.metrics.metric.BatchWise">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ignite.metrics.metric.</span></span><span class="sig-name descname"><span class="pre">BatchWise</span></span><a class="reference internal" href="_modules/ignite/metrics/metric.html#BatchWise"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ignite.metrics.metric.BatchWise" title="Permalink to this definition">#</a></dt>
+<dd><p>Batch-wise usage of Metrics.</p>
+<p>Metric’s methods are triggered on the following engine events:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.started" title="ignite.metrics.metric.Metric.started"><code class="xref py py-meth docutils literal notranslate"><span class="pre">started()</span></code></a> on every <code class="docutils literal notranslate"><span class="pre">ITERATION_STARTED</span></code>
+(See <a class="reference internal" href="generated/ignite.engine.events.Events.html#ignite.engine.events.Events" title="ignite.engine.events.Events"><code class="xref py py-class docutils literal notranslate"><span class="pre">Events</span></code></a>).</p></li>
+<li><p><a class="reference internal" href="generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.iteration_completed" title="ignite.metrics.metric.Metric.iteration_completed"><code class="xref py py-meth docutils literal notranslate"><span class="pre">iteration_completed()</span></code></a> on every <code class="docutils literal notranslate"><span class="pre">ITERATION_COMPLETED</span></code>.</p></li>
+<li><p><a class="reference internal" href="generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.completed" title="ignite.metrics.metric.Metric.completed"><code class="xref py py-meth docutils literal notranslate"><span class="pre">completed()</span></code></a> on every <code class="docutils literal notranslate"><span class="pre">ITERATION_COMPLETED</span></code>.</p></li>
+</ul>
+<dl class="field-list simple">
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ignite.metrics.metric.BatchWise.usage_name">
+<span class="sig-name descname"><span class="pre">usage_name</span></span><a class="headerlink" href="#ignite.metrics.metric.BatchWise.usage_name" title="Permalink to this definition">#</a></dt>
+<dd><p>usage name string</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="runningbatchwise">
+<h3>RunningBatchWise<a class="headerlink" href="#runningbatchwise" title="Permalink to this heading">#</a></h3>
+<dl class="py class">
+<dt class="sig sig-object py" id="ignite.metrics.metric.RunningBatchWise">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ignite.metrics.metric.</span></span><span class="sig-name descname"><span class="pre">RunningBatchWise</span></span><a class="reference internal" href="_modules/ignite/metrics/metric.html#RunningBatchWise"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ignite.metrics.metric.RunningBatchWise" title="Permalink to this definition">#</a></dt>
+<dd><p>Running batch-wise usage of Metrics. It’s the running version of the <a class="reference internal" href="#ignite.metrics.metric.EpochWise" title="ignite.metrics.metric.EpochWise"><code class="xref py py-class docutils literal notranslate"><span class="pre">EpochWise</span></code></a> metric
+usage. A metric with such a usage could for example accompany a <a class="reference internal" href="#ignite.metrics.metric.BatchWise" title="ignite.metrics.metric.BatchWise"><code class="xref py py-class docutils literal notranslate"><span class="pre">BatchWise</span></code></a> one to compute
+a running measure of it e.g. running average.</p>
+<p>Metric’s methods are triggered on the following engine events:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.started" title="ignite.metrics.metric.Metric.started"><code class="xref py py-meth docutils literal notranslate"><span class="pre">started()</span></code></a> on every <code class="docutils literal notranslate"><span class="pre">STARTED</span></code>
+(See <a class="reference internal" href="generated/ignite.engine.events.Events.html#ignite.engine.events.Events" title="ignite.engine.events.Events"><code class="xref py py-class docutils literal notranslate"><span class="pre">Events</span></code></a>).</p></li>
+<li><p><a class="reference internal" href="generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.iteration_completed" title="ignite.metrics.metric.Metric.iteration_completed"><code class="xref py py-meth docutils literal notranslate"><span class="pre">iteration_completed()</span></code></a> on every <code class="docutils literal notranslate"><span class="pre">ITERATION_COMPLETED</span></code>.</p></li>
+<li><p><a class="reference internal" href="generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.completed" title="ignite.metrics.metric.Metric.completed"><code class="xref py py-meth docutils literal notranslate"><span class="pre">completed()</span></code></a> on every <code class="docutils literal notranslate"><span class="pre">ITERATION_COMPLETED</span></code>.</p></li>
+</ul>
+<dl class="field-list simple">
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ignite.metrics.metric.RunningBatchWise.usage_name">
+<span class="sig-name descname"><span class="pre">usage_name</span></span><a class="headerlink" href="#ignite.metrics.metric.RunningBatchWise.usage_name" title="Permalink to this definition">#</a></dt>
+<dd><p>usage name string</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="singleepochrunningbatchwise">
+<h3>SingleEpochRunningBatchWise<a class="headerlink" href="#singleepochrunningbatchwise" title="Permalink to this heading">#</a></h3>
+<dl class="py class">
+<dt class="sig sig-object py" id="ignite.metrics.metric.SingleEpochRunningBatchWise">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ignite.metrics.metric.</span></span><span class="sig-name descname"><span class="pre">SingleEpochRunningBatchWise</span></span><a class="reference internal" href="_modules/ignite/metrics/metric.html#SingleEpochRunningBatchWise"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ignite.metrics.metric.SingleEpochRunningBatchWise" title="Permalink to this definition">#</a></dt>
+<dd><p>Running batch-wise usage of Metrics in a single epoch. It’s like <a class="reference internal" href="#ignite.metrics.metric.RunningBatchWise" title="ignite.metrics.metric.RunningBatchWise"><code class="xref py py-class docutils literal notranslate"><span class="pre">RunningBatchWise</span></code></a> metric
+usage with the difference that is used during a single epoch.</p>
+<p>Metric’s methods are triggered on the following engine events:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.started" title="ignite.metrics.metric.Metric.started"><code class="xref py py-meth docutils literal notranslate"><span class="pre">started()</span></code></a> on every <code class="docutils literal notranslate"><span class="pre">EPOCH_STARTED</span></code>
+(See <a class="reference internal" href="generated/ignite.engine.events.Events.html#ignite.engine.events.Events" title="ignite.engine.events.Events"><code class="xref py py-class docutils literal notranslate"><span class="pre">Events</span></code></a>).</p></li>
+<li><p><a class="reference internal" href="generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.iteration_completed" title="ignite.metrics.metric.Metric.iteration_completed"><code class="xref py py-meth docutils literal notranslate"><span class="pre">iteration_completed()</span></code></a> on every <code class="docutils literal notranslate"><span class="pre">ITERATION_COMPLETED</span></code>.</p></li>
+<li><p><a class="reference internal" href="generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.completed" title="ignite.metrics.metric.Metric.completed"><code class="xref py py-meth docutils literal notranslate"><span class="pre">completed()</span></code></a> on every <code class="docutils literal notranslate"><span class="pre">ITERATION_COMPLETED</span></code>.</p></li>
+</ul>
+<dl class="field-list simple">
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ignite.metrics.metric.SingleEpochRunningBatchWise.usage_name">
+<span class="sig-name descname"><span class="pre">usage_name</span></span><a class="headerlink" href="#ignite.metrics.metric.SingleEpochRunningBatchWise.usage_name" title="Permalink to this definition">#</a></dt>
+<dd><p>usage name string</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="batchfiltered">
+<h3>BatchFiltered<a class="headerlink" href="#batchfiltered" title="Permalink to this heading">#</a></h3>
+<dl class="py class">
+<dt class="sig sig-object py" id="ignite.metrics.metric.BatchFiltered">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ignite.metrics.metric.</span></span><span class="sig-name descname"><span class="pre">BatchFiltered</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite/metrics/metric.html#BatchFiltered"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ignite.metrics.metric.BatchFiltered" title="Permalink to this definition">#</a></dt>
+<dd><p>Batch filtered usage of Metrics. This usage is similar to epoch-wise but update event is filtered.</p>
+<p>Metric’s methods are triggered on the following engine events:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.started" title="ignite.metrics.metric.Metric.started"><code class="xref py py-meth docutils literal notranslate"><span class="pre">started()</span></code></a> on every <code class="docutils literal notranslate"><span class="pre">EPOCH_STARTED</span></code>
+(See <a class="reference internal" href="generated/ignite.engine.events.Events.html#ignite.engine.events.Events" title="ignite.engine.events.Events"><code class="xref py py-class docutils literal notranslate"><span class="pre">Events</span></code></a>).</p></li>
+<li><p><a class="reference internal" href="generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.iteration_completed" title="ignite.metrics.metric.Metric.iteration_completed"><code class="xref py py-meth docutils literal notranslate"><span class="pre">iteration_completed()</span></code></a> on filtered <code class="docutils literal notranslate"><span class="pre">ITERATION_COMPLETED</span></code>.</p></li>
+<li><p><a class="reference internal" href="generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.completed" title="ignite.metrics.metric.Metric.completed"><code class="xref py py-meth docutils literal notranslate"><span class="pre">completed()</span></code></a> on every <code class="docutils literal notranslate"><span class="pre">EPOCH_COMPLETED</span></code>.</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>args</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Positional arguments to setup <a class="reference internal" href="generated/ignite.engine.events.Events.html#ignite.engine.events.Events.ITERATION_COMPLETED" title="ignite.engine.events.Events.ITERATION_COMPLETED"><code class="xref py py-attr docutils literal notranslate"><span class="pre">ITERATION_COMPLETED</span></code></a></p></li>
+<li><p><strong>kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – Keyword arguments to setup <a class="reference internal" href="generated/ignite.engine.events.Events.html#ignite.engine.events.Events.ITERATION_COMPLETED" title="ignite.engine.events.Events.ITERATION_COMPLETED"><code class="xref py py-attr docutils literal notranslate"><span class="pre">ITERATION_COMPLETED</span></code></a>
+handled by <a class="reference internal" href="generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.iteration_completed" title="ignite.metrics.metric.Metric.iteration_completed"><code class="xref py py-meth docutils literal notranslate"><span class="pre">iteration_completed()</span></code></a>.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="reinit-is-reduced">
+<h3>reinit__is_reduced<a class="headerlink" href="#reinit-is-reduced" title="Permalink to this heading">#</a></h3>
+<dl class="py function">
+<dt class="sig sig-object py" id="ignite.metrics.metric.reinit__is_reduced">
+<span class="sig-prename descclassname"><span class="pre">ignite.metrics.metric.</span></span><span class="sig-name descname"><span class="pre">reinit__is_reduced</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite/metrics/metric.html#reinit__is_reduced"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ignite.metrics.metric.reinit__is_reduced" title="Permalink to this definition">#</a></dt>
+<dd><p>Helper decorator for distributed configuration.</p>
+<p>See <a class="reference internal" href="#"><span class="doc">ignite.metrics</span></a> on how to use it.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>func</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a>) – A callable to reinit.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="sync-all-reduce">
+<h3>sync_all_reduce<a class="headerlink" href="#sync-all-reduce" title="Permalink to this heading">#</a></h3>
+<dl class="py function">
+<dt class="sig sig-object py" id="ignite.metrics.metric.sync_all_reduce">
+<span class="sig-prename descclassname"><span class="pre">ignite.metrics.metric.</span></span><span class="sig-name descname"><span class="pre">sync_all_reduce</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">attrs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite/metrics/metric.html#sync_all_reduce"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ignite.metrics.metric.sync_all_reduce" title="Permalink to this definition">#</a></dt>
+<dd><p>Helper decorator for distributed configuration to collect instance attribute value
+across all participating processes and apply the specified reduction operation.</p>
+<p>See <a class="reference internal" href="#"><span class="doc">ignite.metrics</span></a> on how to use it.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>attrs</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a>) – attribute names of decorated class</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a></p>
+</dd>
+</dl>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 0.4.5: </span>- Ability to handle different reduction operations (SUM, MAX, MIN, PRODUCT).</p>
+</div>
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+             </article>
+             
+            </div>
+            <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="generated/ignite.metrics.Average.html" class="btn btn-neutral float-right" title="Average" accesskey="n" rel="next">Next
+          <img src="_static/images/chevron-right-orange.svg" alt="right arrow" class="next-page">
+        </a>
+      
+      
+        <a href="generated/ignite.handlers.state_param_scheduler.MultiStepStateScheduler.html" class="btn btn-neutral" title="MultiStepStateScheduler" accesskey="p" rel="prev">
+          <img src="_static/images/chevron-right-orange.svg" alt="left arrow" class="previous-page"> Previous
+        </a>
+      
+    </div>
+  
+
+  
+
+    <hr>
+
+  
+
+  <div role="contentinfo">
+    <table>
+      <tr>
+        <td>
+            <p>
+                &copy; Copyright 2026, PyTorch-Ignite Contributors.
+              Last updated on 04/15/2025, 4:12:16 PM.
+            </p>
+            
+              <div>
+                Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+              </div>
+          
+        </td>
+        <td>
+            
+              <div>
+                <a href="https://www.netlify.com" target="_blank" rel="noopener noreferrer">
+                  <img
+                  src="_static/img/netlify-light.svg"
+                  alt="Deploys by Netlify"
+                  width=114
+                  height=51 />
+                </a>
+              </div>
+            
+        </td>
+      </tr>
+    </table>
+  </div> 
+
+</footer>
+          </div>
+        </div>
+
+        <div class="pytorch-content-right" id="pytorch-content-right">
+          <div class="pytorch-right-menu" id="pytorch-right-menu">
+            <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
+              <ul>
+<li><a class="reference internal" href="#">ignite.metrics</a><ul>
+<li><a class="reference internal" href="#attach-engine-api">Attach Engine API</a></li>
+<li><a class="reference internal" href="#reset-update-compute-api">Reset, Update, Compute API</a></li>
+<li><a class="reference internal" href="#metric-arithmetics">Metric arithmetics</a></li>
+<li><a class="reference internal" href="#how-to-create-a-custom-metric">How to create a custom metric</a></li>
+<li><a class="reference internal" href="#metrics-and-its-usages">Metrics and its usages</a><ul>
+<li><a class="reference internal" href="#complete-list-of-usages">Complete list of usages</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#metrics-and-distributed-computations">Metrics and distributed computations</a></li>
+<li><a class="reference internal" href="#complete-list-of-metrics">Complete list of metrics</a></li>
+<li><a class="reference internal" href="#helpers-for-customizing-metrics">Helpers for customizing metrics</a><ul>
+<li><a class="reference internal" href="#metricusage">MetricUsage</a><ul>
+<li><a class="reference internal" href="#ignite.metrics.metric.MetricUsage"><code class="docutils literal notranslate"><span class="pre">MetricUsage</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#epochwise">EpochWise</a><ul>
+<li><a class="reference internal" href="#ignite.metrics.metric.EpochWise"><code class="docutils literal notranslate"><span class="pre">EpochWise</span></code></a><ul>
+<li><a class="reference internal" href="#ignite.metrics.metric.EpochWise.usage_name"><code class="docutils literal notranslate"><span class="pre">EpochWise.usage_name</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#runningepochwise">RunningEpochWise</a><ul>
+<li><a class="reference internal" href="#ignite.metrics.metric.RunningEpochWise"><code class="docutils literal notranslate"><span class="pre">RunningEpochWise</span></code></a><ul>
+<li><a class="reference internal" href="#ignite.metrics.metric.RunningEpochWise.usage_name"><code class="docutils literal notranslate"><span class="pre">RunningEpochWise.usage_name</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#batchwise">BatchWise</a><ul>
+<li><a class="reference internal" href="#ignite.metrics.metric.BatchWise"><code class="docutils literal notranslate"><span class="pre">BatchWise</span></code></a><ul>
+<li><a class="reference internal" href="#ignite.metrics.metric.BatchWise.usage_name"><code class="docutils literal notranslate"><span class="pre">BatchWise.usage_name</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#runningbatchwise">RunningBatchWise</a><ul>
+<li><a class="reference internal" href="#ignite.metrics.metric.RunningBatchWise"><code class="docutils literal notranslate"><span class="pre">RunningBatchWise</span></code></a><ul>
+<li><a class="reference internal" href="#ignite.metrics.metric.RunningBatchWise.usage_name"><code class="docutils literal notranslate"><span class="pre">RunningBatchWise.usage_name</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#singleepochrunningbatchwise">SingleEpochRunningBatchWise</a><ul>
+<li><a class="reference internal" href="#ignite.metrics.metric.SingleEpochRunningBatchWise"><code class="docutils literal notranslate"><span class="pre">SingleEpochRunningBatchWise</span></code></a><ul>
+<li><a class="reference internal" href="#ignite.metrics.metric.SingleEpochRunningBatchWise.usage_name"><code class="docutils literal notranslate"><span class="pre">SingleEpochRunningBatchWise.usage_name</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#batchfiltered">BatchFiltered</a><ul>
+<li><a class="reference internal" href="#ignite.metrics.metric.BatchFiltered"><code class="docutils literal notranslate"><span class="pre">BatchFiltered</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#reinit-is-reduced">reinit__is_reduced</a><ul>
+<li><a class="reference internal" href="#ignite.metrics.metric.reinit__is_reduced"><code class="docutils literal notranslate"><span class="pre">reinit__is_reduced()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#sync-all-reduce">sync_all_reduce</a><ul>
+<li><a class="reference internal" href="#ignite.metrics.metric.sync_all_reduce"><code class="docutils literal notranslate"><span class="pre">sync_all_reduce()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+  
+
+     
+       <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+         <script src="_static/jquery.js"></script>
+         <script src="_static/underscore.js"></script>
+         <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+         <script src="_static/doctools.js"></script>
+         <script src="_static/sphinx_highlight.js"></script>
+         <script src="_static/clipboard.min.js"></script>
+         <script src="_static/copybutton.js"></script>
+         <script>let toggleHintShow = 'Show default setup';</script>
+         <script>let toggleHintHide = 'Hide default setup';</script>
+         <script>let toggleOpenOnPrint = 'true';</script>
+         <script src="_static/togglebutton.js"></script>
+         <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+         <script src="_static/design-tabs.js"></script>
+     
+
+  
+
+  <script type="text/javascript" src="_static/js/vendor/popper.min.js"></script>
+  <script type="text/javascript" src="_static/js/vendor/bootstrap.min.js"></script>
+  <script type="text/javascript" src="_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+  <!-- Begin Footer -->
+
+  <!-- commented out for Ignite -->
+
+  <div class="container-fluid docs-tutorials-resources" id="docs-tutorials-resources">
+    <!-- <div class="container">
+      <div class="row">
+        <div class="text-center col-md-4">
+          <h2>Docs</h2>
+          <p>Access comprehensive developer documentation for PyTorch</p>
+          <a class="with-right-arrow" href="https://pytorch.org/ignite/index.html">View Docs</a>
+        </div>
+
+        <div class="text-center col-md-4">
+          <h2>Tutorials</h2>
+          <p>Get in-depth tutorials for beginners and advanced developers</p>
+          <a class="with-right-arrow" href="">View Tutorials</a>
+        </div>
+
+        <div class="text-center col-md-4">
+          <h2>Resources</h2>
+          <p>Find development resources and get your questions answered</p>
+          <a class="with-right-arrow" href="">View Resources</a>
+        </div>
+      </div>
+    </div> -->
+  </div>
+
+  <!-- <footer class="site-footer">
+    <div class="container footer-container">
+      <div class="footer-logo-wrapper">
+        <a href="https://pytorch-ignite.ai" class="footer-logo"></a>
+      </div>
+
+      <div class="footer-links-wrapper">
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title"><a href="https://pytorch-ignite.ai">PyTorch</a></li>
+            <li><a href="">Get Started</a></li>
+            <li><a href="">Features</a></li>
+            <li><a href="">Ecosystem</a></li>
+            <li><a href="">Blog</a></li>
+            <li><a href="">Resources</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title"><a href="">Support</a></li>
+            <li><a href="">Tutorials</a></li>
+            <li><a href="https://pytorch.org/ignite/index.html">Docs</a></li>
+            <li><a href="" target="_blank">Discuss</a></li>
+            <li><a href="https://github.com/pytorch/ignite/issues" target="_blank">Github Issues</a></li>
+            <li><a href="" target="_blank">Slack</a></li>
+            <li><a href="https://github.com/pytorch/ignite/blob/master/CONTRIBUTING.md" target="_blank">Contributing</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links-col follow-us-col">
+          <ul>
+            <li class="list-title">Follow Us</li>
+            <li>
+              <div id="mc_embed_signup">
+                <form
+                  action="https://twitter.us14.list-manage.com/subscribe/post?u=75419c71fe0a935e53dfa4a3f&id=91d0dccd39"
+                  method="post"
+                  id="mc-embedded-subscribe-form"
+                  name="mc-embedded-subscribe-form"
+                  class="email-subscribe-form validate"
+                  target="_blank"
+                  novalidate>
+                  <div id="mc_embed_signup_scroll" class="email-subscribe-form-fields-wrapper">
+                    <div class="mc-field-group">
+                      <label for="mce-EMAIL" style="display:none;">Email Address</label>
+                      <input type="email" value="" name="EMAIL" class="required email" id="mce-EMAIL" placeholder="Email Address">
+                    </div>
+
+                    <div id="mce-responses" class="clear">
+                      <div class="response" id="mce-error-response" style="display:none"></div>
+                      <div class="response" id="mce-success-response" style="display:none"></div>
+                    </div>    <!~~ real people should not fill this in and expect good things - do not remove this or risk form bot signups ~~>
+
+                    <div style="position: absolute; left: -5000px;" aria-hidden="true"><input type="text" name="b_75419c71fe0a935e53dfa4a3f_91d0dccd39" tabindex="-1" value=""></div>
+
+                    <div class="clear">
+                      <input type="submit" value="" name="subscribe" id="mc-embedded-subscribe" class="button email-subscribe-button">
+                    </div>
+                  </div>
+                </form>
+              </div>
+
+            </li>
+          </ul>
+
+          <div class="footer-social-icons">
+            <a href="" target="_blank" class="facebook"></a>
+            <a href="" target="_blank" class="twitter"></a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer> -->
+
+
+  <!-- end of commented out for Ignite -->
+
+  <!-- <div class="cookie-banner-wrapper">
+  <div class="container">
+    <p class="gdpr-notice">To analyze traffic and optimize your experience, we serve cookies on this site. By clicking or navigating, you agree to allow our usage of cookies. As the current maintainers of this site, Facebook’s Cookies Policy applies. Learn more, including about available controls: <a href="https://www.facebook.com/policies/cookies/">Cookies Policy</a>.</p>
+    <img class="close-button" src="_static/images/pytorch-x.svg">
+  </div>
+</div> -->
+
+  <!-- End Footer -->
+
+  <!-- Begin Mobile Menu -->
+  <!--
+  <div class="mobile-main-menu">
+    <div class="container-fluid">
+      <div class="container">
+        <div class="mobile-main-menu-header-container">
+          <a class="header-logo" href="https://pytorch-ignite.ai" aria-label="PyTorch"></a>
+          <a class="main-menu-close-button" href="#" data-behavior="close-mobile-menu"></a>
+        </div>
+      </div>
+    </div>
+
+    <div class="mobile-main-menu-links-container">
+      <div class="main-menu">
+        <ul>
+          <li>
+            <a href="#">Get Started</a>
+          </li>
+
+          <li>
+            <a href="#">Features</a>
+          </li>
+
+          <li>
+            <a href="#">Ecosystem</a>
+          </li>
+
+          <li>
+            <a href="">Blog</a>
+          </li>
+
+          <li>
+            <a href="">Tutorials</a>
+          </li>
+
+          <li>
+            <a href="https://pytorch.org/ignite/index.html">Docs</a>
+          </li>
+
+          <li>
+            <a href="">Resources</a>
+          </li>
+
+          <li>
+            <a href="https://github.com/pytorch/ignite">Github</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  -->
+  <!-- End Mobile Menu -->
+
+  <script type="text/javascript" src="_static/js/vendor/anchor.min.js"></script>
+
+  <script type="text/javascript">
+    var collapsedSections = []
+    $(document).ready(function() {
+      mobileMenu.bind();
+      mobileTOC.bind();
+      pytorchAnchors.bind();
+      sideMenus.bind();
+      scrollToAnchor.bind();
+      highlightNavigation.bind();
+
+      // Add class to links that have code blocks, since we cannot create links in code blocks
+      $("article.pytorch-article a span.pre").each(function(e) {
+        $(this).closest("a").addClass("has-code");
+      });
+    })
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@docsearch/js@3"></script>
+  <script type="text/javascript">
+  let VERSION
+  if ('v0.5.3'.startsWith('v')) {
+    VERSION = 'v0.5.3'
+  } else {
+    VERSION = 'master'
+  }
+  docsearch({
+    container: '#docsearch',
+    appId: '7EWYE1JCT3',
+    apiKey: '841e93e60c16975ba1bd8c7c716eed82',
+    indexName: 'pytorch-ignite',
+    placeholder: 'Search PyTorch-Ignite docs',
+    searchParameters: {
+      facetFilters: [`version:${VERSION}`, 'tags:API-reference'],
+    }
+  });
+  </script>
+</body>
+</html>

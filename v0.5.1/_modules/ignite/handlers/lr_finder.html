@@ -1,0 +1,1173 @@
+
+
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta name="author" content="PyTorch-Ignite Contributors">
+  <meta name="creator" content="PyTorch-Ignite Contributors">
+  <meta name="publisher" content="PyTorch-Ignite Contributors">
+  <meta name="generator" content="Sphinx 5.3.0">
+  <meta name="description" content="High-level library to help with training and evaluating neural networks in PyTorch flexibly and transparently.">
+  <meta name="keywords" content="pytorch, pytorch ignite, ignite, engine, events, handlers, metrics">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#ee4c2c">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@pytorch_ignite">
+  <meta name="twitter:creator" content="@pytorch_ignite">
+  <meta name="twitter:description" content="High-level library to help with training and evaluating neural networks in PyTorch flexibly and transparently.">
+  <meta name="twitter:title" content="ignite.handlers.lr_finder &mdash; PyTorch-Ignite v0.5.1 Documentation">
+  <meta name="twitter:image" content="https://raw.githubusercontent.com/pytorch/ignite/master/assets/logo/ignite_logo.png">
+  <meta name="twitter:image:alt" content="PyTorch-Ignite logo">
+
+  <meta property="og:title" content="ignite.handlers.lr_finder &mdash; PyTorch-Ignite v0.5.1 Documentation">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://pytorch.org/ignite/">
+  <meta property="og:site_name" content="PyTorch-Ignite">
+  <meta property="og:image" content="https://raw.githubusercontent.com/pytorch/ignite/master/assets/logo/ignite_logo.png">
+  <meta property="og:image:alt" content="PyTorch-Ignite logo">
+  <meta property="og:description" content="High-level library to help with training and evaluating neural networks in PyTorch flexibly and transparently.">
+
+  <link rel="preconnect" href="https://BH4D9OD16A-dsn.algolia.net" crossorigin />
+
+  
+  <title>ignite.handlers.lr_finder &mdash; PyTorch-Ignite v0.5.1 Documentation</title>
+  
+
+  
+  
+    <link rel="shortcut icon" type="image/svg+xml" href="../../../_static/ignite_logomark.svg"/>
+  
+  
+  
+    <link rel="canonical" href="https://pytorch.org/ignite/_modules/ignite/handlers/lr_finder.html"/>
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="preload" href="../../../_static/css/theme.css" as="style" />
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <!-- <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" /> -->
+  <link rel="preload" href="../../../_static/pygments.css" as="style" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <link rel="preload" href="../../../_static/css/theme.css" as="style" />
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="preload" href="../../../_static/copybutton.css" as="style" />
+  <link rel="stylesheet" href="../../../_static/copybutton.css" type="text/css" />
+  <link rel="preload" href="../../../_static/togglebutton.css" as="style" />
+  <link rel="stylesheet" href="../../../_static/togglebutton.css" type="text/css" />
+  <link rel="preload" href="../../../_static/banner.css" as="style" />
+  <link rel="stylesheet" href="../../../_static/banner.css" type="text/css" />
+  <link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" as="style" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" type="text/css" />
+  <link rel="preload" href="../../../_static/katex-math.css" as="style" />
+  <link rel="stylesheet" href="../../../_static/katex-math.css" type="text/css" />
+  <link rel="preload" href="../../../_static/sphinx-design.5ea377869091fd0449014c60fc090103.min.css" as="style" />
+  <link rel="stylesheet" href="../../../_static/sphinx-design.5ea377869091fd0449014c60fc090103.min.css" type="text/css" />
+    <link rel="preload" href="../../../_static/css/ignite_theme.css" as="style" />
+    <link rel="stylesheet" href="../../../_static/css/ignite_theme.css" type="text/css" />
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/@docsearch/css@3" as="style" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@docsearch/css@3" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+
+  <!-- katex links / this needs to be loaded before fonts.html -->
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/katex.min.css" crossorigin="anonymous">
+<script async src="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/katex.min.js" crossorigin="anonymous"></script>
+
+<!-- Preload the theme fonts -->
+
+<link rel="preload" href="../../../_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../_static/fonts/IBMPlexMono/IBMPlexMono-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+
+<!-- Preload the katex fonts -->
+
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Math-Italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Main-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Main-Bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Size1-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Size4-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Size2-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Size3-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Caligraphic-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-5FELLLFHCP"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-5FELLLFHCP');
+  </script>
+</head>
+
+<div class="container-fluid header-holder tutorials-header" id="header-holder">
+  <div class="container">
+
+    <a class="header-logo" href="/ignite" aria-label="PyTorch-Ignite"></a>
+
+    <div class="header-container">
+
+      <div class="main-menu">
+        <ul>
+          <li>
+            <a href="https://pytorch-ignite.ai/tutorials/beginner/01-getting-started/">Quickstart</a>
+          </li>
+
+          <li>
+            <a href="https://pytorch-ignite.ai/concepts/">Concepts</a>
+          </li>
+
+          <!-- <li>
+            <a href="https://pytorch-ignite.ai/tutorials/beginner/01-getting-started/#complete-code">Examples</a>
+          </li> -->
+
+          <li>
+            <a href="https://pytorch-ignite.ai/how-to-guides/">FAQ</a>
+          </li>
+
+          <li>
+            <a href="https://github.com/pytorch/ignite" target="_blank" rel="noopener noreferrer">GitHub</a>
+          </li>
+
+          <li>
+            <a href="https://pytorch-ignite.ai/about/community/">About us</a>
+          </li>
+
+          <li>
+            <a href="https://pytorch-ignite.ai">⊳ pytorch-ignite.ai</a>
+          </li>
+
+
+        </ul>
+      </div>
+
+      <!-- <a class="main-menu-open-button" href="#" data-behavior="open-mobile-menu"></a> -->
+    </div>
+
+  </div>
+</div>
+
+
+<body class="pytorch-body">
+
+   
+
+    
+
+    <div class="table-of-contents-link-wrapper">
+      <span>Table of Contents</span>
+      <div class="toggle-table-of-contents" data-behavior="toggle-table-of-contents"></div>
+    </div>
+
+    <nav data-toggle="wy-nav-shift" class="pytorch-left-menu" id="pytorch-left-menu">
+      <div class="pytorch-side-scroll">
+        <div class="pytorch-menu pytorch-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          <div class="pytorch-left-menu-search">
+            
+
+            
+              
+              
+                <div class="version">
+                  v0.5.1
+                </div>
+              
+            
+
+            <div id="docsearch"></div>
+
+            
+          </div>
+
+          
+            
+            
+              
+            
+            
+              <p class="caption" role="heading"><span class="caption-text">Package Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../engine.html">ignite.engine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../handlers.html">ignite.handlers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../metrics.html">ignite.metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../distributed.html">ignite.distributed</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../exceptions.html">ignite.exceptions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../utils.html">ignite.utils</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Contrib Package Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../contrib/engines.html">ignite.contrib.engines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contrib/metrics.html">ignite.contrib.metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contrib/handlers.html">ignite.contrib.handlers</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+
+      <div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: v0.5.1
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../../v0.4.0.post1/index.html">v0.4.0.post1</a></dd>
+            <dd><a href="../../../../v0.4.1/index.html">v0.4.1</a></dd>
+            <dd><a href="../../../../v0.4.10/index.html">v0.4.10</a></dd>
+            <dd><a href="../../../../v0.4.11/index.html">v0.4.11</a></dd>
+            <dd><a href="../../../../v0.4.12/index.html">v0.4.12</a></dd>
+            <dd><a href="../../../../v0.4.13/index.html">v0.4.13</a></dd>
+            <dd><a href="../../../../v0.4.2/index.html">v0.4.2</a></dd>
+            <dd><a href="../../../../v0.4.3/index.html">v0.4.3</a></dd>
+            <dd><a href="../../../../v0.4.4.post1/index.html">v0.4.4.post1</a></dd>
+            <dd><a href="../../../../v0.4.5/index.html">v0.4.5</a></dd>
+            <dd><a href="../../../../v0.4.6/index.html">v0.4.6</a></dd>
+            <dd><a href="../../../../v0.4.7/index.html">v0.4.7</a></dd>
+            <dd><a href="../../../../v0.4.8/index.html">v0.4.8</a></dd>
+            <dd><a href="../../../../v0.4.9/index.html">v0.4.9</a></dd>
+            <dd><a href="../../../../v0.4rc.0.post1/index.html">v0.4rc.0.post1</a></dd>
+            <dd><a href="../../../../v0.5.0.post2/index.html">v0.5.0.post2</a></dd>
+            <dd><a href="lr_finder.html">v0.5.1</a></dd>
+            <dd><a href="../../../../v0.5.2/index.html">v0.5.2</a></dd>
+            <dd><a href="../../../../v0.5.3/index.html">v0.5.3</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="../../../../master/index.html">master</a></dd>
+        </dl>
+    </div>
+</div>
+
+    </nav>
+
+    <div class="pytorch-container">
+      <div class="pytorch-page-level-bar" id="pytorch-page-level-bar">
+        <div class="pytorch-breadcrumbs-wrapper">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="pytorch-breadcrumbs">
+    
+      <li>
+        <a href="../../../index.html">
+          
+            Docs
+          
+        </a> &gt;
+      </li>
+
+        
+          <li><a href="../../index.html">Module code</a> &gt;</li>
+        
+      <li>ignite.handlers.lr_finder</li>
+    
+    
+      <li class="pytorch-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+</div>
+        </div>
+
+        <div class="pytorch-shortcuts-wrapper" id="pytorch-shortcuts-wrapper">
+          Shortcuts
+        </div>
+      </div>
+
+      <section data-toggle="wy-nav-shift" id="pytorch-content-wrap" class="pytorch-content-wrap">
+        <div class="pytorch-content-left">
+
+        
+          
+          <div class="rst-content">
+          
+            <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
+             <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
+              
+  <h1>Source code for ignite.handlers.lr_finder</h1><div class="highlight"><pre>
+<span></span><span class="c1"># coding: utf-8</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">contextlib</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">math</span><span class="w"> </span><span class="kn">import</span> <span class="n">ceil</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.optim</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optimizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.optim.lr_scheduler</span><span class="w"> </span><span class="kn">import</span> <span class="n">_LRScheduler</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">ignite.distributed</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">idist</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ignite.engine</span><span class="w"> </span><span class="kn">import</span> <span class="n">Engine</span><span class="p">,</span> <span class="n">Events</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ignite.handlers</span><span class="w"> </span><span class="kn">import</span> <span class="n">Checkpoint</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ignite.handlers.param_scheduler</span><span class="w"> </span><span class="kn">import</span> <span class="n">LRScheduler</span><span class="p">,</span> <span class="n">ParamGroupScheduler</span><span class="p">,</span> <span class="n">PiecewiseLinear</span>
+
+
+<div class="viewcode-block" id="FastaiLRFinder"><a class="viewcode-back" href="../../../generated/ignite.handlers.lr_finder.FastaiLRFinder.html#ignite.handlers.lr_finder.FastaiLRFinder">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">FastaiLRFinder</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Learning rate finder handler for supervised trainers.</span>
+
+<span class="sd">    While attached, the handler increases the learning rate in between two</span>
+<span class="sd">    boundaries in a linear or exponential manner. It provides valuable</span>
+<span class="sd">    information on how well the network can be trained over a range of learning</span>
+<span class="sd">    rates and what can be an optimal learning rate.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            from ignite.handlers import FastaiLRFinder</span>
+
+<span class="sd">            trainer = ...</span>
+<span class="sd">            model = ...</span>
+<span class="sd">            optimizer = ...</span>
+
+<span class="sd">            lr_finder = FastaiLRFinder()</span>
+<span class="sd">            to_save = {&quot;model&quot;: model, &quot;optimizer&quot;: optimizer}</span>
+
+<span class="sd">            with lr_finder.attach(trainer, to_save=to_save) as trainer_with_lr_finder:</span>
+<span class="sd">                trainer_with_lr_finder.run(dataloader)</span>
+
+<span class="sd">            # Get lr_finder results</span>
+<span class="sd">            lr_finder.get_results()</span>
+
+<span class="sd">            # Plot lr_finder results (requires matplotlib)</span>
+<span class="sd">            lr_finder.plot()</span>
+
+<span class="sd">            # get lr_finder suggestion for lr</span>
+<span class="sd">            lr_finder.lr_suggestion()</span>
+
+
+<span class="sd">    Note:</span>
+<span class="sd">        When context manager is exited all LR finder&#39;s handlers are removed.</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        Please, also keep in mind that all other handlers attached the trainer will be executed during LR finder&#39;s run.</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        This class may require `matplotlib` package to be installed to plot learning rate range test:</span>
+
+<span class="sd">        .. code-block:: bash</span>
+
+<span class="sd">            pip install matplotlib</span>
+
+
+<span class="sd">    References:</span>
+
+<span class="sd">        Cyclical Learning Rates for Training Neural Networks:</span>
+<span class="sd">        https://arxiv.org/abs/1506.01186</span>
+
+<span class="sd">        fastai/lr_find: https://github.com/fastai/fastai</span>
+
+<span class="sd">    .. versionadded:: 0.4.6</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_lr_schedule</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">LRScheduler</span><span class="p">,</span> <span class="n">PiecewiseLinear</span><span class="p">,</span> <span class="n">ParamGroupScheduler</span><span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_diverge_flag</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_history</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_best_loss</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s2">&quot;.&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_run</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">trainer</span><span class="p">:</span> <span class="n">Engine</span><span class="p">,</span>
+        <span class="n">optimizer</span><span class="p">:</span> <span class="n">Optimizer</span><span class="p">,</span>
+        <span class="n">output_transform</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span>
+        <span class="n">num_iter</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">start_lrs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
+        <span class="n">end_lrs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
+        <span class="n">step_mode</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">smooth_f</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">diverge_th</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_history</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;lr&quot;</span><span class="p">:</span> <span class="p">[],</span> <span class="s2">&quot;loss&quot;</span><span class="p">:</span> <span class="p">[]}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_best_loss</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_diverge_flag</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="c1"># attach LRScheduler to trainer.</span>
+        <span class="k">if</span> <span class="n">num_iter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">num_iter</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">epoch_length</span> <span class="o">*</span> <span class="n">trainer</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">max_epochs</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">max_iter</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">epoch_length</span> <span class="o">*</span> <span class="n">trainer</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">max_epochs</span>  <span class="c1"># type: ignore[operator]</span>
+            <span class="k">if</span> <span class="n">max_iter</span> <span class="o">&lt;</span> <span class="n">num_iter</span><span class="p">:</span>
+                <span class="n">max_iter</span> <span class="o">=</span> <span class="n">num_iter</span>
+                <span class="n">trainer</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">max_epochs</span> <span class="o">=</span> <span class="n">ceil</span><span class="p">(</span><span class="n">num_iter</span> <span class="o">/</span> <span class="n">trainer</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">epoch_length</span><span class="p">)</span>  <span class="c1"># type: ignore[operator]</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">trainer</span><span class="o">.</span><span class="n">has_event_handler</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_reached_num_iterations</span><span class="p">):</span>
+            <span class="n">trainer</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">ITERATION_COMPLETED</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reached_num_iterations</span><span class="p">,</span> <span class="n">num_iter</span><span class="p">)</span>
+
+        <span class="c1"># attach loss and lr logging</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">trainer</span><span class="o">.</span><span class="n">has_event_handler</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_log_lr_and_loss</span><span class="p">):</span>
+            <span class="n">trainer</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span>
+                <span class="n">Events</span><span class="o">.</span><span class="n">ITERATION_COMPLETED</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_log_lr_and_loss</span><span class="p">,</span> <span class="n">output_transform</span><span class="p">,</span> <span class="n">smooth_f</span><span class="p">,</span> <span class="n">diverge_th</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Running LR finder for </span><span class="si">{</span><span class="n">num_iter</span><span class="si">}</span><span class="s2"> iterations&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Initialize the proper learning rate policy</span>
+        <span class="k">if</span> <span class="n">step_mode</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;exp&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_lr_schedule</span> <span class="o">=</span> <span class="n">LRScheduler</span><span class="p">(</span><span class="n">_ExponentialLR</span><span class="p">(</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">start_lrs</span><span class="p">,</span> <span class="n">end_lrs</span><span class="p">,</span> <span class="n">num_iter</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">start_lrs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_lr_schedule</span> <span class="o">=</span> <span class="n">PiecewiseLinear</span><span class="p">(</span>
+                    <span class="n">optimizer</span><span class="p">,</span>
+                    <span class="n">param_name</span><span class="o">=</span><span class="s2">&quot;lr&quot;</span><span class="p">,</span>
+                    <span class="n">milestones_values</span><span class="o">=</span><span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="n">start_lrs</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="p">(</span><span class="n">num_iter</span><span class="p">,</span> <span class="n">end_lrs</span><span class="p">[</span><span class="mi">0</span><span class="p">])],</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_lr_schedule</span> <span class="o">=</span> <span class="n">ParamGroupScheduler</span><span class="p">(</span>
+                    <span class="p">[</span>
+                        <span class="n">PiecewiseLinear</span><span class="p">(</span>
+                            <span class="n">optimizer</span><span class="p">,</span>
+                            <span class="n">param_name</span><span class="o">=</span><span class="s2">&quot;lr&quot;</span><span class="p">,</span>
+                            <span class="n">milestones_values</span><span class="o">=</span><span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="n">start_lrs</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span> <span class="p">(</span><span class="n">num_iter</span><span class="p">,</span> <span class="n">end_lrs</span><span class="p">[</span><span class="n">i</span><span class="p">])],</span>
+                            <span class="n">param_group_index</span><span class="o">=</span><span class="n">i</span><span class="p">,</span>
+                        <span class="p">)</span>
+                        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">optimizer</span><span class="o">.</span><span class="n">param_groups</span><span class="p">))</span>
+                    <span class="p">]</span>
+                <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">trainer</span><span class="o">.</span><span class="n">has_event_handler</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_lr_schedule</span><span class="p">):</span>
+            <span class="n">trainer</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">ITERATION_COMPLETED</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lr_schedule</span><span class="p">,</span> <span class="n">num_iter</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trainer</span><span class="p">:</span> <span class="n">Engine</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Completed LR finder run&quot;</span><span class="p">)</span>
+        <span class="n">trainer</span><span class="o">.</span><span class="n">remove_event_handler</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_lr_schedule</span><span class="p">,</span> <span class="n">Events</span><span class="o">.</span><span class="n">ITERATION_COMPLETED</span><span class="p">)</span>
+        <span class="n">trainer</span><span class="o">.</span><span class="n">remove_event_handler</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_log_lr_and_loss</span><span class="p">,</span> <span class="n">Events</span><span class="o">.</span><span class="n">ITERATION_COMPLETED</span><span class="p">)</span>
+        <span class="n">trainer</span><span class="o">.</span><span class="n">remove_event_handler</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_reached_num_iterations</span><span class="p">,</span> <span class="n">Events</span><span class="o">.</span><span class="n">ITERATION_COMPLETED</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_log_lr_and_loss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trainer</span><span class="p">:</span> <span class="n">Engine</span><span class="p">,</span> <span class="n">output_transform</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">smooth_f</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">diverge_th</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">output</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">output_transform</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">loss</span><span class="o">.</span><span class="n">ndimension</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">loss</span><span class="o">.</span><span class="n">ndimension</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">loss</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+                    <span class="n">loss</span> <span class="o">=</span> <span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s2">&quot;if output of the engine is torch.Tensor, then &quot;</span>
+                        <span class="s2">&quot;it must be 0d torch.Tensor or 1d torch.Tensor with 1 element, &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;but got torch.Tensor of shape </span><span class="si">{</span><span class="n">loss</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">.&quot;</span>
+                    <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                    <span class="s2">&quot;output of the engine should be of type float or 0d torch.Tensor &quot;</span>
+                    <span class="s2">&quot;or 1d torch.Tensor with 1 element, &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;but got output of type </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">loss</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="s2">&quot;You may wish to use the output_transform kwarg with the attach method e.g.</span><span class="se">\n</span><span class="s2">&quot;</span>
+<span class="w">                    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                    lr_finder = FastaiLRFinder()</span>
+<span class="sd">                    with lr_finder.attach(trainer, output_transform=lambda x:x[&quot;train_loss&quot;]) as trainer_with_lr_finder:</span>
+<span class="sd">                        trainer_with_lr_finder.run(dataloader_train)</span>
+<span class="sd">                    &quot;&quot;&quot;</span>
+                <span class="p">)</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">idist</span><span class="o">.</span><span class="n">all_reduce</span><span class="p">(</span><span class="n">loss</span><span class="p">)</span>
+        <span class="n">lr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lr_schedule</span><span class="o">.</span><span class="n">get_param</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_history</span><span class="p">[</span><span class="s2">&quot;lr&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">lr</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">trainer</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">iteration</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_best_loss</span> <span class="o">=</span> <span class="n">loss</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">smooth_f</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">loss</span> <span class="o">=</span> <span class="n">smooth_f</span> <span class="o">*</span> <span class="n">loss</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">smooth_f</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_history</span><span class="p">[</span><span class="s2">&quot;loss&quot;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">loss</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_best_loss</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_best_loss</span> <span class="o">=</span> <span class="n">loss</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_history</span><span class="p">[</span><span class="s2">&quot;loss&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss</span><span class="p">)</span>
+
+        <span class="c1"># Check if the loss has diverged; if it has, stop the trainer</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_history</span><span class="p">[</span><span class="s2">&quot;loss&quot;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">diverge_th</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_best_loss</span><span class="p">:</span>  <span class="c1"># type: ignore[operator]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_diverge_flag</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Stopping early, the loss has diverged&quot;</span><span class="p">)</span>
+            <span class="n">trainer</span><span class="o">.</span><span class="n">terminate</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_reached_num_iterations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trainer</span><span class="p">:</span> <span class="n">Engine</span><span class="p">,</span> <span class="n">num_iter</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">trainer</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">iteration</span> <span class="o">&gt;</span> <span class="n">num_iter</span><span class="p">:</span>
+            <span class="n">trainer</span><span class="o">.</span><span class="n">terminate</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_warning</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_diverge_flag</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s2">&quot;Run completed without loss diverging, increase end_lr, decrease diverge_th or look&quot;</span>
+                <span class="s2">&quot; at lr_finder.plot()&quot;</span><span class="p">,</span>
+                <span class="ne">UserWarning</span><span class="p">,</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_detach</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trainer</span><span class="p">:</span> <span class="n">Engine</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Detaches lr_finder from trainer.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            trainer: the trainer to detach form.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">trainer</span><span class="o">.</span><span class="n">has_event_handler</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_run</span><span class="p">,</span> <span class="n">Events</span><span class="o">.</span><span class="n">STARTED</span><span class="p">):</span>
+            <span class="n">trainer</span><span class="o">.</span><span class="n">remove_event_handler</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_run</span><span class="p">,</span> <span class="n">Events</span><span class="o">.</span><span class="n">STARTED</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">trainer</span><span class="o">.</span><span class="n">has_event_handler</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_warning</span><span class="p">,</span> <span class="n">Events</span><span class="o">.</span><span class="n">COMPLETED</span><span class="p">):</span>
+            <span class="n">trainer</span><span class="o">.</span><span class="n">remove_event_handler</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_warning</span><span class="p">,</span> <span class="n">Events</span><span class="o">.</span><span class="n">COMPLETED</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">trainer</span><span class="o">.</span><span class="n">has_event_handler</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_reset</span><span class="p">,</span> <span class="n">Events</span><span class="o">.</span><span class="n">COMPLETED</span><span class="p">):</span>
+            <span class="n">trainer</span><span class="o">.</span><span class="n">remove_event_handler</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_reset</span><span class="p">,</span> <span class="n">Events</span><span class="o">.</span><span class="n">COMPLETED</span><span class="p">)</span>
+
+<div class="viewcode-block" id="FastaiLRFinder.get_results"><a class="viewcode-back" href="../../../generated/ignite.handlers.lr_finder.FastaiLRFinder.html#ignite.handlers.lr_finder.FastaiLRFinder.get_results">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_results</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Dictionary with loss and lr logs from the previous run</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_history</span></div>
+
+<div class="viewcode-block" id="FastaiLRFinder.plot"><a class="viewcode-back" href="../../../generated/ignite.handlers.lr_finder.FastaiLRFinder.html#ignite.handlers.lr_finder.FastaiLRFinder.plot">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">plot</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">skip_start</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+        <span class="n">skip_end</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
+        <span class="n">log_lr</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">display_suggestion</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">ax</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Plots the learning rate range test.</span>
+
+<span class="sd">        This method requires ``matplotlib`` package to be installed:</span>
+
+<span class="sd">        .. code-block:: bash</span>
+
+<span class="sd">            pip install matplotlib</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            skip_start: number of batches to trim from the start.</span>
+<span class="sd">                Default: 10.</span>
+<span class="sd">            skip_end: number of batches to trim from the start.</span>
+<span class="sd">                Default: 5.</span>
+<span class="sd">            log_lr: True to plot the learning rate in a logarithmic</span>
+<span class="sd">                scale; otherwise, plotted in a linear scale. Default: True.</span>
+<span class="sd">            display_suggestion: if True, red dot shows the suggested learning rate.</span>
+<span class="sd">            ax: Pre-existing axes for the plot. Default: None.</span>
+<span class="sd">            kwargs: optional kwargs passed to ``plt.subplots`` if ``ax`` is not provided.</span>
+
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            ax = lr_finder.plot(skip_end=0)</span>
+<span class="sd">            ax.figure.savefig(&quot;output.jpg&quot;)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">matplotlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">pyplot</span> <span class="k">as</span> <span class="n">plt</span>
+        <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ModuleNotFoundError</span><span class="p">(</span>
+                <span class="s2">&quot;This method requires matplotlib to be installed. &quot;</span>
+                <span class="s2">&quot;Please install it with command: </span><span class="se">\n</span><span class="s2"> pip install matplotlib&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_history</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;learning rate finder didn&#39;t run yet so results can&#39;t be plotted&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">skip_start</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;skip_start cannot be negative&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">skip_end</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;skip_end cannot be negative&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Get the data to plot from the history dictionary.</span>
+        <span class="n">lrs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_history</span><span class="p">[</span><span class="s2">&quot;lr&quot;</span><span class="p">]</span>
+        <span class="n">losses</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_history</span><span class="p">[</span><span class="s2">&quot;loss&quot;</span><span class="p">]</span>
+
+        <span class="n">num_groups</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">lrs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lrs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">list</span><span class="p">)</span> <span class="k">else</span> <span class="mi">1</span>
+        <span class="n">legends</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;suggested lr for param_groups </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_groups</span><span class="p">)]</span>
+
+        <span class="k">if</span> <span class="n">ax</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># Check to show the suggested learning rate</span>
+        <span class="k">if</span> <span class="n">display_suggestion</span><span class="p">:</span>
+            <span class="n">sug_lr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lr_suggestion</span><span class="p">()</span>
+            <span class="n">idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_history</span><span class="p">[</span><span class="s2">&quot;lr&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">sug_lr</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">skip_start</span> <span class="o">&gt;=</span> <span class="n">idx</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="s2">&quot;skip_start is larger than the suggested LR found&quot;</span>
+                    <span class="s2">&quot; and it will not be visible on the plot. Please, make the value smaller.&quot;</span><span class="p">,</span>
+                    <span class="ne">UserWarning</span><span class="p">,</span>
+                <span class="p">)</span>
+
+            <span class="n">corresponding_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_history</span><span class="p">[</span><span class="s2">&quot;loss&quot;</span><span class="p">][</span><span class="nb">int</span><span class="p">(</span><span class="n">idx</span><span class="p">)]</span>
+
+            <span class="c1"># Check if optimizer has multiple param_groups</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sug_lr</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">sug_lr</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">sug_lr</span><span class="p">,</span>
+                <span class="p">]</span>
+            <span class="k">for</span> <span class="n">lr</span> <span class="ow">in</span> <span class="n">sug_lr</span><span class="p">:</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span>
+                    <span class="n">lr</span><span class="p">,</span> <span class="n">corresponding_loss</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;red&quot;</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sug_lr</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">75</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s2">&quot;o&quot;</span><span class="p">,</span> <span class="n">zorder</span><span class="o">=</span><span class="mi">3</span>
+                <span class="p">)</span>
+
+        <span class="c1"># handle skip_end=0 properly</span>
+        <span class="k">if</span> <span class="n">skip_end</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">lrs</span> <span class="o">=</span> <span class="n">lrs</span><span class="p">[</span><span class="n">skip_start</span><span class="p">:]</span>
+            <span class="n">losses</span> <span class="o">=</span> <span class="n">losses</span><span class="p">[</span><span class="n">skip_start</span><span class="p">:]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">lrs</span> <span class="o">=</span> <span class="n">lrs</span><span class="p">[</span><span class="n">skip_start</span><span class="p">:</span><span class="o">-</span><span class="n">skip_end</span><span class="p">]</span>
+            <span class="n">losses</span> <span class="o">=</span> <span class="n">losses</span><span class="p">[</span><span class="n">skip_start</span><span class="p">:</span><span class="o">-</span><span class="n">skip_end</span><span class="p">]</span>
+
+        <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">legends</span><span class="p">)</span>
+        <span class="c1"># Plot loss as a function of the learning rate</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">lrs</span><span class="p">,</span> <span class="n">losses</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">log_lr</span><span class="p">:</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_xscale</span><span class="p">(</span><span class="s2">&quot;log&quot;</span><span class="p">)</span>
+        <span class="n">lr_min</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">lrs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lrs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">list</span><span class="p">)</span> <span class="k">else</span> <span class="n">lrs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">lr_max</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">lrs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lrs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="nb">list</span><span class="p">)</span> <span class="k">else</span> <span class="n">lrs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">([</span><span class="n">lr_min</span><span class="p">,</span> <span class="n">lr_max</span><span class="p">])</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Learning rate&quot;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Loss&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">ax</span></div>
+
+<div class="viewcode-block" id="FastaiLRFinder.lr_suggestion"><a class="viewcode-back" href="../../../generated/ignite.handlers.lr_finder.FastaiLRFinder.html#ignite.handlers.lr_finder.FastaiLRFinder.lr_suggestion">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">lr_suggestion</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Learning rate at the minimum numerical gradient</span>
+<span class="sd">            (ignoring the increasing part of the curve)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_history</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;learning rate finder didn&#39;t run yet so lr_suggestion can&#39;t be returned&quot;</span><span class="p">)</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_history</span><span class="p">[</span><span class="s2">&quot;loss&quot;</span><span class="p">]</span>
+        <span class="n">min_loss_idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">loss</span><span class="p">)</span><span class="o">.</span><span class="n">argmin</span><span class="p">()</span>
+        <span class="c1"># Ignore the increasing part of the curve</span>
+        <span class="n">decreasing_losses</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_history</span><span class="p">[</span><span class="s2">&quot;loss&quot;</span><span class="p">][:</span> <span class="nb">int</span><span class="p">(</span><span class="n">min_loss_idx</span><span class="o">.</span><span class="n">item</span><span class="p">())</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">decreasing_losses</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="s2">&quot;FastaiLRFinder got unexpected curve shape, the curve should be somehow U-shaped, &quot;</span>
+                <span class="s2">&quot;please decrease start_lr or increase end_lr to resolve this issue.&quot;</span>
+            <span class="p">)</span>
+        <span class="n">losses</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">decreasing_losses</span><span class="p">)</span>
+        <span class="n">grads</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">losses</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">losses</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">losses</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)])</span>
+        <span class="n">min_grad_idx</span> <span class="o">=</span> <span class="n">grads</span><span class="o">.</span><span class="n">argmin</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_history</span><span class="p">[</span><span class="s2">&quot;lr&quot;</span><span class="p">][</span><span class="nb">int</span><span class="p">(</span><span class="n">min_grad_idx</span><span class="p">)]</span></div>
+
+<div class="viewcode-block" id="FastaiLRFinder.apply_suggested_lr"><a class="viewcode-back" href="../../../generated/ignite.handlers.lr_finder.FastaiLRFinder.html#ignite.handlers.lr_finder.FastaiLRFinder.apply_suggested_lr">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">apply_suggested_lr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">:</span> <span class="n">Optimizer</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Applying the suggested learning rate(s) on the given optimizer.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            optimizer: the optimizer to apply the suggested learning rate(s) on.</span>
+
+<span class="sd">        Note:</span>
+<span class="sd">            The given optimizer must be the same as the one we before found the suggested learning rate for.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">sug_lr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lr_suggestion</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sug_lr</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">sug_lr</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">sug_lr</span><span class="p">,</span>
+            <span class="p">]</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sug_lr</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">optimizer</span><span class="o">.</span><span class="n">param_groups</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="s2">&quot;The number of parameter groups does not match between &quot;</span>
+                <span class="s2">&quot;given optimizer and the one used for estimating the &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;learning rate: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">sug_lr</span><span class="p">)</span><span class="si">}</span><span class="s2"> vs </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">optimizer</span><span class="o">.</span><span class="n">param_groups</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">lr</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sug_lr</span><span class="p">):</span>
+            <span class="n">optimizer</span><span class="o">.</span><span class="n">param_groups</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s2">&quot;lr&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lr</span></div>
+
+<div class="viewcode-block" id="FastaiLRFinder.attach"><a class="viewcode-back" href="../../../generated/ignite.handlers.lr_finder.FastaiLRFinder.html#ignite.handlers.lr_finder.FastaiLRFinder.attach">[docs]</a>    <span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">attach</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">trainer</span><span class="p">:</span> <span class="n">Engine</span><span class="p">,</span>
+        <span class="n">to_save</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">,</span>
+        <span class="n">output_transform</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">output</span><span class="p">:</span> <span class="n">output</span><span class="p">,</span>
+        <span class="n">num_iter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">start_lr</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">end_lr</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]]</span> <span class="o">=</span> <span class="mf">10.0</span><span class="p">,</span>
+        <span class="n">step_mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;exp&quot;</span><span class="p">,</span>
+        <span class="n">smooth_f</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">,</span>
+        <span class="n">diverge_th</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">5.0</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Attaches lr_finder to a given trainer. It also resets model and optimizer at the end of the run.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            trainer: lr_finder is attached to this trainer. Please, keep in mind that all attached handlers</span>
+<span class="sd">                will be executed.</span>
+<span class="sd">            to_save: dictionary with optimizer and other objects that needs to be restored after running</span>
+<span class="sd">                the LR finder. For example, ``to_save={&#39;optimizer&#39;: optimizer, &#39;model&#39;: model}``.</span>
+<span class="sd">                It should contain &quot;optimizer&quot; key for the optimizer.</span>
+<span class="sd">                Also all objects should implement ``state_dict`` and ``load_state_dict`` methods.</span>
+<span class="sd">            output_transform: function that transforms the trainer&#39;s ``state.output`` after each</span>
+<span class="sd">                iteration. It must return the loss of that iteration.</span>
+<span class="sd">            num_iter: number of iterations for lr schedule between base lr and end_lr. Default, it will</span>
+<span class="sd">                run for ``trainer.state.epoch_length * trainer.state.max_epochs``.</span>
+<span class="sd">            start_lr: lower bound for lr search. Default, Learning Rate specified with the optimizer.</span>
+<span class="sd">            end_lr: upper bound for lr search. Default, 10.0.</span>
+<span class="sd">            step_mode: &quot;exp&quot; or &quot;linear&quot;, which way should the lr be increased from ``start_lr``</span>
+<span class="sd">                to ``end_lr``. Default, &quot;exp&quot;.</span>
+<span class="sd">            smooth_f: loss smoothing factor in range ``[0, 1)``. Default, 0.05</span>
+<span class="sd">            diverge_th: Used for stopping the search when ``current loss &gt; diverge_th * best_loss``.</span>
+<span class="sd">                Default, 5.0.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            trainer_with_lr_finder (trainer used for finding the lr)</span>
+
+<span class="sd">        Examples:</span>
+<span class="sd">            .. code-block:: python</span>
+
+<span class="sd">                to_save = {&quot;model&quot;: model, &quot;optimizer&quot;: optimizer}</span>
+<span class="sd">                with lr_finder.attach(trainer, to_save=to_save) as trainer_with_lr_finder:</span>
+<span class="sd">                    trainer_with_lr_finder.run(dataloader)</span>
+
+<span class="sd">        Note:</span>
+<span class="sd">            lr_finder cannot be attached to more than one trainer at a time.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">to_save</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Argument to_save should be a mapping, but given </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">to_save</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">Checkpoint</span><span class="o">.</span><span class="n">_check_objects</span><span class="p">(</span><span class="n">to_save</span><span class="p">,</span> <span class="s2">&quot;state_dict&quot;</span><span class="p">)</span>
+        <span class="n">Checkpoint</span><span class="o">.</span><span class="n">_check_objects</span><span class="p">(</span><span class="n">to_save</span><span class="p">,</span> <span class="s2">&quot;load_state_dict&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="s2">&quot;optimizer&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">to_save</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Mapping to_save should contain &#39;optimizer&#39; key&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">to_save</span><span class="p">[</span><span class="s2">&quot;optimizer&quot;</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Object to_save[&#39;optimizer&#39;] should be torch optimizer, but given </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">to_save</span><span class="p">[</span><span class="s1">&#39;optimizer&#39;</span><span class="p">])</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">smooth_f</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">smooth_f</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;smooth_f is outside the range [0, 1]&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">diverge_th</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;diverge_th should be larger than 1&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">step_mode</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;exp&quot;</span><span class="p">,</span> <span class="s2">&quot;linear&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;step_mode should be &#39;exp&#39; or &#39;linear&#39;, but given </span><span class="si">{</span><span class="n">step_mode</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">num_iter</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">num_iter</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;if provided, num_iter should be an integer, but give </span><span class="si">{</span><span class="n">num_iter</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">num_iter</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;if provided, num_iter should be positive, but give </span><span class="si">{</span><span class="n">num_iter</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">optimizer</span> <span class="o">=</span> <span class="n">to_save</span><span class="p">[</span><span class="s2">&quot;optimizer&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">start_lr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">start_lrs</span> <span class="o">=</span> <span class="p">[</span><span class="n">pg</span><span class="p">[</span><span class="s2">&quot;lr&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">pg</span> <span class="ow">in</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">param_groups</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">start_lr</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+            <span class="n">start_lrs</span> <span class="o">=</span> <span class="p">[</span><span class="n">start_lr</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">optimizer</span><span class="o">.</span><span class="n">param_groups</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">start_lr</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">start_lr</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">optimizer</span><span class="o">.</span><span class="n">param_groups</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;Number of values of start_lr should be equal to optimizer values.&quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;start_lr values:</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">start_lr</span><span class="p">)</span><span class="si">}</span><span class="s2"> optimizer values: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">optimizer</span><span class="o">.</span><span class="n">param_groups</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+            <span class="n">start_lrs</span> <span class="o">=</span> <span class="n">start_lr</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;start_lr should be a float or list of floats, but given </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">start_lr</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">end_lr</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+            <span class="n">end_lrs</span> <span class="o">=</span> <span class="p">[</span><span class="n">end_lr</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">optimizer</span><span class="o">.</span><span class="n">param_groups</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">end_lr</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">end_lr</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">optimizer</span><span class="o">.</span><span class="n">param_groups</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;Number of values of end_lr should be equal to optimizer values.&quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;end_lr values:</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">end_lr</span><span class="p">)</span><span class="si">}</span><span class="s2"> optimizer values: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">optimizer</span><span class="o">.</span><span class="n">param_groups</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+            <span class="n">end_lrs</span> <span class="o">=</span> <span class="n">end_lr</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;end_lr should be a float or list of floats, but given </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">end_lr</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">start_lrs</span><span class="p">,</span> <span class="n">end_lrs</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">start</span> <span class="o">&gt;=</span> <span class="n">end</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;start_lr must be less than end_lr, start_lr=</span><span class="si">{</span><span class="n">start_lr</span><span class="si">}</span><span class="s2"> vs end_lr=</span><span class="si">{</span><span class="n">end_lr</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># store to_save</span>
+        <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">()</span> <span class="k">as</span> <span class="n">tmpdirname</span><span class="p">:</span>
+            <span class="n">obj</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">o</span><span class="o">.</span><span class="n">state_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">to_save</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+            <span class="c1"># add trainer</span>
+            <span class="n">obj</span><span class="p">[</span><span class="s2">&quot;trainer&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">state_dict</span><span class="p">()</span>
+            <span class="n">cache_filepath</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">tmpdirname</span><span class="p">)</span> <span class="o">/</span> <span class="s2">&quot;ignite_lr_finder_cache.pt&quot;</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">cache_filepath</span><span class="o">.</span><span class="n">as_posix</span><span class="p">())</span>
+
+            <span class="c1"># Attach handlers</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">trainer</span><span class="o">.</span><span class="n">has_event_handler</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_run</span><span class="p">):</span>
+                <span class="n">trainer</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span>
+                    <span class="n">Events</span><span class="o">.</span><span class="n">STARTED</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_run</span><span class="p">,</span>
+                    <span class="n">optimizer</span><span class="p">,</span>
+                    <span class="n">output_transform</span><span class="p">,</span>
+                    <span class="n">num_iter</span><span class="p">,</span>
+                    <span class="n">start_lrs</span><span class="p">,</span>
+                    <span class="n">end_lrs</span><span class="p">,</span>
+                    <span class="n">step_mode</span><span class="p">,</span>
+                    <span class="n">smooth_f</span><span class="p">,</span>
+                    <span class="n">diverge_th</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">trainer</span><span class="o">.</span><span class="n">has_event_handler</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_warning</span><span class="p">):</span>
+                <span class="n">trainer</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">COMPLETED</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_warning</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">trainer</span><span class="o">.</span><span class="n">has_event_handler</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_reset</span><span class="p">):</span>
+                <span class="n">trainer</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">COMPLETED</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reset</span><span class="p">)</span>
+
+            <span class="k">yield</span> <span class="n">trainer</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_detach</span><span class="p">(</span><span class="n">trainer</span><span class="p">)</span>
+            <span class="c1"># restore to_save and reset trainer&#39;s state</span>
+            <span class="n">obj</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">cache_filepath</span><span class="o">.</span><span class="n">as_posix</span><span class="p">())</span>
+            <span class="n">trainer</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">obj</span><span class="p">[</span><span class="s2">&quot;trainer&quot;</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">obj</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">to_save</span><span class="p">:</span>
+                    <span class="n">to_save</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">o</span><span class="p">)</span></div></div>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">_ExponentialLR</span><span class="p">(</span><span class="n">_LRScheduler</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Exponentially increases the learning rate between two boundaries over a number of</span>
+<span class="sd">    iterations.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        optimizer: wrapped optimizer.</span>
+<span class="sd">        start_lrs: the initial learning rate for parameter groups.</span>
+<span class="sd">        end_lrs: the final learning rate for parameter groups.</span>
+<span class="sd">        num_iter: the number of iterations over which the test</span>
+<span class="sd">            occurs. Default: 100.</span>
+<span class="sd">        last_epoch: the index of last epoch. Default: -1.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">:</span> <span class="n">Optimizer</span><span class="p">,</span> <span class="n">start_lrs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">end_lrs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">num_iter</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">last_epoch</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">end_lrs</span> <span class="o">=</span> <span class="n">end_lrs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_iter</span> <span class="o">=</span> <span class="n">num_iter</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">_ExponentialLR</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">last_epoch</span><span class="p">)</span>
+
+        <span class="c1"># override base_lrs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">base_lrs</span> <span class="o">=</span> <span class="n">start_lrs</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_lr</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]:</span>
+        <span class="n">curr_iter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_epoch</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">curr_iter</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_iter</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">base_lr</span> <span class="o">*</span> <span class="p">(</span><span class="n">end_lr</span> <span class="o">/</span> <span class="n">base_lr</span><span class="p">)</span> <span class="o">**</span> <span class="n">r</span> <span class="k">for</span> <span class="n">end_lr</span><span class="p">,</span> <span class="n">base_lr</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">end_lrs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_lrs</span><span class="p">)]</span>
+</pre></div>
+
+             </article>
+             
+            </div>
+            <footer>
+  
+
+  
+
+    <hr>
+
+  
+
+  <div role="contentinfo">
+    <table>
+      <tr>
+        <td>
+            <p>
+                &copy; Copyright 2026, PyTorch-Ignite Contributors.
+              Last updated on 03/01/2026, 6:49:25 PM.
+            </p>
+            
+              <div>
+                Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+              </div>
+          
+        </td>
+        <td>
+            
+              <div>
+                <a href="https://www.netlify.com" target="_blank" rel="noopener noreferrer">
+                  <img
+                  src="_static/img/netlify-light.svg"
+                  alt="Deploys by Netlify"
+                  width=114
+                  height=51 />
+                </a>
+              </div>
+            
+        </td>
+      </tr>
+    </table>
+  </div> 
+
+</footer>
+          </div>
+        </div>
+
+        <div class="pytorch-content-right" id="pytorch-content-right">
+          <div class="pytorch-right-menu" id="pytorch-right-menu">
+            <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
+              
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+  
+
+     
+       <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+         <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+         <script src="../../../_static/jquery.js"></script>
+         <script src="../../../_static/underscore.js"></script>
+         <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+         <script src="../../../_static/doctools.js"></script>
+         <script src="../../../_static/sphinx_highlight.js"></script>
+         <script src="../../../_static/clipboard.min.js"></script>
+         <script src="../../../_static/copybutton.js"></script>
+         <script>let toggleHintShow = 'Show default setup';</script>
+         <script>let toggleHintHide = 'Hide default setup';</script>
+         <script>let toggleOpenOnPrint = 'true';</script>
+         <script src="../../../_static/togglebutton.js"></script>
+         <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+         <script src="../../../_static/design-tabs.js"></script>
+     
+
+  
+
+  <script type="text/javascript" src="../../../_static/js/vendor/popper.min.js"></script>
+  <script type="text/javascript" src="../../../_static/js/vendor/bootstrap.min.js"></script>
+  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+  <!-- Begin Footer -->
+
+  <!-- commented out for Ignite -->
+
+  <div class="container-fluid docs-tutorials-resources" id="docs-tutorials-resources">
+    <!-- <div class="container">
+      <div class="row">
+        <div class="text-center col-md-4">
+          <h2>Docs</h2>
+          <p>Access comprehensive developer documentation for PyTorch</p>
+          <a class="with-right-arrow" href="https://pytorch.org/ignite/index.html">View Docs</a>
+        </div>
+
+        <div class="text-center col-md-4">
+          <h2>Tutorials</h2>
+          <p>Get in-depth tutorials for beginners and advanced developers</p>
+          <a class="with-right-arrow" href="">View Tutorials</a>
+        </div>
+
+        <div class="text-center col-md-4">
+          <h2>Resources</h2>
+          <p>Find development resources and get your questions answered</p>
+          <a class="with-right-arrow" href="">View Resources</a>
+        </div>
+      </div>
+    </div> -->
+  </div>
+
+  <!-- <footer class="site-footer">
+    <div class="container footer-container">
+      <div class="footer-logo-wrapper">
+        <a href="https://pytorch-ignite.ai" class="footer-logo"></a>
+      </div>
+
+      <div class="footer-links-wrapper">
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title"><a href="https://pytorch-ignite.ai">PyTorch</a></li>
+            <li><a href="">Get Started</a></li>
+            <li><a href="">Features</a></li>
+            <li><a href="">Ecosystem</a></li>
+            <li><a href="">Blog</a></li>
+            <li><a href="">Resources</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title"><a href="">Support</a></li>
+            <li><a href="">Tutorials</a></li>
+            <li><a href="https://pytorch.org/ignite/index.html">Docs</a></li>
+            <li><a href="" target="_blank">Discuss</a></li>
+            <li><a href="https://github.com/pytorch/ignite/issues" target="_blank">Github Issues</a></li>
+            <li><a href="" target="_blank">Slack</a></li>
+            <li><a href="https://github.com/pytorch/ignite/blob/master/CONTRIBUTING.md" target="_blank">Contributing</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links-col follow-us-col">
+          <ul>
+            <li class="list-title">Follow Us</li>
+            <li>
+              <div id="mc_embed_signup">
+                <form
+                  action="https://twitter.us14.list-manage.com/subscribe/post?u=75419c71fe0a935e53dfa4a3f&id=91d0dccd39"
+                  method="post"
+                  id="mc-embedded-subscribe-form"
+                  name="mc-embedded-subscribe-form"
+                  class="email-subscribe-form validate"
+                  target="_blank"
+                  novalidate>
+                  <div id="mc_embed_signup_scroll" class="email-subscribe-form-fields-wrapper">
+                    <div class="mc-field-group">
+                      <label for="mce-EMAIL" style="display:none;">Email Address</label>
+                      <input type="email" value="" name="EMAIL" class="required email" id="mce-EMAIL" placeholder="Email Address">
+                    </div>
+
+                    <div id="mce-responses" class="clear">
+                      <div class="response" id="mce-error-response" style="display:none"></div>
+                      <div class="response" id="mce-success-response" style="display:none"></div>
+                    </div>    <!~~ real people should not fill this in and expect good things - do not remove this or risk form bot signups ~~>
+
+                    <div style="position: absolute; left: -5000px;" aria-hidden="true"><input type="text" name="b_75419c71fe0a935e53dfa4a3f_91d0dccd39" tabindex="-1" value=""></div>
+
+                    <div class="clear">
+                      <input type="submit" value="" name="subscribe" id="mc-embedded-subscribe" class="button email-subscribe-button">
+                    </div>
+                  </div>
+                </form>
+              </div>
+
+            </li>
+          </ul>
+
+          <div class="footer-social-icons">
+            <a href="" target="_blank" class="facebook"></a>
+            <a href="" target="_blank" class="twitter"></a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer> -->
+
+
+  <!-- end of commented out for Ignite -->
+
+  <!-- <div class="cookie-banner-wrapper">
+  <div class="container">
+    <p class="gdpr-notice">To analyze traffic and optimize your experience, we serve cookies on this site. By clicking or navigating, you agree to allow our usage of cookies. As the current maintainers of this site, Facebook’s Cookies Policy applies. Learn more, including about available controls: <a href="https://www.facebook.com/policies/cookies/">Cookies Policy</a>.</p>
+    <img class="close-button" src="../../../_static/images/pytorch-x.svg">
+  </div>
+</div> -->
+
+  <!-- End Footer -->
+
+  <!-- Begin Mobile Menu -->
+  <!--
+  <div class="mobile-main-menu">
+    <div class="container-fluid">
+      <div class="container">
+        <div class="mobile-main-menu-header-container">
+          <a class="header-logo" href="https://pytorch-ignite.ai" aria-label="PyTorch"></a>
+          <a class="main-menu-close-button" href="#" data-behavior="close-mobile-menu"></a>
+        </div>
+      </div>
+    </div>
+
+    <div class="mobile-main-menu-links-container">
+      <div class="main-menu">
+        <ul>
+          <li>
+            <a href="#">Get Started</a>
+          </li>
+
+          <li>
+            <a href="#">Features</a>
+          </li>
+
+          <li>
+            <a href="#">Ecosystem</a>
+          </li>
+
+          <li>
+            <a href="">Blog</a>
+          </li>
+
+          <li>
+            <a href="">Tutorials</a>
+          </li>
+
+          <li>
+            <a href="https://pytorch.org/ignite/index.html">Docs</a>
+          </li>
+
+          <li>
+            <a href="">Resources</a>
+          </li>
+
+          <li>
+            <a href="https://github.com/pytorch/ignite">Github</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  -->
+  <!-- End Mobile Menu -->
+
+  <script type="text/javascript" src="../../../_static/js/vendor/anchor.min.js"></script>
+
+  <script type="text/javascript">
+    var collapsedSections = []
+    $(document).ready(function() {
+      mobileMenu.bind();
+      mobileTOC.bind();
+      pytorchAnchors.bind();
+      sideMenus.bind();
+      scrollToAnchor.bind();
+      highlightNavigation.bind();
+
+      // Add class to links that have code blocks, since we cannot create links in code blocks
+      $("article.pytorch-article a span.pre").each(function(e) {
+        $(this).closest("a").addClass("has-code");
+      });
+    })
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@docsearch/js@3"></script>
+  <script type="text/javascript">
+  let VERSION
+  if ('v0.5.1'.startsWith('v')) {
+    VERSION = 'v0.5.1'
+  } else {
+    VERSION = 'master'
+  }
+  docsearch({
+    container: '#docsearch',
+    appId: '7EWYE1JCT3',
+    apiKey: '841e93e60c16975ba1bd8c7c716eed82',
+    indexName: 'pytorch-ignite',
+    placeholder: 'Search PyTorch-Ignite docs',
+    searchParameters: {
+      facetFilters: [`version:${VERSION}`, 'tags:API-reference'],
+    }
+  });
+  </script>
+</body>
+</html>

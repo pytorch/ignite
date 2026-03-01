@@ -1,0 +1,45 @@
+﻿MeanNormalizedBias
+==================
+
+.. currentmodule:: ignite.contrib.metrics.regression
+
+.. autoclass:: MeanNormalizedBias
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~MeanNormalizedBias.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~MeanNormalizedBias.reset
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   

@@ -1,0 +1,1413 @@
+
+
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta name="author" content="PyTorch-Ignite Contributors">
+  <meta name="creator" content="PyTorch-Ignite Contributors">
+  <meta name="publisher" content="PyTorch-Ignite Contributors">
+  <meta name="generator" content="Sphinx 5.3.0">
+  <meta name="description" content="High-level library to help with training and evaluating neural networks in PyTorch flexibly and transparently.">
+  <meta name="keywords" content="pytorch, pytorch ignite, ignite, engine, events, handlers, metrics">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#ee4c2c">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@pytorch_ignite">
+  <meta name="twitter:creator" content="@pytorch_ignite">
+  <meta name="twitter:description" content="High-level library to help with training and evaluating neural networks in PyTorch flexibly and transparently.">
+  <meta name="twitter:title" content="ignite.engine &mdash; PyTorch-Ignite v0.4.12 Documentation">
+  <meta name="twitter:image" content="https://raw.githubusercontent.com/pytorch/ignite/master/assets/logo/ignite_logo.png">
+  <meta name="twitter:image:alt" content="PyTorch-Ignite logo">
+
+  <meta property="og:title" content="ignite.engine &mdash; PyTorch-Ignite v0.4.12 Documentation">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://pytorch.org/ignite/">
+  <meta property="og:site_name" content="PyTorch-Ignite">
+  <meta property="og:image" content="https://raw.githubusercontent.com/pytorch/ignite/master/assets/logo/ignite_logo.png">
+  <meta property="og:image:alt" content="PyTorch-Ignite logo">
+  <meta property="og:description" content="High-level library to help with training and evaluating neural networks in PyTorch flexibly and transparently.">
+
+  <link rel="preconnect" href="https://BH4D9OD16A-dsn.algolia.net" crossorigin />
+
+  
+  <title>ignite.engine &mdash; PyTorch-Ignite v0.4.12 Documentation</title>
+  
+
+  
+  
+    <link rel="shortcut icon" type="image/svg+xml" href="../../_static/ignite_logomark.svg"/>
+  
+  
+  
+    <link rel="canonical" href="https://pytorch.org/ignite/_modules/ignite/engine.html"/>
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="preload" href="../../_static/css/theme.css" as="style" />
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!-- <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" /> -->
+  <link rel="preload" href="../../_static/pygments.css" as="style" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="preload" href="../../_static/css/theme.css" as="style" />
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="preload" href="../../_static/copybutton.css" as="style" />
+  <link rel="stylesheet" href="../../_static/copybutton.css" type="text/css" />
+  <link rel="preload" href="../../_static/togglebutton.css" as="style" />
+  <link rel="stylesheet" href="../../_static/togglebutton.css" type="text/css" />
+  <link rel="preload" href="../../_static/banner.css" as="style" />
+  <link rel="stylesheet" href="../../_static/banner.css" type="text/css" />
+  <link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" as="style" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" type="text/css" />
+  <link rel="preload" href="../../_static/katex-math.css" as="style" />
+  <link rel="stylesheet" href="../../_static/katex-math.css" type="text/css" />
+  <link rel="preload" href="../../_static/sphinx-design.5ea377869091fd0449014c60fc090103.min.css" as="style" />
+  <link rel="stylesheet" href="../../_static/sphinx-design.5ea377869091fd0449014c60fc090103.min.css" type="text/css" />
+    <link rel="preload" href="../../_static/css/ignite_theme.css" as="style" />
+    <link rel="stylesheet" href="../../_static/css/ignite_theme.css" type="text/css" />
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/@docsearch/css@3" as="style" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@docsearch/css@3" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+
+  <!-- katex links / this needs to be loaded before fonts.html -->
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/katex.min.css" crossorigin="anonymous">
+<script async src="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/katex.min.js" crossorigin="anonymous"></script>
+
+<!-- Preload the theme fonts -->
+
+<link rel="preload" href="../../_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../_static/fonts/IBMPlexMono/IBMPlexMono-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+
+<!-- Preload the katex fonts -->
+
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Math-Italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Main-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Main-Bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Size1-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Size4-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Size2-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Size3-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Caligraphic-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-5FELLLFHCP"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-5FELLLFHCP');
+  </script>
+</head>
+
+<div class="container-fluid header-holder tutorials-header" id="header-holder">
+  <div class="container">
+
+    <a class="header-logo" href="/ignite" aria-label="PyTorch-Ignite"></a>
+
+    <div class="header-container">
+
+      <div class="main-menu">
+        <ul>
+          <li>
+            <a href="https://pytorch-ignite.ai/tutorials/beginner/01-getting-started/">Quickstart</a>
+          </li>
+
+          <li>
+            <a href="https://pytorch-ignite.ai/concepts/">Concepts</a>
+          </li>
+
+          <!-- <li>
+            <a href="https://pytorch-ignite.ai/tutorials/beginner/01-getting-started/#complete-code">Examples</a>
+          </li> -->
+
+          <li>
+            <a href="https://pytorch-ignite.ai/how-to-guides/">FAQ</a>
+          </li>
+
+          <li>
+            <a href="https://github.com/pytorch/ignite" target="_blank" rel="noopener noreferrer">GitHub</a>
+          </li>
+
+          <li>
+            <a href="https://pytorch-ignite.ai/about/community/">About us</a>
+          </li>
+
+          <li>
+            <a href="https://pytorch-ignite.ai">⊳ pytorch-ignite.ai</a>
+          </li>
+
+
+        </ul>
+      </div>
+
+      <!-- <a class="main-menu-open-button" href="#" data-behavior="open-mobile-menu"></a> -->
+    </div>
+
+  </div>
+</div>
+
+
+<body class="pytorch-body">
+
+   
+
+    
+
+    <div class="table-of-contents-link-wrapper">
+      <span>Table of Contents</span>
+      <div class="toggle-table-of-contents" data-behavior="toggle-table-of-contents"></div>
+    </div>
+
+    <nav data-toggle="wy-nav-shift" class="pytorch-left-menu" id="pytorch-left-menu">
+      <div class="pytorch-side-scroll">
+        <div class="pytorch-menu pytorch-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          <div class="pytorch-left-menu-search">
+            
+
+            
+              
+              
+                <div class="version">
+                  v0.4.12
+                </div>
+              
+            
+
+            <div id="docsearch"></div>
+
+            
+          </div>
+
+          
+            
+            
+              
+            
+            
+              <p class="caption" role="heading"><span class="caption-text">Package Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../engine.html">ignite.engine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../handlers.html">ignite.handlers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../metrics.html">ignite.metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../distributed.html">ignite.distributed</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../exceptions.html">ignite.exceptions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../utils.html">ignite.utils</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Contrib Package Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../contrib/engines.html">ignite.contrib.engines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contrib/metrics.html">ignite.contrib.metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contrib/handlers.html">ignite.contrib.handlers</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+
+      <div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: v0.4.12
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.4.0.post1/index.html">v0.4.0.post1</a></dd>
+            <dd><a href="../../../v0.4.1/index.html">v0.4.1</a></dd>
+            <dd><a href="../../../v0.4.10/index.html">v0.4.10</a></dd>
+            <dd><a href="../../../v0.4.11/index.html">v0.4.11</a></dd>
+            <dd><a href="engine.html">v0.4.12</a></dd>
+            <dd><a href="../../../v0.4.13/index.html">v0.4.13</a></dd>
+            <dd><a href="../../../v0.4.2/index.html">v0.4.2</a></dd>
+            <dd><a href="../../../v0.4.3/index.html">v0.4.3</a></dd>
+            <dd><a href="../../../v0.4.4.post1/index.html">v0.4.4.post1</a></dd>
+            <dd><a href="../../../v0.4.5/index.html">v0.4.5</a></dd>
+            <dd><a href="../../../v0.4.6/index.html">v0.4.6</a></dd>
+            <dd><a href="../../../v0.4.7/index.html">v0.4.7</a></dd>
+            <dd><a href="../../../v0.4.8/index.html">v0.4.8</a></dd>
+            <dd><a href="../../../v0.4.9/index.html">v0.4.9</a></dd>
+            <dd><a href="../../../v0.4rc.0.post1/index.html">v0.4rc.0.post1</a></dd>
+            <dd><a href="../../../v0.5.0.post2/index.html">v0.5.0.post2</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.5.2/index.html">v0.5.2</a></dd>
+            <dd><a href="../../../v0.5.3/index.html">v0.5.3</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="../../../master/index.html">master</a></dd>
+        </dl>
+    </div>
+</div>
+
+    </nav>
+
+    <div class="pytorch-container">
+      <div class="pytorch-page-level-bar" id="pytorch-page-level-bar">
+        <div class="pytorch-breadcrumbs-wrapper">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="pytorch-breadcrumbs">
+    
+      <li>
+        <a href="../../index.html">
+          
+            Docs
+          
+        </a> &gt;
+      </li>
+
+        
+          <li><a href="../index.html">Module code</a> &gt;</li>
+        
+      <li>ignite.engine</li>
+    
+    
+      <li class="pytorch-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+</div>
+        </div>
+
+        <div class="pytorch-shortcuts-wrapper" id="pytorch-shortcuts-wrapper">
+          Shortcuts
+        </div>
+      </div>
+
+      <section data-toggle="wy-nav-shift" id="pytorch-content-wrap" class="pytorch-content-wrap">
+        <div class="pytorch-content-left">
+
+        
+          
+          <div class="rst-content">
+          
+            <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
+             <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
+              
+  <h1>Source code for ignite.engine</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Mapping</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">ignite.distributed</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">idist</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ignite.engine.deterministic</span><span class="w"> </span><span class="kn">import</span> <span class="n">DeterministicEngine</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ignite.engine.engine</span><span class="w"> </span><span class="kn">import</span> <span class="n">Engine</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ignite.engine.events</span><span class="w"> </span><span class="kn">import</span> <span class="n">CallableEventWithFilter</span><span class="p">,</span> <span class="n">EventEnum</span><span class="p">,</span> <span class="n">Events</span><span class="p">,</span> <span class="n">EventsList</span><span class="p">,</span> <span class="n">RemovableEventHandle</span><span class="p">,</span> <span class="n">State</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ignite.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">Metric</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ignite.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">convert_tensor</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;State&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;create_supervised_trainer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;create_supervised_evaluator&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Engine&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;DeterministicEngine&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Events&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;EventsList&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;EventEnum&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;CallableEventWithFilter&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;RemovableEventHandle&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;supervised_training_step&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;supervised_training_step_amp&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;supervised_training_step_apex&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;supervised_training_step_tpu&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;supervised_evaluation_step&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;supervised_evaluation_step_amp&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_prepare_batch</span><span class="p">(</span>
+    <span class="n">batch</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">device</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">non_blocking</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">],</span> <span class="o">...</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Prepare batch for training or evaluation: pass to a device with options.&quot;&quot;&quot;</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">batch</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="n">convert_tensor</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">non_blocking</span><span class="o">=</span><span class="n">non_blocking</span><span class="p">),</span>
+        <span class="n">convert_tensor</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">non_blocking</span><span class="o">=</span><span class="n">non_blocking</span><span class="p">),</span>
+    <span class="p">)</span>
+
+
+<div class="viewcode-block" id="supervised_training_step"><a class="viewcode-back" href="../../generated/ignite.engine.supervised_training_step.html#ignite.engine.supervised_training_step">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">supervised_training_step</span><span class="p">(</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+    <span class="n">optimizer</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">,</span>
+    <span class="n">loss_fn</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Callable</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">],</span>
+    <span class="n">device</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">non_blocking</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">prepare_batch</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="n">_prepare_batch</span><span class="p">,</span>
+    <span class="n">model_transform</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">output</span><span class="p">:</span> <span class="n">output</span><span class="p">,</span>
+    <span class="n">output_transform</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">loss</span><span class="p">:</span> <span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+    <span class="n">gradient_accumulation_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Factory function for supervised training.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        model: the model to train.</span>
+<span class="sd">        optimizer: the optimizer to use.</span>
+<span class="sd">        loss_fn: the loss function to use.</span>
+<span class="sd">        device: device type specification (default: None).</span>
+<span class="sd">            Applies to batches after starting the engine. Model *will not* be moved.</span>
+<span class="sd">            Device can be CPU, GPU.</span>
+<span class="sd">        non_blocking: if True and this copy is between CPU and GPU, the copy may occur asynchronously</span>
+<span class="sd">            with respect to the host. For other cases, this argument has no effect.</span>
+<span class="sd">        prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs</span>
+<span class="sd">            tuple of tensors `(batch_x, batch_y)`.</span>
+<span class="sd">        model_transform: function that receives the output from the model and convert it into the form as required</span>
+<span class="sd">            by the loss function</span>
+<span class="sd">        output_transform: function that receives &#39;x&#39;, &#39;y&#39;, &#39;y_pred&#39;, &#39;loss&#39; and returns value</span>
+<span class="sd">            to be assigned to engine&#39;s state.output after each iteration. Default is returning `loss.item()`.</span>
+<span class="sd">        gradient_accumulation_steps: Number of steps the gradients should be accumulated across.</span>
+<span class="sd">            (default: 1 (means no gradient accumulation))</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Callable: update function.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            from ignite.engine import Engine, supervised_training_step</span>
+
+<span class="sd">            model = ...</span>
+<span class="sd">            optimizer = ...</span>
+<span class="sd">            loss_fn = ...</span>
+
+<span class="sd">            update_fn = supervised_training_step(model, optimizer, loss_fn, &#39;cuda&#39;)</span>
+<span class="sd">            trainer = Engine(update_fn)</span>
+
+<span class="sd">    .. versionadded:: 0.4.5</span>
+<span class="sd">    .. versionchanged:: 0.4.7</span>
+<span class="sd">        Added Gradient Accumulation.</span>
+<span class="sd">    .. versionchanged:: 0.4.11</span>
+<span class="sd">        Added `model_transform` to transform model&#39;s output</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">gradient_accumulation_steps</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;Gradient_accumulation_steps must be strictly positive. &quot;</span>
+            <span class="s2">&quot;No gradient accumulation if the value set to one (default).&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="n">engine</span><span class="p">:</span> <span class="n">Engine</span><span class="p">,</span> <span class="n">batch</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]:</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">engine</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">iteration</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">gradient_accumulation_steps</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">prepare_batch</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">non_blocking</span><span class="o">=</span><span class="n">non_blocking</span><span class="p">)</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">y_pred</span> <span class="o">=</span> <span class="n">model_transform</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">loss_fn</span><span class="p">(</span><span class="n">y_pred</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">gradient_accumulation_steps</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">loss</span> <span class="o">=</span> <span class="n">loss</span> <span class="o">/</span> <span class="n">gradient_accumulation_steps</span>
+        <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">engine</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">iteration</span> <span class="o">%</span> <span class="n">gradient_accumulation_steps</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">output_transform</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">loss</span> <span class="o">*</span> <span class="n">gradient_accumulation_steps</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">update</span></div>
+
+
+<div class="viewcode-block" id="supervised_training_step_amp"><a class="viewcode-back" href="../../generated/ignite.engine.supervised_training_step_amp.html#ignite.engine.supervised_training_step_amp">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">supervised_training_step_amp</span><span class="p">(</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+    <span class="n">optimizer</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">,</span>
+    <span class="n">loss_fn</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Callable</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">],</span>
+    <span class="n">device</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">non_blocking</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">prepare_batch</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="n">_prepare_batch</span><span class="p">,</span>
+    <span class="n">model_transform</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">output</span><span class="p">:</span> <span class="n">output</span><span class="p">,</span>
+    <span class="n">output_transform</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">loss</span><span class="p">:</span> <span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+    <span class="n">scaler</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="s2">&quot;torch.cuda.amp.GradScaler&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">gradient_accumulation_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Factory function for supervised training using ``torch.cuda.amp``.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        model: the model to train.</span>
+<span class="sd">        optimizer: the optimizer to use.</span>
+<span class="sd">        loss_fn: the loss function to use.</span>
+<span class="sd">        device: device type specification (default: None).</span>
+<span class="sd">            Applies to batches after starting the engine. Model *will not* be moved.</span>
+<span class="sd">            Device can be CPU, GPU.</span>
+<span class="sd">        non_blocking: if True and this copy is between CPU and GPU, the copy may occur asynchronously</span>
+<span class="sd">            with respect to the host. For other cases, this argument has no effect.</span>
+<span class="sd">        prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs</span>
+<span class="sd">            tuple of tensors `(batch_x, batch_y)`.</span>
+<span class="sd">        model_transform: function that receives the output from the model and convert it into the form as required</span>
+<span class="sd">            by the loss function</span>
+<span class="sd">        output_transform: function that receives &#39;x&#39;, &#39;y&#39;, &#39;y_pred&#39;, &#39;loss&#39; and returns value</span>
+<span class="sd">            to be assigned to engine&#39;s state.output after each iteration. Default is returning `loss.item()`.</span>
+<span class="sd">        scaler: GradScaler instance for gradient scaling. (default: None)</span>
+<span class="sd">        gradient_accumulation_steps: Number of steps the gradients should be accumulated across.</span>
+<span class="sd">            (default: 1 (means no gradient accumulation))</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Callable: update function</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            from ignite.engine import Engine, supervised_training_step_amp</span>
+
+<span class="sd">            model = ...</span>
+<span class="sd">            optimizer = ...</span>
+<span class="sd">            loss_fn = ...</span>
+<span class="sd">            scaler = torch.cuda.amp.GradScaler(2**10)</span>
+
+<span class="sd">            update_fn = supervised_training_step_amp(model, optimizer, loss_fn, &#39;cuda&#39;, scaler=scaler)</span>
+<span class="sd">            trainer = Engine(update_fn)</span>
+
+<span class="sd">    .. versionadded:: 0.4.5</span>
+<span class="sd">    .. versionchanged:: 0.4.7</span>
+<span class="sd">        Added Gradient Accumulation.</span>
+<span class="sd">    .. versionchanged:: 0.4.11</span>
+<span class="sd">        Added `model_transform` to transform model&#39;s output</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">torch.cuda.amp</span><span class="w"> </span><span class="kn">import</span> <span class="n">autocast</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="s2">&quot;Please install torch&gt;=1.6.0 to use amp_mode=&#39;amp&#39;.&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">gradient_accumulation_steps</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;Gradient_accumulation_steps must be strictly positive. &quot;</span>
+            <span class="s2">&quot;No gradient accumulation if the value set to one (default).&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="n">engine</span><span class="p">:</span> <span class="n">Engine</span><span class="p">,</span> <span class="n">batch</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]:</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">engine</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">iteration</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">gradient_accumulation_steps</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">prepare_batch</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">non_blocking</span><span class="o">=</span><span class="n">non_blocking</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">autocast</span><span class="p">(</span><span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="n">y_pred</span> <span class="o">=</span> <span class="n">model_transform</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+            <span class="n">loss</span> <span class="o">=</span> <span class="n">loss_fn</span><span class="p">(</span><span class="n">y_pred</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">gradient_accumulation_steps</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">loss</span> <span class="o">=</span> <span class="n">loss</span> <span class="o">/</span> <span class="n">gradient_accumulation_steps</span>
+        <span class="k">if</span> <span class="n">scaler</span><span class="p">:</span>
+            <span class="n">scaler</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="n">loss</span><span class="p">)</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">engine</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">iteration</span> <span class="o">%</span> <span class="n">gradient_accumulation_steps</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">scaler</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">optimizer</span><span class="p">)</span>
+                <span class="n">scaler</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">engine</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">iteration</span> <span class="o">%</span> <span class="n">gradient_accumulation_steps</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">output_transform</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">loss</span> <span class="o">*</span> <span class="n">gradient_accumulation_steps</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">update</span></div>
+
+
+<div class="viewcode-block" id="supervised_training_step_apex"><a class="viewcode-back" href="../../generated/ignite.engine.supervised_training_step_apex.html#ignite.engine.supervised_training_step_apex">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">supervised_training_step_apex</span><span class="p">(</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+    <span class="n">optimizer</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">,</span>
+    <span class="n">loss_fn</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Callable</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">],</span>
+    <span class="n">device</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">non_blocking</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">prepare_batch</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="n">_prepare_batch</span><span class="p">,</span>
+    <span class="n">model_transform</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">output</span><span class="p">:</span> <span class="n">output</span><span class="p">,</span>
+    <span class="n">output_transform</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">loss</span><span class="p">:</span> <span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+    <span class="n">gradient_accumulation_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Factory function for supervised training using apex.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        model: the model to train.</span>
+<span class="sd">        optimizer: the optimizer to use.</span>
+<span class="sd">        loss_fn: the loss function to use.</span>
+<span class="sd">        device: device type specification (default: None).</span>
+<span class="sd">            Applies to batches after starting the engine. Model *will not* be moved.</span>
+<span class="sd">            Device can be CPU, GPU.</span>
+<span class="sd">        non_blocking: if True and this copy is between CPU and GPU, the copy may occur asynchronously</span>
+<span class="sd">            with respect to the host. For other cases, this argument has no effect.</span>
+<span class="sd">        prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs</span>
+<span class="sd">            tuple of tensors `(batch_x, batch_y)`.</span>
+<span class="sd">        model_transform: function that receives the output from the model and convert it into the form as required</span>
+<span class="sd">            by the loss function</span>
+<span class="sd">        output_transform: function that receives &#39;x&#39;, &#39;y&#39;, &#39;y_pred&#39;, &#39;loss&#39; and returns value</span>
+<span class="sd">            to be assigned to engine&#39;s state.output after each iteration. Default is returning `loss.item()`.</span>
+<span class="sd">        gradient_accumulation_steps: Number of steps the gradients should be accumulated across.</span>
+<span class="sd">            (default: 1 (means no gradient accumulation))</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Callable: update function.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            from ignite.engine import Engine, supervised_training_step_apex</span>
+
+<span class="sd">            model = ...</span>
+<span class="sd">            optimizer = ...</span>
+<span class="sd">            loss_fn = ...</span>
+
+<span class="sd">            update_fn = supervised_training_step_apex(model, optimizer, loss_fn, &#39;cuda&#39;)</span>
+<span class="sd">            trainer = Engine(update_fn)</span>
+
+<span class="sd">    .. versionadded:: 0.4.5</span>
+<span class="sd">    .. versionchanged:: 0.4.7</span>
+<span class="sd">        Added Gradient Accumulation.</span>
+<span class="sd">    .. versionchanged:: 0.4.11</span>
+<span class="sd">        Added `model_transform` to transform model&#39;s output</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">apex</span><span class="w"> </span><span class="kn">import</span> <span class="n">amp</span> <span class="k">as</span> <span class="n">apex_amp</span>
+    <span class="k">except</span> <span class="ne">ModuleNotFoundError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ModuleNotFoundError</span><span class="p">(</span><span class="s2">&quot;Please install apex from https://github.com/nvidia/apex to use amp_mode=&#39;apex&#39;.&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">gradient_accumulation_steps</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;Gradient_accumulation_steps must be strictly positive. &quot;</span>
+            <span class="s2">&quot;No gradient accumulation if the value set to one (default).&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="n">engine</span><span class="p">:</span> <span class="n">Engine</span><span class="p">,</span> <span class="n">batch</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]:</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">engine</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">iteration</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">gradient_accumulation_steps</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">prepare_batch</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">non_blocking</span><span class="o">=</span><span class="n">non_blocking</span><span class="p">)</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">y_pred</span> <span class="o">=</span> <span class="n">model_transform</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">loss_fn</span><span class="p">(</span><span class="n">y_pred</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">gradient_accumulation_steps</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">loss</span> <span class="o">=</span> <span class="n">loss</span> <span class="o">/</span> <span class="n">gradient_accumulation_steps</span>
+        <span class="k">with</span> <span class="n">apex_amp</span><span class="o">.</span><span class="n">scale_loss</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">)</span> <span class="k">as</span> <span class="n">scaled_loss</span><span class="p">:</span>
+            <span class="n">scaled_loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">engine</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">iteration</span> <span class="o">%</span> <span class="n">gradient_accumulation_steps</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">output_transform</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">loss</span> <span class="o">*</span> <span class="n">gradient_accumulation_steps</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">update</span></div>
+
+
+<div class="viewcode-block" id="supervised_training_step_tpu"><a class="viewcode-back" href="../../generated/ignite.engine.supervised_training_step_tpu.html#ignite.engine.supervised_training_step_tpu">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">supervised_training_step_tpu</span><span class="p">(</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+    <span class="n">optimizer</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">,</span>
+    <span class="n">loss_fn</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Callable</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">],</span>
+    <span class="n">device</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">non_blocking</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">prepare_batch</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="n">_prepare_batch</span><span class="p">,</span>
+    <span class="n">model_transform</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">output</span><span class="p">:</span> <span class="n">output</span><span class="p">,</span>
+    <span class="n">output_transform</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">loss</span><span class="p">:</span> <span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+    <span class="n">gradient_accumulation_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Factory function for supervised training using ``torch_xla``.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        model: the model to train.</span>
+<span class="sd">        optimizer: the optimizer to use.</span>
+<span class="sd">        loss_fn: the loss function to use.</span>
+<span class="sd">        device: device type specification (default: None).</span>
+<span class="sd">            Applies to batches after starting the engine. Model *will not* be moved.</span>
+<span class="sd">            Device can be CPU, TPU.</span>
+<span class="sd">        non_blocking: if True and this copy is between CPU and GPU, the copy may occur asynchronously</span>
+<span class="sd">            with respect to the host. For other cases, this argument has no effect.</span>
+<span class="sd">        prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs</span>
+<span class="sd">            tuple of tensors `(batch_x, batch_y)`.</span>
+<span class="sd">        model_transform: function that receives the output from the model and convert it into the form as required</span>
+<span class="sd">            by the loss function</span>
+<span class="sd">        output_transform: function that receives &#39;x&#39;, &#39;y&#39;, &#39;y_pred&#39;, &#39;loss&#39; and returns value</span>
+<span class="sd">            to be assigned to engine&#39;s state.output after each iteration. Default is returning `loss.item()`.</span>
+<span class="sd">        gradient_accumulation_steps: Number of steps the gradients should be accumulated across.</span>
+<span class="sd">            (default: 1 (means no gradient accumulation))</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Callable: update function.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            from ignite.engine import Engine, supervised_training_step_tpu</span>
+
+<span class="sd">            model = ...</span>
+<span class="sd">            optimizer = ...</span>
+<span class="sd">            loss_fn = ...</span>
+
+<span class="sd">            update_fn = supervised_training_step_tpu(model, optimizer, loss_fn, &#39;xla&#39;)</span>
+<span class="sd">            trainer = Engine(update_fn)</span>
+
+<span class="sd">    .. versionadded:: 0.4.5</span>
+<span class="sd">    .. versionchanged:: 0.4.7</span>
+<span class="sd">       Added Gradient Accumulation argument for all supervised training methods.</span>
+<span class="sd">    .. versionchanged:: 0.4.11</span>
+<span class="sd">        Added `model_transform` to transform model&#39;s output</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">torch_xla.core.xla_model</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xm</span>
+    <span class="k">except</span> <span class="ne">ModuleNotFoundError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ModuleNotFoundError</span><span class="p">(</span><span class="s2">&quot;torch_xla cannot be imported, please install PyTorch XLA.&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">gradient_accumulation_steps</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;Gradient_accumulation_steps must be strictly positive. &quot;</span>
+            <span class="s2">&quot;No gradient accumulation if the value set to one (default).&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="n">engine</span><span class="p">:</span> <span class="n">Engine</span><span class="p">,</span> <span class="n">batch</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]:</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">engine</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">iteration</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">gradient_accumulation_steps</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">prepare_batch</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">non_blocking</span><span class="o">=</span><span class="n">non_blocking</span><span class="p">)</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">y_pred</span> <span class="o">=</span> <span class="n">model_transform</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">loss_fn</span><span class="p">(</span><span class="n">y_pred</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">gradient_accumulation_steps</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">loss</span> <span class="o">=</span> <span class="n">loss</span> <span class="o">/</span> <span class="n">gradient_accumulation_steps</span>
+        <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">engine</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">iteration</span> <span class="o">%</span> <span class="n">gradient_accumulation_steps</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">xm</span><span class="o">.</span><span class="n">optimizer_step</span><span class="p">(</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">barrier</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">output_transform</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">loss</span> <span class="o">*</span> <span class="n">gradient_accumulation_steps</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">update</span></div>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_check_arg</span><span class="p">(</span>
+    <span class="n">on_tpu</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">amp_mode</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">scaler</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="s2">&quot;torch.cuda.amp.GradScaler&quot;</span><span class="p">]]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Optional</span><span class="p">[</span><span class="s2">&quot;torch.cuda.amp.GradScaler&quot;</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Checking tpu, amp and GradScaler instance combinations.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">on_tpu</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">idist</span><span class="o">.</span><span class="n">has_xla_support</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;In order to run on TPU, please install PyTorch XLA&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">amp_mode</span> <span class="ow">and</span> <span class="n">on_tpu</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;amp_mode cannot be used with xla device. Consider using amp_mode=None or device=&#39;cuda&#39;.&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">scaler</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">amp_mode</span> <span class="o">!=</span> <span class="s2">&quot;amp&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;scaler argument is </span><span class="si">{</span><span class="n">scaler</span><span class="si">}</span><span class="s2">, but amp_mode is </span><span class="si">{</span><span class="n">amp_mode</span><span class="si">}</span><span class="s2">. Consider using amp_mode=&#39;amp&#39;.&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">amp_mode</span> <span class="o">==</span> <span class="s2">&quot;amp&quot;</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">scaler</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="kn">from</span><span class="w"> </span><span class="nn">torch.cuda.amp</span><span class="w"> </span><span class="kn">import</span> <span class="n">GradScaler</span>
+            <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="s2">&quot;Please install torch&gt;=1.6.0 to use scaler argument.&quot;</span><span class="p">)</span>
+            <span class="n">scaler</span> <span class="o">=</span> <span class="n">GradScaler</span><span class="p">(</span><span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">on_tpu</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;tpu&quot;</span><span class="p">,</span> <span class="kc">None</span>
+    <span class="k">elif</span> <span class="n">scaler</span> <span class="ow">and</span> <span class="n">amp_mode</span> <span class="o">==</span> <span class="s2">&quot;amp&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">amp_mode</span><span class="p">,</span> <span class="n">scaler</span>  <span class="c1"># type: ignore[return-value]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">amp_mode</span><span class="p">,</span> <span class="kc">None</span>
+
+
+<div class="viewcode-block" id="create_supervised_trainer"><a class="viewcode-back" href="../../generated/ignite.engine.create_supervised_trainer.html#ignite.engine.create_supervised_trainer">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">create_supervised_trainer</span><span class="p">(</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+    <span class="n">optimizer</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">,</span>
+    <span class="n">loss_fn</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Callable</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">],</span>
+    <span class="n">device</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">non_blocking</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">prepare_batch</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="n">_prepare_batch</span><span class="p">,</span>
+    <span class="n">model_transform</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">output</span><span class="p">:</span> <span class="n">output</span><span class="p">,</span>
+    <span class="n">output_transform</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">loss</span><span class="p">:</span> <span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+    <span class="n">deterministic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">amp_mode</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">scaler</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="s2">&quot;torch.cuda.amp.GradScaler&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">gradient_accumulation_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Engine</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Factory function for creating a trainer for supervised models.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        model: the model to train.</span>
+<span class="sd">        optimizer: the optimizer to use.</span>
+<span class="sd">        loss_fn: the loss function to use.</span>
+<span class="sd">        device: device type specification (default: None).</span>
+<span class="sd">            Applies to batches after starting the engine. Model *will not* be moved.</span>
+<span class="sd">            Device can be CPU, GPU or TPU.</span>
+<span class="sd">        non_blocking: if True and this copy is between CPU and GPU, the copy may occur asynchronously</span>
+<span class="sd">            with respect to the host. For other cases, this argument has no effect.</span>
+<span class="sd">        prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs</span>
+<span class="sd">            tuple of tensors `(batch_x, batch_y)`.</span>
+<span class="sd">        model_transform: function that receives the output from the model and convert it into the form as required</span>
+<span class="sd">            by the loss function</span>
+<span class="sd">        output_transform: function that receives &#39;x&#39;, &#39;y&#39;, &#39;y_pred&#39;, &#39;loss&#39; and returns value</span>
+<span class="sd">            to be assigned to engine&#39;s state.output after each iteration. Default is returning `loss.item()`.</span>
+<span class="sd">        deterministic: if True, returns deterministic engine of type</span>
+<span class="sd">            :class:`~ignite.engine.deterministic.DeterministicEngine`, otherwise :class:`~ignite.engine.engine.Engine`</span>
+<span class="sd">            (default: False).</span>
+<span class="sd">        amp_mode: can be ``amp`` or ``apex``, model and optimizer will be casted to float16 using</span>
+<span class="sd">            `torch.cuda.amp &lt;https://pytorch.org/docs/stable/amp.html&gt;`_ for ``amp`` and</span>
+<span class="sd">            using `apex &lt;https://nvidia.github.io/apex&gt;`_ for ``apex``. (default: None)</span>
+<span class="sd">        scaler: GradScaler instance for gradient scaling if `torch&gt;=1.6.0`</span>
+<span class="sd">            and ``amp_mode`` is ``amp``. If ``amp_mode`` is ``apex``, this argument will be ignored.</span>
+<span class="sd">            If True, will create default GradScaler. If GradScaler instance is passed, it will be used instead.</span>
+<span class="sd">            (default: False)</span>
+<span class="sd">        gradient_accumulation_steps: Number of steps the gradients should be accumulated across.</span>
+<span class="sd">            (default: 1 (means no gradient accumulation))</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        a trainer engine with supervised update function.</span>
+
+<span class="sd">    Examples:</span>
+
+<span class="sd">        Create a trainer</span>
+
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            from ignite.engine import create_supervised_trainer</span>
+<span class="sd">            from ignite.utils import convert_tensor</span>
+<span class="sd">            from ignite.contrib.handlers.tqdm_logger import ProgressBar</span>
+
+<span class="sd">            model = ...</span>
+<span class="sd">            loss = ...</span>
+<span class="sd">            optimizer = ...</span>
+<span class="sd">            dataloader = ...</span>
+
+<span class="sd">            def prepare_batch_fn(batch, device, non_blocking):</span>
+<span class="sd">                x = ...  # get x from batch</span>
+<span class="sd">                y = ...  # get y from batch</span>
+
+<span class="sd">                # return a tuple of (x, y) that can be directly runned as</span>
+<span class="sd">                # `loss_fn(model(x), y)`</span>
+<span class="sd">                return (</span>
+<span class="sd">                    convert_tensor(x, device, non_blocking),</span>
+<span class="sd">                    convert_tensor(y, device, non_blocking)</span>
+<span class="sd">                )</span>
+
+<span class="sd">            def output_transform_fn(x, y, y_pred, loss):</span>
+<span class="sd">                # return only the loss is actually the default behavior for</span>
+<span class="sd">                # trainer engine, but you can return anything you want</span>
+<span class="sd">                return loss.item()</span>
+
+<span class="sd">            trainer = create_supervised_trainer(</span>
+<span class="sd">                model,</span>
+<span class="sd">                optimizer,</span>
+<span class="sd">                loss,</span>
+<span class="sd">                prepare_batch=prepare_batch_fn,</span>
+<span class="sd">                output_transform=output_transform_fn</span>
+<span class="sd">            )</span>
+
+<span class="sd">            pbar = ProgressBar()</span>
+<span class="sd">            pbar.attach(trainer, output_transform=lambda x: {&quot;loss&quot;: x})</span>
+
+<span class="sd">            trainer.run(dataloader, max_epochs=5)</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        If ``scaler`` is True, GradScaler instance will be created internally and trainer state has attribute named</span>
+<span class="sd">        ``scaler`` for that instance and can be used for saving and loading.</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        `engine.state.output` for this engine is defined by `output_transform` parameter and is the loss</span>
+<span class="sd">        of the processed batch by default.</span>
+
+<span class="sd">    .. warning::</span>
+<span class="sd">        The internal use of `device` has changed.</span>
+<span class="sd">        `device` will now *only* be used to move the input data to the correct device.</span>
+<span class="sd">        The `model` should be moved by the user before creating an optimizer.</span>
+<span class="sd">        For more information see:</span>
+
+<span class="sd">        - `PyTorch Documentation &lt;https://pytorch.org/docs/stable/optim.html#constructing-it&gt;`_</span>
+<span class="sd">        - `PyTorch&#39;s Explanation &lt;https://github.com/pytorch/pytorch/issues/7844#issuecomment-503713840&gt;`_</span>
+
+<span class="sd">    .. warning::</span>
+<span class="sd">        If ``amp_mode=&#39;apex&#39;`` , the model(s) and optimizer(s) must be initialized beforehand</span>
+<span class="sd">        since ``amp.initialize`` should be called after you have finished constructing your model(s)</span>
+<span class="sd">        and optimizer(s), but before you send your model through any DistributedDataParallel wrapper.</span>
+
+<span class="sd">        See more: https://nvidia.github.io/apex/amp.html#module-apex.amp</span>
+
+<span class="sd">    .. versionchanged:: 0.4.5</span>
+
+<span class="sd">        - Added ``amp_mode`` argument for automatic mixed precision.</span>
+<span class="sd">        - Added ``scaler`` argument for gradient scaling.</span>
+
+<span class="sd">    .. versionchanged:: 0.4.7</span>
+<span class="sd">        Added Gradient Accumulation argument for all supervised training methods.</span>
+<span class="sd">    .. versionchanged:: 0.4.11</span>
+<span class="sd">        Added ``model_transform`` to transform model&#39;s output</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">device_type</span> <span class="o">=</span> <span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="k">else</span> <span class="n">device</span>
+    <span class="n">on_tpu</span> <span class="o">=</span> <span class="s2">&quot;xla&quot;</span> <span class="ow">in</span> <span class="n">device_type</span> <span class="k">if</span> <span class="n">device_type</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">False</span>
+    <span class="n">mode</span><span class="p">,</span> <span class="n">_scaler</span> <span class="o">=</span> <span class="n">_check_arg</span><span class="p">(</span><span class="n">on_tpu</span><span class="p">,</span> <span class="n">amp_mode</span><span class="p">,</span> <span class="n">scaler</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;amp&quot;</span><span class="p">:</span>
+        <span class="n">_update</span> <span class="o">=</span> <span class="n">supervised_training_step_amp</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">optimizer</span><span class="p">,</span>
+            <span class="n">loss_fn</span><span class="p">,</span>
+            <span class="n">device</span><span class="p">,</span>
+            <span class="n">non_blocking</span><span class="p">,</span>
+            <span class="n">prepare_batch</span><span class="p">,</span>
+            <span class="n">model_transform</span><span class="p">,</span>
+            <span class="n">output_transform</span><span class="p">,</span>
+            <span class="n">_scaler</span><span class="p">,</span>
+            <span class="n">gradient_accumulation_steps</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;apex&quot;</span><span class="p">:</span>
+        <span class="n">_update</span> <span class="o">=</span> <span class="n">supervised_training_step_apex</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">optimizer</span><span class="p">,</span>
+            <span class="n">loss_fn</span><span class="p">,</span>
+            <span class="n">device</span><span class="p">,</span>
+            <span class="n">non_blocking</span><span class="p">,</span>
+            <span class="n">prepare_batch</span><span class="p">,</span>
+            <span class="n">model_transform</span><span class="p">,</span>
+            <span class="n">output_transform</span><span class="p">,</span>
+            <span class="n">gradient_accumulation_steps</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;tpu&quot;</span><span class="p">:</span>
+        <span class="n">_update</span> <span class="o">=</span> <span class="n">supervised_training_step_tpu</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">optimizer</span><span class="p">,</span>
+            <span class="n">loss_fn</span><span class="p">,</span>
+            <span class="n">device</span><span class="p">,</span>
+            <span class="n">non_blocking</span><span class="p">,</span>
+            <span class="n">prepare_batch</span><span class="p">,</span>
+            <span class="n">model_transform</span><span class="p">,</span>
+            <span class="n">output_transform</span><span class="p">,</span>
+            <span class="n">gradient_accumulation_steps</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">_update</span> <span class="o">=</span> <span class="n">supervised_training_step</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">optimizer</span><span class="p">,</span>
+            <span class="n">loss_fn</span><span class="p">,</span>
+            <span class="n">device</span><span class="p">,</span>
+            <span class="n">non_blocking</span><span class="p">,</span>
+            <span class="n">prepare_batch</span><span class="p">,</span>
+            <span class="n">model_transform</span><span class="p">,</span>
+            <span class="n">output_transform</span><span class="p">,</span>
+            <span class="n">gradient_accumulation_steps</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="n">trainer</span> <span class="o">=</span> <span class="n">Engine</span><span class="p">(</span><span class="n">_update</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">deterministic</span> <span class="k">else</span> <span class="n">DeterministicEngine</span><span class="p">(</span><span class="n">_update</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">_scaler</span> <span class="ow">and</span> <span class="n">scaler</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">scaler</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
+        <span class="n">trainer</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">scaler</span> <span class="o">=</span> <span class="n">_scaler</span>  <span class="c1"># type: ignore[attr-defined]</span>
+
+    <span class="k">return</span> <span class="n">trainer</span></div>
+
+
+<div class="viewcode-block" id="supervised_evaluation_step"><a class="viewcode-back" href="../../generated/ignite.engine.supervised_evaluation_step.html#ignite.engine.supervised_evaluation_step">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">supervised_evaluation_step</span><span class="p">(</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+    <span class="n">device</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">non_blocking</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">prepare_batch</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="n">_prepare_batch</span><span class="p">,</span>
+    <span class="n">model_transform</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">output</span><span class="p">:</span> <span class="n">output</span><span class="p">,</span>
+    <span class="n">output_transform</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">:</span> <span class="p">(</span><span class="n">y_pred</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Factory function for supervised evaluation.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        model: the model to train.</span>
+<span class="sd">        device: device type specification (default: None).</span>
+<span class="sd">            Applies to batches after starting the engine. Model *will not* be moved.</span>
+<span class="sd">        non_blocking: if True and this copy is between CPU and GPU, the copy may occur asynchronously</span>
+<span class="sd">            with respect to the host. For other cases, this argument has no effect.</span>
+<span class="sd">        prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs</span>
+<span class="sd">            tuple of tensors `(batch_x, batch_y)`.</span>
+<span class="sd">        model_transform: function that receives the output from the model and convert it into the predictions:</span>
+<span class="sd">            ``y_pred = model_transform(model(x))``.</span>
+<span class="sd">        output_transform: function that receives &#39;x&#39;, &#39;y&#39;, &#39;y_pred&#39; and returns value</span>
+<span class="sd">            to be assigned to engine&#39;s state.output after each iteration. Default is returning `(y_pred, y,)` which fits</span>
+<span class="sd">            output expected by metrics. If you change it you should use `output_transform` in metrics.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Inference function.</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        `engine.state.output` for this engine is defined by `output_transform` parameter and is</span>
+<span class="sd">        a tuple of `(batch_pred, batch_y)` by default.</span>
+
+<span class="sd">    .. warning::</span>
+
+<span class="sd">        The internal use of `device` has changed.</span>
+<span class="sd">        `device` will now *only* be used to move the input data to the correct device.</span>
+<span class="sd">        The `model` should be moved by the user before creating an optimizer.</span>
+
+<span class="sd">    .. versionadded:: 0.4.5</span>
+<span class="sd">    .. versionchanged:: 0.4.12</span>
+<span class="sd">        Added ``model_transform`` to transform model&#39;s output</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">evaluate_step</span><span class="p">(</span><span class="n">engine</span><span class="p">:</span> <span class="n">Engine</span><span class="p">,</span> <span class="n">batch</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]:</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">prepare_batch</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">non_blocking</span><span class="o">=</span><span class="n">non_blocking</span><span class="p">)</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="n">y_pred</span> <span class="o">=</span> <span class="n">model_transform</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">output_transform</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">evaluate_step</span></div>
+
+
+<div class="viewcode-block" id="supervised_evaluation_step_amp"><a class="viewcode-back" href="../../generated/ignite.engine.supervised_evaluation_step_amp.html#ignite.engine.supervised_evaluation_step_amp">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">supervised_evaluation_step_amp</span><span class="p">(</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+    <span class="n">device</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">non_blocking</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">prepare_batch</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="n">_prepare_batch</span><span class="p">,</span>
+    <span class="n">model_transform</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">output</span><span class="p">:</span> <span class="n">output</span><span class="p">,</span>
+    <span class="n">output_transform</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">:</span> <span class="p">(</span><span class="n">y_pred</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Factory function for supervised evaluation using ``torch.cuda.amp``.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        model: the model to train.</span>
+<span class="sd">        device: device type specification (default: None).</span>
+<span class="sd">            Applies to batches after starting the engine. Model *will not* be moved.</span>
+<span class="sd">        non_blocking: if True and this copy is between CPU and GPU, the copy may occur asynchronously</span>
+<span class="sd">            with respect to the host. For other cases, this argument has no effect.</span>
+<span class="sd">        prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs</span>
+<span class="sd">            tuple of tensors `(batch_x, batch_y)`.</span>
+<span class="sd">        model_transform: function that receives the output from the model and convert it into the predictions:</span>
+<span class="sd">            ``y_pred = model_transform(model(x))``.</span>
+<span class="sd">        output_transform: function that receives &#39;x&#39;, &#39;y&#39;, &#39;y_pred&#39; and returns value</span>
+<span class="sd">            to be assigned to engine&#39;s state.output after each iteration. Default is returning `(y_pred, y,)` which fits</span>
+<span class="sd">            output expected by metrics. If you change it you should use `output_transform` in metrics.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Inference function.</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        `engine.state.output` for this engine is defined by `output_transform` parameter and is</span>
+<span class="sd">        a tuple of `(batch_pred, batch_y)` by default.</span>
+
+<span class="sd">    .. warning::</span>
+
+<span class="sd">        The internal use of `device` has changed.</span>
+<span class="sd">        `device` will now *only* be used to move the input data to the correct device.</span>
+<span class="sd">        The `model` should be moved by the user before creating an optimizer.</span>
+
+<span class="sd">    .. versionadded:: 0.4.5</span>
+<span class="sd">    .. versionchanged:: 0.4.12</span>
+<span class="sd">        Added ``model_transform`` to transform model&#39;s output</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">torch.cuda.amp</span><span class="w"> </span><span class="kn">import</span> <span class="n">autocast</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="s2">&quot;Please install torch&gt;=1.6.0 to use amp_mode=&#39;amp&#39;.&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">evaluate_step</span><span class="p">(</span><span class="n">engine</span><span class="p">:</span> <span class="n">Engine</span><span class="p">,</span> <span class="n">batch</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]:</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">prepare_batch</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">non_blocking</span><span class="o">=</span><span class="n">non_blocking</span><span class="p">)</span>
+            <span class="k">with</span> <span class="n">autocast</span><span class="p">(</span><span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                <span class="n">output</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+                <span class="n">y_pred</span> <span class="o">=</span> <span class="n">model_transform</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">output_transform</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">evaluate_step</span></div>
+
+
+<div class="viewcode-block" id="create_supervised_evaluator"><a class="viewcode-back" href="../../generated/ignite.engine.create_supervised_evaluator.html#ignite.engine.create_supervised_evaluator">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">create_supervised_evaluator</span><span class="p">(</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+    <span class="n">metrics</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Metric</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">device</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">non_blocking</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">prepare_batch</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="n">_prepare_batch</span><span class="p">,</span>
+    <span class="n">model_transform</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">output</span><span class="p">:</span> <span class="n">output</span><span class="p">,</span>
+    <span class="n">output_transform</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">:</span> <span class="p">(</span><span class="n">y_pred</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span>
+    <span class="n">amp_mode</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Engine</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Factory function for creating an evaluator for supervised models.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        model: the model to train.</span>
+<span class="sd">        metrics: a map of metric names to Metrics.</span>
+<span class="sd">        device: device type specification (default: None).</span>
+<span class="sd">            Applies to batches after starting the engine. Model *will not* be moved.</span>
+<span class="sd">        non_blocking: if True and this copy is between CPU and GPU, the copy may occur asynchronously</span>
+<span class="sd">            with respect to the host. For other cases, this argument has no effect.</span>
+<span class="sd">        prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs</span>
+<span class="sd">            tuple of tensors `(batch_x, batch_y)`.</span>
+<span class="sd">        model_transform: function that receives the output from the model and convert it into the predictions:</span>
+<span class="sd">            ``y_pred = model_transform(model(x))``.</span>
+<span class="sd">        output_transform: function that receives &#39;x&#39;, &#39;y&#39;, &#39;y_pred&#39; and returns value</span>
+<span class="sd">            to be assigned to engine&#39;s state.output after each iteration. Default is returning `(y_pred, y,)` which fits</span>
+<span class="sd">            output expected by metrics. If you change it you should use `output_transform` in metrics.</span>
+<span class="sd">        amp_mode: can be ``amp``, model will be casted to float16 using</span>
+<span class="sd">            `torch.cuda.amp &lt;https://pytorch.org/docs/stable/amp.html&gt;`_</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        an evaluator engine with supervised inference function.</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        `engine.state.output` for this engine is defined by `output_transform` parameter and is</span>
+<span class="sd">        a tuple of `(batch_pred, batch_y)` by default.</span>
+
+<span class="sd">    .. warning::</span>
+
+<span class="sd">        The internal use of `device` has changed.</span>
+<span class="sd">        `device` will now *only* be used to move the input data to the correct device.</span>
+<span class="sd">        The `model` should be moved by the user before creating an optimizer.</span>
+
+<span class="sd">        For more information see:</span>
+
+<span class="sd">        - `PyTorch Documentation &lt;https://pytorch.org/docs/stable/optim.html#constructing-it&gt;`_</span>
+
+<span class="sd">        - `PyTorch&#39;s Explanation &lt;https://github.com/pytorch/pytorch/issues/7844#issuecomment-503713840&gt;`_</span>
+
+<span class="sd">    .. versionchanged:: 0.4.5</span>
+<span class="sd">        Added ``amp_mode`` argument for automatic mixed precision.</span>
+<span class="sd">    .. versionchanged:: 0.4.12</span>
+<span class="sd">        Added ``model_transform`` to transform model&#39;s output</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">device_type</span> <span class="o">=</span> <span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="k">else</span> <span class="n">device</span>
+    <span class="n">on_tpu</span> <span class="o">=</span> <span class="s2">&quot;xla&quot;</span> <span class="ow">in</span> <span class="n">device_type</span> <span class="k">if</span> <span class="n">device_type</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">False</span>
+    <span class="n">mode</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_check_arg</span><span class="p">(</span><span class="n">on_tpu</span><span class="p">,</span> <span class="n">amp_mode</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="n">metrics</span> <span class="o">=</span> <span class="n">metrics</span> <span class="ow">or</span> <span class="p">{}</span>
+    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;amp&quot;</span><span class="p">:</span>
+        <span class="n">evaluate_step</span> <span class="o">=</span> <span class="n">supervised_evaluation_step_amp</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">device</span><span class="p">,</span>
+            <span class="n">non_blocking</span><span class="o">=</span><span class="n">non_blocking</span><span class="p">,</span>
+            <span class="n">prepare_batch</span><span class="o">=</span><span class="n">prepare_batch</span><span class="p">,</span>
+            <span class="n">model_transform</span><span class="o">=</span><span class="n">model_transform</span><span class="p">,</span>
+            <span class="n">output_transform</span><span class="o">=</span><span class="n">output_transform</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">evaluate_step</span> <span class="o">=</span> <span class="n">supervised_evaluation_step</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">device</span><span class="p">,</span>
+            <span class="n">non_blocking</span><span class="o">=</span><span class="n">non_blocking</span><span class="p">,</span>
+            <span class="n">prepare_batch</span><span class="o">=</span><span class="n">prepare_batch</span><span class="p">,</span>
+            <span class="n">model_transform</span><span class="o">=</span><span class="n">model_transform</span><span class="p">,</span>
+            <span class="n">output_transform</span><span class="o">=</span><span class="n">output_transform</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="n">evaluator</span> <span class="o">=</span> <span class="n">Engine</span><span class="p">(</span><span class="n">evaluate_step</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">metric</span> <span class="ow">in</span> <span class="n">metrics</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">metric</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span><span class="n">evaluator</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">evaluator</span></div>
+</pre></div>
+
+             </article>
+             
+            </div>
+            <footer>
+  
+
+  
+
+    <hr>
+
+  
+
+  <div role="contentinfo">
+    <table>
+      <tr>
+        <td>
+            <p>
+                &copy; Copyright 2026, PyTorch-Ignite Contributors.
+              Last updated on 03/01/2026, 6:44:32 PM.
+            </p>
+            
+              <div>
+                Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+              </div>
+          
+        </td>
+        <td>
+            
+              <div>
+                <a href="https://www.netlify.com" target="_blank" rel="noopener noreferrer">
+                  <img
+                  src="_static/img/netlify-light.svg"
+                  alt="Deploys by Netlify"
+                  width=114
+                  height=51 />
+                </a>
+              </div>
+            
+        </td>
+      </tr>
+    </table>
+  </div> 
+
+</footer>
+          </div>
+        </div>
+
+        <div class="pytorch-content-right" id="pytorch-content-right">
+          <div class="pytorch-right-menu" id="pytorch-right-menu">
+            <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
+              
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+  
+
+     
+       <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+         <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+         <script src="../../_static/jquery.js"></script>
+         <script src="../../_static/underscore.js"></script>
+         <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+         <script src="../../_static/doctools.js"></script>
+         <script src="../../_static/sphinx_highlight.js"></script>
+         <script src="../../_static/clipboard.min.js"></script>
+         <script src="../../_static/copybutton.js"></script>
+         <script>let toggleHintShow = 'Show default setup';</script>
+         <script>let toggleHintHide = 'Hide default setup';</script>
+         <script>let toggleOpenOnPrint = 'true';</script>
+         <script src="../../_static/togglebutton.js"></script>
+         <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+         <script src="../../_static/design-tabs.js"></script>
+     
+
+  
+
+  <script type="text/javascript" src="../../_static/js/vendor/popper.min.js"></script>
+  <script type="text/javascript" src="../../_static/js/vendor/bootstrap.min.js"></script>
+  <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+  <!-- Begin Footer -->
+
+  <!-- commented out for Ignite -->
+
+  <div class="container-fluid docs-tutorials-resources" id="docs-tutorials-resources">
+    <!-- <div class="container">
+      <div class="row">
+        <div class="text-center col-md-4">
+          <h2>Docs</h2>
+          <p>Access comprehensive developer documentation for PyTorch</p>
+          <a class="with-right-arrow" href="https://pytorch.org/ignite/index.html">View Docs</a>
+        </div>
+
+        <div class="text-center col-md-4">
+          <h2>Tutorials</h2>
+          <p>Get in-depth tutorials for beginners and advanced developers</p>
+          <a class="with-right-arrow" href="">View Tutorials</a>
+        </div>
+
+        <div class="text-center col-md-4">
+          <h2>Resources</h2>
+          <p>Find development resources and get your questions answered</p>
+          <a class="with-right-arrow" href="">View Resources</a>
+        </div>
+      </div>
+    </div> -->
+  </div>
+
+  <!-- <footer class="site-footer">
+    <div class="container footer-container">
+      <div class="footer-logo-wrapper">
+        <a href="https://pytorch-ignite.ai" class="footer-logo"></a>
+      </div>
+
+      <div class="footer-links-wrapper">
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title"><a href="https://pytorch-ignite.ai">PyTorch</a></li>
+            <li><a href="">Get Started</a></li>
+            <li><a href="">Features</a></li>
+            <li><a href="">Ecosystem</a></li>
+            <li><a href="">Blog</a></li>
+            <li><a href="">Resources</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title"><a href="">Support</a></li>
+            <li><a href="">Tutorials</a></li>
+            <li><a href="https://pytorch.org/ignite/index.html">Docs</a></li>
+            <li><a href="" target="_blank">Discuss</a></li>
+            <li><a href="https://github.com/pytorch/ignite/issues" target="_blank">Github Issues</a></li>
+            <li><a href="" target="_blank">Slack</a></li>
+            <li><a href="https://github.com/pytorch/ignite/blob/master/CONTRIBUTING.md" target="_blank">Contributing</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links-col follow-us-col">
+          <ul>
+            <li class="list-title">Follow Us</li>
+            <li>
+              <div id="mc_embed_signup">
+                <form
+                  action="https://twitter.us14.list-manage.com/subscribe/post?u=75419c71fe0a935e53dfa4a3f&id=91d0dccd39"
+                  method="post"
+                  id="mc-embedded-subscribe-form"
+                  name="mc-embedded-subscribe-form"
+                  class="email-subscribe-form validate"
+                  target="_blank"
+                  novalidate>
+                  <div id="mc_embed_signup_scroll" class="email-subscribe-form-fields-wrapper">
+                    <div class="mc-field-group">
+                      <label for="mce-EMAIL" style="display:none;">Email Address</label>
+                      <input type="email" value="" name="EMAIL" class="required email" id="mce-EMAIL" placeholder="Email Address">
+                    </div>
+
+                    <div id="mce-responses" class="clear">
+                      <div class="response" id="mce-error-response" style="display:none"></div>
+                      <div class="response" id="mce-success-response" style="display:none"></div>
+                    </div>    <!~~ real people should not fill this in and expect good things - do not remove this or risk form bot signups ~~>
+
+                    <div style="position: absolute; left: -5000px;" aria-hidden="true"><input type="text" name="b_75419c71fe0a935e53dfa4a3f_91d0dccd39" tabindex="-1" value=""></div>
+
+                    <div class="clear">
+                      <input type="submit" value="" name="subscribe" id="mc-embedded-subscribe" class="button email-subscribe-button">
+                    </div>
+                  </div>
+                </form>
+              </div>
+
+            </li>
+          </ul>
+
+          <div class="footer-social-icons">
+            <a href="" target="_blank" class="facebook"></a>
+            <a href="" target="_blank" class="twitter"></a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer> -->
+
+
+  <!-- end of commented out for Ignite -->
+
+  <!-- <div class="cookie-banner-wrapper">
+  <div class="container">
+    <p class="gdpr-notice">To analyze traffic and optimize your experience, we serve cookies on this site. By clicking or navigating, you agree to allow our usage of cookies. As the current maintainers of this site, Facebook’s Cookies Policy applies. Learn more, including about available controls: <a href="https://www.facebook.com/policies/cookies/">Cookies Policy</a>.</p>
+    <img class="close-button" src="../../_static/images/pytorch-x.svg">
+  </div>
+</div> -->
+
+  <!-- End Footer -->
+
+  <!-- Begin Mobile Menu -->
+  <!--
+  <div class="mobile-main-menu">
+    <div class="container-fluid">
+      <div class="container">
+        <div class="mobile-main-menu-header-container">
+          <a class="header-logo" href="https://pytorch-ignite.ai" aria-label="PyTorch"></a>
+          <a class="main-menu-close-button" href="#" data-behavior="close-mobile-menu"></a>
+        </div>
+      </div>
+    </div>
+
+    <div class="mobile-main-menu-links-container">
+      <div class="main-menu">
+        <ul>
+          <li>
+            <a href="#">Get Started</a>
+          </li>
+
+          <li>
+            <a href="#">Features</a>
+          </li>
+
+          <li>
+            <a href="#">Ecosystem</a>
+          </li>
+
+          <li>
+            <a href="">Blog</a>
+          </li>
+
+          <li>
+            <a href="">Tutorials</a>
+          </li>
+
+          <li>
+            <a href="https://pytorch.org/ignite/index.html">Docs</a>
+          </li>
+
+          <li>
+            <a href="">Resources</a>
+          </li>
+
+          <li>
+            <a href="https://github.com/pytorch/ignite">Github</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  -->
+  <!-- End Mobile Menu -->
+
+  <script type="text/javascript" src="../../_static/js/vendor/anchor.min.js"></script>
+
+  <script type="text/javascript">
+    var collapsedSections = []
+    $(document).ready(function() {
+      mobileMenu.bind();
+      mobileTOC.bind();
+      pytorchAnchors.bind();
+      sideMenus.bind();
+      scrollToAnchor.bind();
+      highlightNavigation.bind();
+
+      // Add class to links that have code blocks, since we cannot create links in code blocks
+      $("article.pytorch-article a span.pre").each(function(e) {
+        $(this).closest("a").addClass("has-code");
+      });
+    })
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@docsearch/js@3"></script>
+  <script type="text/javascript">
+  let VERSION
+  if ('v0.4.12'.startsWith('v')) {
+    VERSION = 'v0.4.12'
+  } else {
+    VERSION = 'master'
+  }
+  docsearch({
+    container: '#docsearch',
+    appId: '7EWYE1JCT3',
+    apiKey: '841e93e60c16975ba1bd8c7c716eed82',
+    indexName: 'pytorch-ignite',
+    placeholder: 'Search PyTorch-Ignite docs',
+    searchParameters: {
+      facetFilters: [`version:${VERSION}`, 'tags:API-reference'],
+    }
+  });
+  </script>
+</body>
+</html>

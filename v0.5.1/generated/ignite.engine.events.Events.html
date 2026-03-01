@@ -1,0 +1,855 @@
+
+
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta name="author" content="PyTorch-Ignite Contributors">
+  <meta name="creator" content="PyTorch-Ignite Contributors">
+  <meta name="publisher" content="PyTorch-Ignite Contributors">
+  <meta name="generator" content="Sphinx 5.3.0">
+  <meta name="description" content="High-level library to help with training and evaluating neural networks in PyTorch flexibly and transparently.">
+  <meta name="keywords" content="pytorch, pytorch ignite, ignite, engine, events, handlers, metrics">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#ee4c2c">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@pytorch_ignite">
+  <meta name="twitter:creator" content="@pytorch_ignite">
+  <meta name="twitter:description" content="High-level library to help with training and evaluating neural networks in PyTorch flexibly and transparently.">
+  <meta name="twitter:title" content="Events &mdash; PyTorch-Ignite v0.5.1 Documentation">
+  <meta name="twitter:image" content="https://raw.githubusercontent.com/pytorch/ignite/master/assets/logo/ignite_logo.png">
+  <meta name="twitter:image:alt" content="PyTorch-Ignite logo">
+
+  <meta property="og:title" content="Events &mdash; PyTorch-Ignite v0.5.1 Documentation">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://pytorch.org/ignite/">
+  <meta property="og:site_name" content="PyTorch-Ignite">
+  <meta property="og:image" content="https://raw.githubusercontent.com/pytorch/ignite/master/assets/logo/ignite_logo.png">
+  <meta property="og:image:alt" content="PyTorch-Ignite logo">
+  <meta property="og:description" content="High-level library to help with training and evaluating neural networks in PyTorch flexibly and transparently.">
+
+  <link rel="preconnect" href="https://BH4D9OD16A-dsn.algolia.net" crossorigin />
+
+  
+  <title>Events &mdash; PyTorch-Ignite v0.5.1 Documentation</title>
+  
+
+  
+  
+    <link rel="shortcut icon" type="image/svg+xml" href="../_static/ignite_logomark.svg"/>
+  
+  
+  
+    <link rel="canonical" href="https://pytorch.org/ignite/generated/ignite.engine.events.Events.html"/>
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="preload" href="../_static/css/theme.css" as="style" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!-- <link rel="stylesheet" href="../_static/pygments.css" type="text/css" /> -->
+  <link rel="preload" href="../_static/pygments.css" as="style" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="preload" href="../_static/css/theme.css" as="style" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="preload" href="../_static/copybutton.css" as="style" />
+  <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
+  <link rel="preload" href="../_static/togglebutton.css" as="style" />
+  <link rel="stylesheet" href="../_static/togglebutton.css" type="text/css" />
+  <link rel="preload" href="../_static/banner.css" as="style" />
+  <link rel="stylesheet" href="../_static/banner.css" type="text/css" />
+  <link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" as="style" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" type="text/css" />
+  <link rel="preload" href="../_static/katex-math.css" as="style" />
+  <link rel="stylesheet" href="../_static/katex-math.css" type="text/css" />
+  <link rel="preload" href="../_static/sphinx-design.5ea377869091fd0449014c60fc090103.min.css" as="style" />
+  <link rel="stylesheet" href="../_static/sphinx-design.5ea377869091fd0449014c60fc090103.min.css" type="text/css" />
+    <link rel="preload" href="../_static/css/ignite_theme.css" as="style" />
+    <link rel="stylesheet" href="../_static/css/ignite_theme.css" type="text/css" />
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/@docsearch/css@3" as="style" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@docsearch/css@3" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="EventsList" href="ignite.engine.events.EventsList.html" />
+    <link rel="prev" title="EventEnum" href="ignite.engine.events.EventEnum.html" /> 
+
+  <!-- katex links / this needs to be loaded before fonts.html -->
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/katex.min.css" crossorigin="anonymous">
+<script async src="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/katex.min.js" crossorigin="anonymous"></script>
+
+<!-- Preload the theme fonts -->
+
+<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/IBMPlexMono/IBMPlexMono-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+
+<!-- Preload the katex fonts -->
+
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Math-Italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Main-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Main-Bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Size1-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Size4-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Size2-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Size3-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Caligraphic-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-5FELLLFHCP"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-5FELLLFHCP');
+  </script>
+</head>
+
+<div class="container-fluid header-holder tutorials-header" id="header-holder">
+  <div class="container">
+
+    <a class="header-logo" href="/ignite" aria-label="PyTorch-Ignite"></a>
+
+    <div class="header-container">
+
+      <div class="main-menu">
+        <ul>
+          <li>
+            <a href="https://pytorch-ignite.ai/tutorials/beginner/01-getting-started/">Quickstart</a>
+          </li>
+
+          <li>
+            <a href="https://pytorch-ignite.ai/concepts/">Concepts</a>
+          </li>
+
+          <!-- <li>
+            <a href="https://pytorch-ignite.ai/tutorials/beginner/01-getting-started/#complete-code">Examples</a>
+          </li> -->
+
+          <li>
+            <a href="https://pytorch-ignite.ai/how-to-guides/">FAQ</a>
+          </li>
+
+          <li>
+            <a href="https://github.com/pytorch/ignite" target="_blank" rel="noopener noreferrer">GitHub</a>
+          </li>
+
+          <li>
+            <a href="https://pytorch-ignite.ai/about/community/">About us</a>
+          </li>
+
+          <li>
+            <a href="https://pytorch-ignite.ai">⊳ pytorch-ignite.ai</a>
+          </li>
+
+
+        </ul>
+      </div>
+
+      <!-- <a class="main-menu-open-button" href="#" data-behavior="open-mobile-menu"></a> -->
+    </div>
+
+  </div>
+</div>
+
+
+<body class="pytorch-body">
+
+   
+
+    
+
+    <div class="table-of-contents-link-wrapper">
+      <span>Table of Contents</span>
+      <div class="toggle-table-of-contents" data-behavior="toggle-table-of-contents"></div>
+    </div>
+
+    <nav data-toggle="wy-nav-shift" class="pytorch-left-menu" id="pytorch-left-menu">
+      <div class="pytorch-side-scroll">
+        <div class="pytorch-menu pytorch-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          <div class="pytorch-left-menu-search">
+            
+
+            
+              
+              
+                <div class="version">
+                  v0.5.1
+                </div>
+              
+            
+
+            <div id="docsearch"></div>
+
+            
+          </div>
+
+          
+            
+            
+              
+            
+            
+              <p class="caption" role="heading"><span class="caption-text">Package Reference</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../engine.html">ignite.engine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../handlers.html">ignite.handlers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../metrics.html">ignite.metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../distributed.html">ignite.distributed</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../exceptions.html">ignite.exceptions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../utils.html">ignite.utils</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Contrib Package Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../contrib/engines.html">ignite.contrib.engines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contrib/metrics.html">ignite.contrib.metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contrib/handlers.html">ignite.contrib.handlers</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+
+      <div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: v0.5.1
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../v0.4.0.post1/index.html">v0.4.0.post1</a></dd>
+            <dd><a href="../../v0.4.1/index.html">v0.4.1</a></dd>
+            <dd><a href="../../v0.4.10/generated/ignite.engine.events.Events.html">v0.4.10</a></dd>
+            <dd><a href="../../v0.4.11/generated/ignite.engine.events.Events.html">v0.4.11</a></dd>
+            <dd><a href="../../v0.4.12/generated/ignite.engine.events.Events.html">v0.4.12</a></dd>
+            <dd><a href="../../v0.4.13/generated/ignite.engine.events.Events.html">v0.4.13</a></dd>
+            <dd><a href="../../v0.4.2/index.html">v0.4.2</a></dd>
+            <dd><a href="../../v0.4.3/index.html">v0.4.3</a></dd>
+            <dd><a href="../../v0.4.4.post1/index.html">v0.4.4.post1</a></dd>
+            <dd><a href="../../v0.4.5/generated/ignite.engine.events.Events.html">v0.4.5</a></dd>
+            <dd><a href="../../v0.4.6/generated/ignite.engine.events.Events.html">v0.4.6</a></dd>
+            <dd><a href="../../v0.4.7/generated/ignite.engine.events.Events.html">v0.4.7</a></dd>
+            <dd><a href="../../v0.4.8/generated/ignite.engine.events.Events.html">v0.4.8</a></dd>
+            <dd><a href="../../v0.4.9/generated/ignite.engine.events.Events.html">v0.4.9</a></dd>
+            <dd><a href="../../v0.4rc.0.post1/index.html">v0.4rc.0.post1</a></dd>
+            <dd><a href="../../v0.5.0.post2/generated/ignite.engine.events.Events.html">v0.5.0.post2</a></dd>
+            <dd><a href="ignite.engine.events.Events.html">v0.5.1</a></dd>
+            <dd><a href="../../v0.5.2/generated/ignite.engine.events.Events.html">v0.5.2</a></dd>
+            <dd><a href="../../v0.5.3/generated/ignite.engine.events.Events.html">v0.5.3</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="../../master/generated/ignite.engine.events.Events.html">master</a></dd>
+        </dl>
+    </div>
+</div>
+
+    </nav>
+
+    <div class="pytorch-container">
+      <div class="pytorch-page-level-bar" id="pytorch-page-level-bar">
+        <div class="pytorch-breadcrumbs-wrapper">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="pytorch-breadcrumbs">
+    
+      <li>
+        <a href="../index.html">
+          
+            Docs
+          
+        </a> &gt;
+      </li>
+
+        
+          <li><a href="../engine.html">ignite.engine</a> &gt;</li>
+        
+      <li>Events</li>
+    
+    
+      <li class="pytorch-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/generated/ignite.engine.events.Events.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+</div>
+        </div>
+
+        <div class="pytorch-shortcuts-wrapper" id="pytorch-shortcuts-wrapper">
+          Shortcuts
+        </div>
+      </div>
+
+      <section data-toggle="wy-nav-shift" id="pytorch-content-wrap" class="pytorch-content-wrap">
+        <div class="pytorch-content-left">
+
+        
+          
+          <div class="rst-content">
+          
+            <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
+             <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
+              
+  <section id="events">
+<h1>Events<a class="headerlink" href="#events" title="Permalink to this heading">#</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="ignite.engine.events.Events">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ignite.engine.events.</span></span><span class="sig-name descname"><span class="pre">Events</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ignite/engine/events.html#Events"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ignite.engine.events.Events" title="Permalink to this definition">#</a></dt>
+<dd><p>Events that are fired by the <a class="reference internal" href="ignite.engine.engine.Engine.html#ignite.engine.engine.Engine" title="ignite.engine.engine.Engine"><code class="xref py py-class docutils literal notranslate"><span class="pre">Engine</span></code></a> during execution. Built-in events:</p>
+<ul class="simple">
+<li><p>STARTED : triggered when engine’s run is started</p></li>
+<li><p>EPOCH_STARTED : triggered when the epoch is started</p></li>
+<li><p>GET_BATCH_STARTED : triggered before next batch is fetched</p></li>
+<li><p>GET_BATCH_COMPLETED : triggered after the batch is fetched</p></li>
+<li><p>ITERATION_STARTED : triggered when an iteration is started</p></li>
+<li><p>ITERATION_COMPLETED : triggered when the iteration is ended</p></li>
+<li><p>DATALOADER_STOP_ITERATION : engine’s specific event triggered when dataloader has no more data to provide</p></li>
+<li><p>EXCEPTION_RAISED : triggered when an exception is encountered</p></li>
+<li><p>TERMINATE_SINGLE_EPOCH : triggered when the run is about to end the current epoch,
+after receiving a <a class="reference internal" href="ignite.engine.engine.Engine.html#ignite.engine.engine.Engine.terminate_epoch" title="ignite.engine.engine.Engine.terminate_epoch"><code class="xref py py-meth docutils literal notranslate"><span class="pre">terminate_epoch()</span></code></a> or
+<a class="reference internal" href="ignite.engine.engine.Engine.html#ignite.engine.engine.Engine.terminate" title="ignite.engine.engine.Engine.terminate"><code class="xref py py-meth docutils literal notranslate"><span class="pre">terminate()</span></code></a> call.</p></li>
+<li><p>TERMINATE : triggered when the run is about to end completely,
+after receiving <a class="reference internal" href="ignite.engine.engine.Engine.html#ignite.engine.engine.Engine.terminate" title="ignite.engine.engine.Engine.terminate"><code class="xref py py-meth docutils literal notranslate"><span class="pre">terminate()</span></code></a> call.</p></li>
+<li><p>EPOCH_COMPLETED : triggered when the epoch is ended. Note that this is triggered even
+when <a class="reference internal" href="ignite.engine.engine.Engine.html#ignite.engine.engine.Engine.terminate_epoch" title="ignite.engine.engine.Engine.terminate_epoch"><code class="xref py py-meth docutils literal notranslate"><span class="pre">terminate_epoch()</span></code></a> is called.</p></li>
+<li><p>COMPLETED : triggered when engine’s run is completed</p></li>
+</ul>
+<p>The table below illustrates which events are triggered when various termination methods are called.</p>
+<table class="colwidths-given docutils align-default">
+<colgroup>
+<col style="width: 24%" />
+<col style="width: 25%" />
+<col style="width: 33%" />
+<col style="width: 18%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Method</p></th>
+<th class="head"><p>EVENT_COMPLETED</p></th>
+<th class="head"><p>TERMINATE_SINGLE_EPOCH</p></th>
+<th class="head"><p>TERMINATE</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>no termination</p></td>
+<td><p>✔</p></td>
+<td><p>✗</p></td>
+<td><p>✗</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="ignite.engine.engine.Engine.html#ignite.engine.engine.Engine.terminate_epoch" title="ignite.engine.engine.Engine.terminate_epoch"><code class="xref py py-meth docutils literal notranslate"><span class="pre">terminate_epoch()</span></code></a></p></td>
+<td><p>✔</p></td>
+<td><p>✔</p></td>
+<td><p>✗</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="ignite.engine.engine.Engine.html#ignite.engine.engine.Engine.terminate" title="ignite.engine.engine.Engine.terminate"><code class="xref py py-meth docutils literal notranslate"><span class="pre">terminate()</span></code></a></p></td>
+<td><p>✗</p></td>
+<td><p>✔</p></td>
+<td><p>✔</p></td>
+</tr>
+</tbody>
+</table>
+<p>Since v0.3.0, Events become more flexible and allow to pass an event filter to the Engine:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">engine</span> <span class="o">=</span> <span class="n">Engine</span><span class="p">()</span>
+
+<span class="c1"># a) custom event filter</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">custom_event_filter</span><span class="p">(</span><span class="n">engine</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">event</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">return</span> <span class="kc">False</span>
+
+<span class="nd">@engine</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">ITERATION_STARTED</span><span class="p">(</span><span class="n">event_filter</span><span class="o">=</span><span class="n">custom_event_filter</span><span class="p">))</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">call_on_special_event</span><span class="p">(</span><span class="n">engine</span><span class="p">):</span>
+    <span class="c1"># do something on 1, 2, 5, 10, 50, 100 iterations</span>
+
+<span class="c1"># b) &quot;every&quot; event filter</span>
+<span class="nd">@engine</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">ITERATION_STARTED</span><span class="p">(</span><span class="n">every</span><span class="o">=</span><span class="mi">10</span><span class="p">))</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">call_every</span><span class="p">(</span><span class="n">engine</span><span class="p">):</span>
+    <span class="c1"># do something every 10th iteration</span>
+
+<span class="c1"># c) &quot;once&quot; event filter</span>
+<span class="nd">@engine</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">ITERATION_STARTED</span><span class="p">(</span><span class="n">once</span><span class="o">=</span><span class="mi">50</span><span class="p">))</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">call_once</span><span class="p">(</span><span class="n">engine</span><span class="p">):</span>
+    <span class="c1"># do something on 50th iteration</span>
+
+<span class="c1"># d) &quot;before&quot; and &quot;after&quot; event filter</span>
+<span class="nd">@engine</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">EPOCH_STARTED</span><span class="p">(</span><span class="n">before</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">after</span><span class="o">=</span><span class="mi">10</span><span class="p">))</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">call_before</span><span class="p">(</span><span class="n">engine</span><span class="p">):</span>
+    <span class="c1"># do something in 11 to 29 epoch</span>
+
+<span class="c1"># e) Mixing &quot;every&quot; and &quot;before&quot; / &quot;after&quot; event filters</span>
+<span class="nd">@engine</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">EPOCH_STARTED</span><span class="p">(</span><span class="n">every</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">before</span><span class="o">=</span><span class="mi">25</span><span class="p">,</span> <span class="n">after</span><span class="o">=</span><span class="mi">8</span><span class="p">))</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">call_every_itr_before_after</span><span class="p">(</span><span class="n">engine</span><span class="p">):</span>
+    <span class="c1"># do something on 9, 14, 19, 24 epochs</span>
+</pre></div>
+</div>
+<p>Event filter function <cite>event_filter</cite> accepts as input <cite>engine</cite> and <cite>event</cite> and should return True/False.
+Argument <cite>event</cite> is the value of iteration or epoch, depending on which type of Events the function is passed.</p>
+<p>Since v0.4.0, user can also combine events with <cite>|</cite>-operator:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">events</span> <span class="o">=</span> <span class="n">Events</span><span class="o">.</span><span class="n">STARTED</span> <span class="o">|</span> <span class="n">Events</span><span class="o">.</span><span class="n">COMPLETED</span> <span class="o">|</span> <span class="n">Events</span><span class="o">.</span><span class="n">ITERATION_STARTED</span><span class="p">(</span><span class="n">every</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">engine</span> <span class="o">=</span> <span class="o">...</span>
+
+<span class="nd">@engine</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="n">events</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">call_on_events</span><span class="p">(</span><span class="n">engine</span><span class="p">):</span>
+    <span class="c1"># do something</span>
+</pre></div>
+</div>
+<p>Since v0.4.0, custom events defined by user should inherit from <a class="reference internal" href="ignite.engine.events.EventEnum.html#ignite.engine.events.EventEnum" title="ignite.engine.events.EventEnum"><code class="xref py py-class docutils literal notranslate"><span class="pre">EventEnum</span></code></a> :</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">CustomEvents</span><span class="p">(</span><span class="n">EventEnum</span><span class="p">):</span>
+    <span class="n">FOO_EVENT</span> <span class="o">=</span> <span class="s2">&quot;foo_event&quot;</span>
+    <span class="n">BAR_EVENT</span> <span class="o">=</span> <span class="s2">&quot;bar_event&quot;</span>
+</pre></div>
+</div>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ignite.engine.events.Events.COMPLETED">
+<span class="sig-name descname"><span class="pre">COMPLETED</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'completed'</span></em><a class="headerlink" href="#ignite.engine.events.Events.COMPLETED" title="Permalink to this definition">#</a></dt>
+<dd><p>triggered when engine’s run is completed</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ignite.engine.events.Events.DATALOADER_STOP_ITERATION">
+<span class="sig-name descname"><span class="pre">DATALOADER_STOP_ITERATION</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'dataloader_stop_iteration'</span></em><a class="headerlink" href="#ignite.engine.events.Events.DATALOADER_STOP_ITERATION" title="Permalink to this definition">#</a></dt>
+<dd><p>engine’s specific event triggered when dataloader has no more data to provide</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ignite.engine.events.Events.EPOCH_COMPLETED">
+<span class="sig-name descname"><span class="pre">EPOCH_COMPLETED</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'epoch_completed'</span></em><a class="headerlink" href="#ignite.engine.events.Events.EPOCH_COMPLETED" title="Permalink to this definition">#</a></dt>
+<dd><p>Event attribute indicating epoch is ended.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ignite.engine.events.Events.EPOCH_STARTED">
+<span class="sig-name descname"><span class="pre">EPOCH_STARTED</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'epoch_started'</span></em><a class="headerlink" href="#ignite.engine.events.Events.EPOCH_STARTED" title="Permalink to this definition">#</a></dt>
+<dd><p>triggered when the epoch is started.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ignite.engine.events.Events.EXCEPTION_RAISED">
+<span class="sig-name descname"><span class="pre">EXCEPTION_RAISED</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'exception_raised'</span></em><a class="headerlink" href="#ignite.engine.events.Events.EXCEPTION_RAISED" title="Permalink to this definition">#</a></dt>
+<dd><p>triggered when an exception is encountered.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ignite.engine.events.Events.GET_BATCH_COMPLETED">
+<span class="sig-name descname"><span class="pre">GET_BATCH_COMPLETED</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'get_batch_completed'</span></em><a class="headerlink" href="#ignite.engine.events.Events.GET_BATCH_COMPLETED" title="Permalink to this definition">#</a></dt>
+<dd><p>triggered after the batch is fetched.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ignite.engine.events.Events.GET_BATCH_STARTED">
+<span class="sig-name descname"><span class="pre">GET_BATCH_STARTED</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'get_batch_started'</span></em><a class="headerlink" href="#ignite.engine.events.Events.GET_BATCH_STARTED" title="Permalink to this definition">#</a></dt>
+<dd><p>triggered before next batch is fetched.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ignite.engine.events.Events.INTERRUPT">
+<span class="sig-name descname"><span class="pre">INTERRUPT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'interrupt'</span></em><a class="headerlink" href="#ignite.engine.events.Events.INTERRUPT" title="Permalink to this definition">#</a></dt>
+<dd><p>triggered when the run is interrupted, after receiving interrupt() call.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ignite.engine.events.Events.ITERATION_COMPLETED">
+<span class="sig-name descname"><span class="pre">ITERATION_COMPLETED</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'iteration_completed'</span></em><a class="headerlink" href="#ignite.engine.events.Events.ITERATION_COMPLETED" title="Permalink to this definition">#</a></dt>
+<dd><p>triggered when the iteration is ended.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ignite.engine.events.Events.ITERATION_STARTED">
+<span class="sig-name descname"><span class="pre">ITERATION_STARTED</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'iteration_started'</span></em><a class="headerlink" href="#ignite.engine.events.Events.ITERATION_STARTED" title="Permalink to this definition">#</a></dt>
+<dd><p>triggered when an iteration is started.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ignite.engine.events.Events.STARTED">
+<span class="sig-name descname"><span class="pre">STARTED</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'started'</span></em><a class="headerlink" href="#ignite.engine.events.Events.STARTED" title="Permalink to this definition">#</a></dt>
+<dd><p>triggered when engine’s run is started.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ignite.engine.events.Events.TERMINATE">
+<span class="sig-name descname"><span class="pre">TERMINATE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'terminate'</span></em><a class="headerlink" href="#ignite.engine.events.Events.TERMINATE" title="Permalink to this definition">#</a></dt>
+<dd><p>triggered when the run is about to end completely, after receiving terminate() call.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ignite.engine.events.Events.TERMINATE_SINGLE_EPOCH">
+<span class="sig-name descname"><span class="pre">TERMINATE_SINGLE_EPOCH</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'terminate_single_epoch'</span></em><a class="headerlink" href="#ignite.engine.events.Events.TERMINATE_SINGLE_EPOCH" title="Permalink to this definition">#</a></dt>
+<dd><p>triggered when the run is about to end the current epoch,
+after receiving a terminate_epoch() call.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+             </article>
+             
+            </div>
+            <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="ignite.engine.events.EventsList.html" class="btn btn-neutral float-right" title="EventsList" accesskey="n" rel="next">Next
+          <img src="../_static/images/chevron-right-orange.svg" alt="right arrow" class="next-page">
+        </a>
+      
+      
+        <a href="ignite.engine.events.EventEnum.html" class="btn btn-neutral" title="EventEnum" accesskey="p" rel="prev">
+          <img src="../_static/images/chevron-right-orange.svg" alt="left arrow" class="previous-page"> Previous
+        </a>
+      
+    </div>
+  
+
+  
+
+    <hr>
+
+  
+
+  <div role="contentinfo">
+    <table>
+      <tr>
+        <td>
+            <p>
+                &copy; Copyright 2026, PyTorch-Ignite Contributors.
+              Last updated on 03/01/2026, 6:40:50 PM.
+            </p>
+            
+              <div>
+                Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+              </div>
+          
+        </td>
+        <td>
+            
+              <div>
+                <a href="https://www.netlify.com" target="_blank" rel="noopener noreferrer">
+                  <img
+                  src="_static/img/netlify-light.svg"
+                  alt="Deploys by Netlify"
+                  width=114
+                  height=51 />
+                </a>
+              </div>
+            
+        </td>
+      </tr>
+    </table>
+  </div> 
+
+</footer>
+          </div>
+        </div>
+
+        <div class="pytorch-content-right" id="pytorch-content-right">
+          <div class="pytorch-right-menu" id="pytorch-right-menu">
+            <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
+              <ul>
+<li><a class="reference internal" href="#">Events</a><ul>
+<li><a class="reference internal" href="#ignite.engine.events.Events"><code class="docutils literal notranslate"><span class="pre">Events</span></code></a><ul>
+<li><a class="reference internal" href="#ignite.engine.events.Events.COMPLETED"><code class="docutils literal notranslate"><span class="pre">Events.COMPLETED</span></code></a></li>
+<li><a class="reference internal" href="#ignite.engine.events.Events.DATALOADER_STOP_ITERATION"><code class="docutils literal notranslate"><span class="pre">Events.DATALOADER_STOP_ITERATION</span></code></a></li>
+<li><a class="reference internal" href="#ignite.engine.events.Events.EPOCH_COMPLETED"><code class="docutils literal notranslate"><span class="pre">Events.EPOCH_COMPLETED</span></code></a></li>
+<li><a class="reference internal" href="#ignite.engine.events.Events.EPOCH_STARTED"><code class="docutils literal notranslate"><span class="pre">Events.EPOCH_STARTED</span></code></a></li>
+<li><a class="reference internal" href="#ignite.engine.events.Events.EXCEPTION_RAISED"><code class="docutils literal notranslate"><span class="pre">Events.EXCEPTION_RAISED</span></code></a></li>
+<li><a class="reference internal" href="#ignite.engine.events.Events.GET_BATCH_COMPLETED"><code class="docutils literal notranslate"><span class="pre">Events.GET_BATCH_COMPLETED</span></code></a></li>
+<li><a class="reference internal" href="#ignite.engine.events.Events.GET_BATCH_STARTED"><code class="docutils literal notranslate"><span class="pre">Events.GET_BATCH_STARTED</span></code></a></li>
+<li><a class="reference internal" href="#ignite.engine.events.Events.INTERRUPT"><code class="docutils literal notranslate"><span class="pre">Events.INTERRUPT</span></code></a></li>
+<li><a class="reference internal" href="#ignite.engine.events.Events.ITERATION_COMPLETED"><code class="docutils literal notranslate"><span class="pre">Events.ITERATION_COMPLETED</span></code></a></li>
+<li><a class="reference internal" href="#ignite.engine.events.Events.ITERATION_STARTED"><code class="docutils literal notranslate"><span class="pre">Events.ITERATION_STARTED</span></code></a></li>
+<li><a class="reference internal" href="#ignite.engine.events.Events.STARTED"><code class="docutils literal notranslate"><span class="pre">Events.STARTED</span></code></a></li>
+<li><a class="reference internal" href="#ignite.engine.events.Events.TERMINATE"><code class="docutils literal notranslate"><span class="pre">Events.TERMINATE</span></code></a></li>
+<li><a class="reference internal" href="#ignite.engine.events.Events.TERMINATE_SINGLE_EPOCH"><code class="docutils literal notranslate"><span class="pre">Events.TERMINATE_SINGLE_EPOCH</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+  
+
+     
+       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+         <script src="../_static/jquery.js"></script>
+         <script src="../_static/underscore.js"></script>
+         <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+         <script src="../_static/doctools.js"></script>
+         <script src="../_static/sphinx_highlight.js"></script>
+         <script src="../_static/clipboard.min.js"></script>
+         <script src="../_static/copybutton.js"></script>
+         <script>let toggleHintShow = 'Show default setup';</script>
+         <script>let toggleHintHide = 'Hide default setup';</script>
+         <script>let toggleOpenOnPrint = 'true';</script>
+         <script src="../_static/togglebutton.js"></script>
+         <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+         <script src="../_static/design-tabs.js"></script>
+     
+
+  
+
+  <script type="text/javascript" src="../_static/js/vendor/popper.min.js"></script>
+  <script type="text/javascript" src="../_static/js/vendor/bootstrap.min.js"></script>
+  <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+  <!-- Begin Footer -->
+
+  <!-- commented out for Ignite -->
+
+  <div class="container-fluid docs-tutorials-resources" id="docs-tutorials-resources">
+    <!-- <div class="container">
+      <div class="row">
+        <div class="text-center col-md-4">
+          <h2>Docs</h2>
+          <p>Access comprehensive developer documentation for PyTorch</p>
+          <a class="with-right-arrow" href="https://pytorch.org/ignite/index.html">View Docs</a>
+        </div>
+
+        <div class="text-center col-md-4">
+          <h2>Tutorials</h2>
+          <p>Get in-depth tutorials for beginners and advanced developers</p>
+          <a class="with-right-arrow" href="">View Tutorials</a>
+        </div>
+
+        <div class="text-center col-md-4">
+          <h2>Resources</h2>
+          <p>Find development resources and get your questions answered</p>
+          <a class="with-right-arrow" href="">View Resources</a>
+        </div>
+      </div>
+    </div> -->
+  </div>
+
+  <!-- <footer class="site-footer">
+    <div class="container footer-container">
+      <div class="footer-logo-wrapper">
+        <a href="https://pytorch-ignite.ai" class="footer-logo"></a>
+      </div>
+
+      <div class="footer-links-wrapper">
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title"><a href="https://pytorch-ignite.ai">PyTorch</a></li>
+            <li><a href="">Get Started</a></li>
+            <li><a href="">Features</a></li>
+            <li><a href="">Ecosystem</a></li>
+            <li><a href="">Blog</a></li>
+            <li><a href="">Resources</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title"><a href="">Support</a></li>
+            <li><a href="">Tutorials</a></li>
+            <li><a href="https://pytorch.org/ignite/index.html">Docs</a></li>
+            <li><a href="" target="_blank">Discuss</a></li>
+            <li><a href="https://github.com/pytorch/ignite/issues" target="_blank">Github Issues</a></li>
+            <li><a href="" target="_blank">Slack</a></li>
+            <li><a href="https://github.com/pytorch/ignite/blob/master/CONTRIBUTING.md" target="_blank">Contributing</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links-col follow-us-col">
+          <ul>
+            <li class="list-title">Follow Us</li>
+            <li>
+              <div id="mc_embed_signup">
+                <form
+                  action="https://twitter.us14.list-manage.com/subscribe/post?u=75419c71fe0a935e53dfa4a3f&id=91d0dccd39"
+                  method="post"
+                  id="mc-embedded-subscribe-form"
+                  name="mc-embedded-subscribe-form"
+                  class="email-subscribe-form validate"
+                  target="_blank"
+                  novalidate>
+                  <div id="mc_embed_signup_scroll" class="email-subscribe-form-fields-wrapper">
+                    <div class="mc-field-group">
+                      <label for="mce-EMAIL" style="display:none;">Email Address</label>
+                      <input type="email" value="" name="EMAIL" class="required email" id="mce-EMAIL" placeholder="Email Address">
+                    </div>
+
+                    <div id="mce-responses" class="clear">
+                      <div class="response" id="mce-error-response" style="display:none"></div>
+                      <div class="response" id="mce-success-response" style="display:none"></div>
+                    </div>    <!~~ real people should not fill this in and expect good things - do not remove this or risk form bot signups ~~>
+
+                    <div style="position: absolute; left: -5000px;" aria-hidden="true"><input type="text" name="b_75419c71fe0a935e53dfa4a3f_91d0dccd39" tabindex="-1" value=""></div>
+
+                    <div class="clear">
+                      <input type="submit" value="" name="subscribe" id="mc-embedded-subscribe" class="button email-subscribe-button">
+                    </div>
+                  </div>
+                </form>
+              </div>
+
+            </li>
+          </ul>
+
+          <div class="footer-social-icons">
+            <a href="" target="_blank" class="facebook"></a>
+            <a href="" target="_blank" class="twitter"></a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer> -->
+
+
+  <!-- end of commented out for Ignite -->
+
+  <!-- <div class="cookie-banner-wrapper">
+  <div class="container">
+    <p class="gdpr-notice">To analyze traffic and optimize your experience, we serve cookies on this site. By clicking or navigating, you agree to allow our usage of cookies. As the current maintainers of this site, Facebook’s Cookies Policy applies. Learn more, including about available controls: <a href="https://www.facebook.com/policies/cookies/">Cookies Policy</a>.</p>
+    <img class="close-button" src="../_static/images/pytorch-x.svg">
+  </div>
+</div> -->
+
+  <!-- End Footer -->
+
+  <!-- Begin Mobile Menu -->
+  <!--
+  <div class="mobile-main-menu">
+    <div class="container-fluid">
+      <div class="container">
+        <div class="mobile-main-menu-header-container">
+          <a class="header-logo" href="https://pytorch-ignite.ai" aria-label="PyTorch"></a>
+          <a class="main-menu-close-button" href="#" data-behavior="close-mobile-menu"></a>
+        </div>
+      </div>
+    </div>
+
+    <div class="mobile-main-menu-links-container">
+      <div class="main-menu">
+        <ul>
+          <li>
+            <a href="#">Get Started</a>
+          </li>
+
+          <li>
+            <a href="#">Features</a>
+          </li>
+
+          <li>
+            <a href="#">Ecosystem</a>
+          </li>
+
+          <li>
+            <a href="">Blog</a>
+          </li>
+
+          <li>
+            <a href="">Tutorials</a>
+          </li>
+
+          <li>
+            <a href="https://pytorch.org/ignite/index.html">Docs</a>
+          </li>
+
+          <li>
+            <a href="">Resources</a>
+          </li>
+
+          <li>
+            <a href="https://github.com/pytorch/ignite">Github</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  -->
+  <!-- End Mobile Menu -->
+
+  <script type="text/javascript" src="../_static/js/vendor/anchor.min.js"></script>
+
+  <script type="text/javascript">
+    var collapsedSections = []
+    $(document).ready(function() {
+      mobileMenu.bind();
+      mobileTOC.bind();
+      pytorchAnchors.bind();
+      sideMenus.bind();
+      scrollToAnchor.bind();
+      highlightNavigation.bind();
+
+      // Add class to links that have code blocks, since we cannot create links in code blocks
+      $("article.pytorch-article a span.pre").each(function(e) {
+        $(this).closest("a").addClass("has-code");
+      });
+    })
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@docsearch/js@3"></script>
+  <script type="text/javascript">
+  let VERSION
+  if ('v0.5.1'.startsWith('v')) {
+    VERSION = 'v0.5.1'
+  } else {
+    VERSION = 'master'
+  }
+  docsearch({
+    container: '#docsearch',
+    appId: '7EWYE1JCT3',
+    apiKey: '841e93e60c16975ba1bd8c7c716eed82',
+    indexName: 'pytorch-ignite',
+    placeholder: 'Search PyTorch-Ignite docs',
+    searchParameters: {
+      facetFilters: [`version:${VERSION}`, 'tags:API-reference'],
+    }
+  });
+  </script>
+</body>
+</html>

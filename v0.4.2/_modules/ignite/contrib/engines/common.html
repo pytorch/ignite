@@ -1,0 +1,1220 @@
+
+
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta name="author" content="PyTorch-Ignite Contributors">
+  <meta name="creator" content="PyTorch-Ignite Contributors">
+  <meta name="publisher" content="PyTorch-Ignite Contributors">
+  <meta name="generator" content="Sphinx 5.3.0">
+  <meta name="description" content="High-level library to help with training and evaluating neural networks in PyTorch flexibly and transparently.">
+  <meta name="keywords" content="pytorch, pytorch ignite, ignite, engine, events, handlers, metrics">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#ee4c2c">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@pytorch_ignite">
+  <meta name="twitter:creator" content="@pytorch_ignite">
+  <meta name="twitter:description" content="High-level library to help with training and evaluating neural networks in PyTorch flexibly and transparently.">
+  <meta name="twitter:title" content="ignite.contrib.engines.common &mdash; PyTorch-Ignite v0.4.2 Documentation">
+  <meta name="twitter:image" content="https://raw.githubusercontent.com/pytorch/ignite/master/assets/logo/ignite_logo.png">
+  <meta name="twitter:image:alt" content="PyTorch-Ignite logo">
+
+  <meta property="og:title" content="ignite.contrib.engines.common &mdash; PyTorch-Ignite v0.4.2 Documentation">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://pytorch.org/ignite/">
+  <meta property="og:site_name" content="PyTorch-Ignite">
+  <meta property="og:image" content="https://raw.githubusercontent.com/pytorch/ignite/master/assets/logo/ignite_logo.png">
+  <meta property="og:image:alt" content="PyTorch-Ignite logo">
+  <meta property="og:description" content="High-level library to help with training and evaluating neural networks in PyTorch flexibly and transparently.">
+
+  <link rel="preconnect" href="https://BH4D9OD16A-dsn.algolia.net" crossorigin />
+
+  
+  <title>ignite.contrib.engines.common &mdash; PyTorch-Ignite v0.4.2 Documentation</title>
+  
+
+  
+  
+    <link rel="shortcut icon" type="image/svg+xml" href="../../../../_static/ignite_logomark.svg"/>
+  
+  
+  
+    <link rel="canonical" href="https://pytorch.org/ignite/_modules/ignite/contrib/engines/common.html"/>
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="preload" href="../../../../_static/css/theme.css" as="style" />
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <!-- <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" /> -->
+  <link rel="preload" href="../../../../_static/pygments.css" as="style" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+  <link rel="preload" href="../../../../_static/css/theme.css" as="style" />
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="preload" href="../../../../_static/copybutton.css" as="style" />
+  <link rel="stylesheet" href="../../../../_static/copybutton.css" type="text/css" />
+  <link rel="preload" href="../../../../_static/togglebutton.css" as="style" />
+  <link rel="stylesheet" href="../../../../_static/togglebutton.css" type="text/css" />
+  <link rel="preload" href="../../../../_static/banner.css" as="style" />
+  <link rel="stylesheet" href="../../../../_static/banner.css" type="text/css" />
+  <link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" as="style" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" type="text/css" />
+  <link rel="preload" href="../../../../_static/katex-math.css" as="style" />
+  <link rel="stylesheet" href="../../../../_static/katex-math.css" type="text/css" />
+  <link rel="preload" href="../../../../_static/sphinx-design.5ea377869091fd0449014c60fc090103.min.css" as="style" />
+  <link rel="stylesheet" href="../../../../_static/sphinx-design.5ea377869091fd0449014c60fc090103.min.css" type="text/css" />
+    <link rel="preload" href="../../../../_static/css/ignite_theme.css" as="style" />
+    <link rel="stylesheet" href="../../../../_static/css/ignite_theme.css" type="text/css" />
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/@docsearch/css@3" as="style" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@docsearch/css@3" type="text/css" />
+    <link rel="author" title="About these documents" href="../../../../about.html" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+
+  <!-- katex links / this needs to be loaded before fonts.html -->
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/katex.min.css" crossorigin="anonymous">
+<script async src="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/katex.min.js" crossorigin="anonymous"></script>
+
+<!-- Preload the theme fonts -->
+
+<link rel="preload" href="../../../../_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../_static/fonts/IBMPlexMono/IBMPlexMono-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+
+<!-- Preload the katex fonts -->
+
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Math-Italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Main-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Main-Bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Size1-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Size4-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Size2-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Size3-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Caligraphic-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-5FELLLFHCP"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-5FELLLFHCP');
+  </script>
+</head>
+
+<div class="container-fluid header-holder tutorials-header" id="header-holder">
+  <div class="container">
+
+    <a class="header-logo" href="/ignite" aria-label="PyTorch-Ignite"></a>
+
+    <div class="header-container">
+
+      <div class="main-menu">
+        <ul>
+          <li>
+            <a href="https://pytorch-ignite.ai/tutorials/beginner/01-getting-started/">Quickstart</a>
+          </li>
+
+          <li>
+            <a href="https://pytorch-ignite.ai/concepts/">Concepts</a>
+          </li>
+
+          <!-- <li>
+            <a href="https://pytorch-ignite.ai/tutorials/beginner/01-getting-started/#complete-code">Examples</a>
+          </li> -->
+
+          <li>
+            <a href="https://pytorch-ignite.ai/how-to-guides/">FAQ</a>
+          </li>
+
+          <li>
+            <a href="https://github.com/pytorch/ignite" target="_blank" rel="noopener noreferrer">GitHub</a>
+          </li>
+
+          <li>
+            <a href="https://pytorch-ignite.ai/about/community/">About us</a>
+          </li>
+
+          <li>
+            <a href="https://pytorch-ignite.ai">⊳ pytorch-ignite.ai</a>
+          </li>
+
+
+        </ul>
+      </div>
+
+      <!-- <a class="main-menu-open-button" href="#" data-behavior="open-mobile-menu"></a> -->
+    </div>
+
+  </div>
+</div>
+
+
+<body class="pytorch-body">
+
+   
+
+    
+
+    <div class="table-of-contents-link-wrapper">
+      <span>Table of Contents</span>
+      <div class="toggle-table-of-contents" data-behavior="toggle-table-of-contents"></div>
+    </div>
+
+    <nav data-toggle="wy-nav-shift" class="pytorch-left-menu" id="pytorch-left-menu">
+      <div class="pytorch-side-scroll">
+        <div class="pytorch-menu pytorch-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          <div class="pytorch-left-menu-search">
+            
+
+            
+              
+              
+                <div class="version">
+                  v0.4.2
+                </div>
+              
+            
+
+            <div id="docsearch"></div>
+
+            
+          </div>
+
+          
+            
+            
+              
+            
+            
+              <p class="caption" role="heading"><span class="caption-text">Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../quickstart.html">Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../concepts.html">Concepts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../faq.html">FAQ</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Package Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../engine.html">ignite.engine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../handlers.html">ignite.handlers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../metrics.html">ignite.metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../distributed.html">ignite.distributed</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../exceptions.html">ignite.exceptions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../utils.html">ignite.utils</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Contrib Package Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../contrib/engines.html">ignite.contrib.engines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../contrib/metrics.html">ignite.contrib.metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../contrib/handlers.html">ignite.contrib.handlers</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Team</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../about.html">About us</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../governance.html">PyTorch-Ignite governance</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+
+      <div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: v0.4.2
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../../../v0.4.0.post1/index.html">v0.4.0.post1</a></dd>
+            <dd><a href="../../../../../v0.4.1/index.html">v0.4.1</a></dd>
+            <dd><a href="../../../../../v0.4.10/index.html">v0.4.10</a></dd>
+            <dd><a href="../../../../../v0.4.11/index.html">v0.4.11</a></dd>
+            <dd><a href="../../../../../v0.4.12/index.html">v0.4.12</a></dd>
+            <dd><a href="../../../../../v0.4.13/index.html">v0.4.13</a></dd>
+            <dd><a href="common.html">v0.4.2</a></dd>
+            <dd><a href="../../../../../v0.4.3/index.html">v0.4.3</a></dd>
+            <dd><a href="../../../../../v0.4.4.post1/index.html">v0.4.4.post1</a></dd>
+            <dd><a href="../../../../../v0.4.5/index.html">v0.4.5</a></dd>
+            <dd><a href="../../../../../v0.4.6/index.html">v0.4.6</a></dd>
+            <dd><a href="../../../../../v0.4.7/index.html">v0.4.7</a></dd>
+            <dd><a href="../../../../../v0.4.8/index.html">v0.4.8</a></dd>
+            <dd><a href="../../../../../v0.4.9/index.html">v0.4.9</a></dd>
+            <dd><a href="../../../../../v0.4rc.0.post1/index.html">v0.4rc.0.post1</a></dd>
+            <dd><a href="../../../../../v0.5.0.post2/index.html">v0.5.0.post2</a></dd>
+            <dd><a href="../../../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../../../v0.5.2/index.html">v0.5.2</a></dd>
+            <dd><a href="../../../../../v0.5.3/index.html">v0.5.3</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="../../../../../master/index.html">master</a></dd>
+        </dl>
+    </div>
+</div>
+
+    </nav>
+
+    <div class="pytorch-container">
+      <div class="pytorch-page-level-bar" id="pytorch-page-level-bar">
+        <div class="pytorch-breadcrumbs-wrapper">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="pytorch-breadcrumbs">
+    
+      <li>
+        <a href="../../../../index.html">
+          
+            Docs
+          
+        </a> &gt;
+      </li>
+
+        
+          <li><a href="../../../index.html">Module code</a> &gt;</li>
+        
+      <li>ignite.contrib.engines.common</li>
+    
+    
+      <li class="pytorch-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+</div>
+        </div>
+
+        <div class="pytorch-shortcuts-wrapper" id="pytorch-shortcuts-wrapper">
+          Shortcuts
+        </div>
+      </div>
+
+      <section data-toggle="wy-nav-shift" id="pytorch-content-wrap" class="pytorch-content-wrap">
+        <div class="pytorch-content-left">
+
+        
+          
+          <div class="rst-content">
+          
+            <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
+             <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
+              
+  <h1>Source code for ignite.contrib.engines.common</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numbers</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Sequence</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">partial</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nn</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.utils.data.distributed</span><span class="w"> </span><span class="kn">import</span> <span class="n">DistributedSampler</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">ignite.distributed</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">idist</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ignite.contrib.handlers</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">LRScheduler</span><span class="p">,</span>
+    <span class="n">MLflowLogger</span><span class="p">,</span>
+    <span class="n">NeptuneLogger</span><span class="p">,</span>
+    <span class="n">PolyaxonLogger</span><span class="p">,</span>
+    <span class="n">ProgressBar</span><span class="p">,</span>
+    <span class="n">TensorboardLogger</span><span class="p">,</span>
+    <span class="n">TrainsLogger</span><span class="p">,</span>
+    <span class="n">VisdomLogger</span><span class="p">,</span>
+    <span class="n">WandBLogger</span><span class="p">,</span>
+    <span class="n">global_step_from_engine</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ignite.contrib.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">GpuInfo</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ignite.engine</span><span class="w"> </span><span class="kn">import</span> <span class="n">Engine</span><span class="p">,</span> <span class="n">Events</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ignite.handlers</span><span class="w"> </span><span class="kn">import</span> <span class="n">Checkpoint</span><span class="p">,</span> <span class="n">DiskSaver</span><span class="p">,</span> <span class="n">EarlyStopping</span><span class="p">,</span> <span class="n">TerminateOnNan</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ignite.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">RunningAverage</span>
+
+
+<div class="viewcode-block" id="setup_common_training_handlers"><a class="viewcode-back" href="../../../../contrib/engines.html#ignite.contrib.engines.common.setup_common_training_handlers">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">setup_common_training_handlers</span><span class="p">(</span>
+    <span class="n">trainer</span><span class="p">,</span>
+    <span class="n">train_sampler</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">to_save</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">save_every_iters</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+    <span class="n">output_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">lr_scheduler</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">with_gpu_stats</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">output_names</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">with_pbars</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">with_pbar_on_iters</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">log_every_iters</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">stop_on_nan</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">clear_cuda_cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">save_handler</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Helper method to setup trainer with common handlers (it also supports distributed configuration):</span>
+<span class="sd">        - :class:`~ignite.handlers.TerminateOnNan`</span>
+<span class="sd">        - handler to setup learning rate scheduling</span>
+<span class="sd">        - :class:`~ignite.handlers.ModelCheckpoint`</span>
+<span class="sd">        - :class:`~ignite.metrics.RunningAverage` on `update_function` output</span>
+<span class="sd">        - Two progress bars on epochs and optionally on iterations</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        trainer (Engine): trainer engine. Output of trainer&#39;s `update_function` should be a dictionary</span>
+<span class="sd">            or sequence or a single tensor.</span>
+<span class="sd">        train_sampler (torch.utils.data.DistributedSampler, optional): Optional distributed sampler used to call</span>
+<span class="sd">            `set_epoch` method on epoch started event.</span>
+<span class="sd">        to_save (dict, optional): dictionary with objects to save in the checkpoint. This argument is passed to</span>
+<span class="sd">            :class:`~ignite.handlers.Checkpoint` instance.</span>
+<span class="sd">        save_every_iters (int, optional): saving interval. By default, `to_save` objects are stored</span>
+<span class="sd">            each 1000 iterations.</span>
+<span class="sd">        output_path (str, optional): output path to indicate where `to_save` objects are stored. Argument is mutually</span>
+<span class="sd">            exclusive with ``save_handler``.</span>
+<span class="sd">        lr_scheduler (ParamScheduler or subclass of `torch.optim.lr_scheduler._LRScheduler`): learning rate scheduler</span>
+<span class="sd">            as native torch LRScheduler or ignite&#39;s parameter scheduler.</span>
+<span class="sd">        with_gpu_stats (bool, optional): if True, :class:`~ignite.contrib.metrics.handlers.GpuInfo` is attached to the</span>
+<span class="sd">            trainer. This requires `pynvml` package to be installed.</span>
+<span class="sd">        output_names (list/tuple, optional): list of names associated with `update_function` output dictionary.</span>
+<span class="sd">        with_pbars (bool, optional): if True, two progress bars on epochs and optionally on iterations are attached.</span>
+<span class="sd">            Default, True.</span>
+<span class="sd">        with_pbar_on_iters (bool, optional): if True, a progress bar on iterations is attached to the trainer.</span>
+<span class="sd">            Default, True.</span>
+<span class="sd">        log_every_iters (int, optional): logging interval for :class:`~ignite.contrib.metrics.handlers.GpuInfo` and for</span>
+<span class="sd">            epoch-wise progress bar. Default, 100.</span>
+<span class="sd">        stop_on_nan (bool, optional): if True, :class:`~ignite.handlers.TerminateOnNan` handler is added to the trainer.</span>
+<span class="sd">            Default, True.</span>
+<span class="sd">        clear_cuda_cache (bool, optional): if True, `torch.cuda.empty_cache()` is called every end of epoch.</span>
+<span class="sd">            Default, True.</span>
+<span class="sd">        save_handler (callable or :class:`~ignite.handlers.checkpoint.BaseSaveHandler`, optional): Method or callable</span>
+<span class="sd">            class to use to store ``to_save``. See :class:`~ignite.handlers.checkpoint.Checkpoint` for more details.</span>
+<span class="sd">            Argument is mutually exclusive with ``output_path``.</span>
+<span class="sd">        **kwargs: optional keyword args to be passed to construct :class:`~ignite.handlers.checkpoint.Checkpoint`.</span>
+<span class="sd">        device (str of torch.device, optional): deprecated argument, it will be removed in v0.5.0.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">device</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Argument device is unused and deprecated. It will be removed in v0.5.0&quot;</span><span class="p">)</span>
+
+    <span class="n">_kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+        <span class="n">to_save</span><span class="o">=</span><span class="n">to_save</span><span class="p">,</span>
+        <span class="n">save_every_iters</span><span class="o">=</span><span class="n">save_every_iters</span><span class="p">,</span>
+        <span class="n">output_path</span><span class="o">=</span><span class="n">output_path</span><span class="p">,</span>
+        <span class="n">lr_scheduler</span><span class="o">=</span><span class="n">lr_scheduler</span><span class="p">,</span>
+        <span class="n">with_gpu_stats</span><span class="o">=</span><span class="n">with_gpu_stats</span><span class="p">,</span>
+        <span class="n">output_names</span><span class="o">=</span><span class="n">output_names</span><span class="p">,</span>
+        <span class="n">with_pbars</span><span class="o">=</span><span class="n">with_pbars</span><span class="p">,</span>
+        <span class="n">with_pbar_on_iters</span><span class="o">=</span><span class="n">with_pbar_on_iters</span><span class="p">,</span>
+        <span class="n">log_every_iters</span><span class="o">=</span><span class="n">log_every_iters</span><span class="p">,</span>
+        <span class="n">stop_on_nan</span><span class="o">=</span><span class="n">stop_on_nan</span><span class="p">,</span>
+        <span class="n">clear_cuda_cache</span><span class="o">=</span><span class="n">clear_cuda_cache</span><span class="p">,</span>
+        <span class="n">save_handler</span><span class="o">=</span><span class="n">save_handler</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">_kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">idist</span><span class="o">.</span><span class="n">get_world_size</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">_setup_common_distrib_training_handlers</span><span class="p">(</span><span class="n">trainer</span><span class="p">,</span> <span class="n">train_sampler</span><span class="o">=</span><span class="n">train_sampler</span><span class="p">,</span> <span class="o">**</span><span class="n">_kwargs</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">train_sampler</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">train_sampler</span><span class="p">,</span> <span class="n">DistributedSampler</span><span class="p">):</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s2">&quot;Argument train_sampler is a distributed sampler,&quot;</span>
+                <span class="s2">&quot; but either there is no distributed setting or world size is &lt; 2. &quot;</span>
+                <span class="s2">&quot;Train sampler argument will be ignored&quot;</span><span class="p">,</span>
+                <span class="ne">UserWarning</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="n">_setup_common_training_handlers</span><span class="p">(</span><span class="n">trainer</span><span class="p">,</span> <span class="o">**</span><span class="n">_kwargs</span><span class="p">)</span></div>
+
+
+<span class="n">setup_common_distrib_training_handlers</span> <span class="o">=</span> <span class="n">setup_common_training_handlers</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_setup_common_training_handlers</span><span class="p">(</span>
+    <span class="n">trainer</span><span class="p">,</span>
+    <span class="n">to_save</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">save_every_iters</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+    <span class="n">output_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">lr_scheduler</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">with_gpu_stats</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">output_names</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">with_pbars</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">with_pbar_on_iters</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">log_every_iters</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="n">stop_on_nan</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">clear_cuda_cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">save_handler</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span>
+<span class="p">):</span>
+    <span class="k">if</span> <span class="n">output_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">save_handler</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;Arguments output_path and save_handler are mutually exclusive. Please, define only one of them&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">stop_on_nan</span><span class="p">:</span>
+        <span class="n">trainer</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">ITERATION_COMPLETED</span><span class="p">,</span> <span class="n">TerminateOnNan</span><span class="p">())</span>
+
+    <span class="k">if</span> <span class="n">lr_scheduler</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lr_scheduler</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">_LRScheduler</span><span class="p">):</span>
+            <span class="n">trainer</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">ITERATION_COMPLETED</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">engine</span><span class="p">:</span> <span class="n">lr_scheduler</span><span class="o">.</span><span class="n">step</span><span class="p">())</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lr_scheduler</span><span class="p">,</span> <span class="n">LRScheduler</span><span class="p">):</span>
+            <span class="n">trainer</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">ITERATION_COMPLETED</span><span class="p">,</span> <span class="n">lr_scheduler</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">trainer</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">ITERATION_STARTED</span><span class="p">,</span> <span class="n">lr_scheduler</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="ow">and</span> <span class="n">clear_cuda_cache</span><span class="p">:</span>
+        <span class="n">trainer</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">EPOCH_COMPLETED</span><span class="p">,</span> <span class="n">empty_cuda_cache</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">to_save</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+
+        <span class="k">if</span> <span class="n">output_path</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">save_handler</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;If to_save argument is provided then output_path or save_handler arguments should be also defined&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">output_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">save_handler</span> <span class="o">=</span> <span class="n">DiskSaver</span><span class="p">(</span><span class="n">dirname</span><span class="o">=</span><span class="n">output_path</span><span class="p">,</span> <span class="n">require_empty</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="n">checkpoint_handler</span> <span class="o">=</span> <span class="n">Checkpoint</span><span class="p">(</span><span class="n">to_save</span><span class="p">,</span> <span class="n">save_handler</span><span class="p">,</span> <span class="n">filename_prefix</span><span class="o">=</span><span class="s2">&quot;training&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">trainer</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">ITERATION_COMPLETED</span><span class="p">(</span><span class="n">every</span><span class="o">=</span><span class="n">save_every_iters</span><span class="p">),</span> <span class="n">checkpoint_handler</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">with_gpu_stats</span><span class="p">:</span>
+        <span class="n">GpuInfo</span><span class="p">()</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span><span class="n">trainer</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;gpu&quot;</span><span class="p">,</span> <span class="n">event_name</span><span class="o">=</span><span class="n">Events</span><span class="o">.</span><span class="n">ITERATION_COMPLETED</span><span class="p">(</span><span class="n">every</span><span class="o">=</span><span class="n">log_every_iters</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">output_names</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">output_transform</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">x</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">x</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Number</span><span class="p">)):</span>
+                <span class="k">return</span> <span class="n">x</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                    <span class="s2">&quot;Unhandled type of update_function&#39;s output. &quot;</span>
+                    <span class="s2">&quot;It should either mapping or sequence, but given </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+                <span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">output_names</span><span class="p">):</span>
+            <span class="n">RunningAverage</span><span class="p">(</span><span class="n">output_transform</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="n">output_transform</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">n</span><span class="p">),</span> <span class="n">epoch_bound</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span>
+                <span class="n">trainer</span><span class="p">,</span> <span class="n">n</span>
+            <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">with_pbars</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">with_pbar_on_iters</span><span class="p">:</span>
+            <span class="n">ProgressBar</span><span class="p">(</span><span class="n">persist</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span>
+                <span class="n">trainer</span><span class="p">,</span> <span class="n">metric_names</span><span class="o">=</span><span class="s2">&quot;all&quot;</span><span class="p">,</span> <span class="n">event_name</span><span class="o">=</span><span class="n">Events</span><span class="o">.</span><span class="n">ITERATION_COMPLETED</span><span class="p">(</span><span class="n">every</span><span class="o">=</span><span class="n">log_every_iters</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="n">ProgressBar</span><span class="p">(</span><span class="n">persist</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">bar_format</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span>
+            <span class="n">trainer</span><span class="p">,</span> <span class="n">event_name</span><span class="o">=</span><span class="n">Events</span><span class="o">.</span><span class="n">EPOCH_STARTED</span><span class="p">,</span> <span class="n">closing_event_name</span><span class="o">=</span><span class="n">Events</span><span class="o">.</span><span class="n">COMPLETED</span>
+        <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_setup_common_distrib_training_handlers</span><span class="p">(</span>
+    <span class="n">trainer</span><span class="p">,</span>
+    <span class="n">train_sampler</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">to_save</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">save_every_iters</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+    <span class="n">output_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">lr_scheduler</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">with_gpu_stats</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">output_names</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">with_pbars</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">with_pbar_on_iters</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">log_every_iters</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="n">stop_on_nan</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">clear_cuda_cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">save_handler</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span>
+<span class="p">):</span>
+
+    <span class="n">_setup_common_training_handlers</span><span class="p">(</span>
+        <span class="n">trainer</span><span class="p">,</span>
+        <span class="n">to_save</span><span class="o">=</span><span class="n">to_save</span><span class="p">,</span>
+        <span class="n">output_path</span><span class="o">=</span><span class="n">output_path</span><span class="p">,</span>
+        <span class="n">save_every_iters</span><span class="o">=</span><span class="n">save_every_iters</span><span class="p">,</span>
+        <span class="n">lr_scheduler</span><span class="o">=</span><span class="n">lr_scheduler</span><span class="p">,</span>
+        <span class="n">with_gpu_stats</span><span class="o">=</span><span class="n">with_gpu_stats</span><span class="p">,</span>
+        <span class="n">output_names</span><span class="o">=</span><span class="n">output_names</span><span class="p">,</span>
+        <span class="n">with_pbars</span><span class="o">=</span><span class="p">(</span><span class="n">idist</span><span class="o">.</span><span class="n">get_rank</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">and</span> <span class="n">with_pbars</span><span class="p">,</span>
+        <span class="n">with_pbar_on_iters</span><span class="o">=</span><span class="n">with_pbar_on_iters</span><span class="p">,</span>
+        <span class="n">log_every_iters</span><span class="o">=</span><span class="n">log_every_iters</span><span class="p">,</span>
+        <span class="n">stop_on_nan</span><span class="o">=</span><span class="n">stop_on_nan</span><span class="p">,</span>
+        <span class="n">clear_cuda_cache</span><span class="o">=</span><span class="n">clear_cuda_cache</span><span class="p">,</span>
+        <span class="n">save_handler</span><span class="o">=</span><span class="n">save_handler</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">train_sampler</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">train_sampler</span><span class="p">,</span> <span class="n">DistributedSampler</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Train sampler should be torch DistributedSampler and have `set_epoch` method&quot;</span><span class="p">)</span>
+
+        <span class="nd">@trainer</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">EPOCH_STARTED</span><span class="p">)</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">distrib_set_epoch</span><span class="p">(</span><span class="n">engine</span><span class="p">):</span>
+            <span class="n">train_sampler</span><span class="o">.</span><span class="n">set_epoch</span><span class="p">(</span><span class="n">engine</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">epoch</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">empty_cuda_cache</span><span class="p">(</span><span class="n">_</span><span class="p">):</span>
+    <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">empty_cache</span><span class="p">()</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">gc</span>
+
+    <span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">setup_any_logging</span><span class="p">(</span><span class="n">logger</span><span class="p">,</span> <span class="n">logger_module</span><span class="p">,</span> <span class="n">trainer</span><span class="p">,</span> <span class="n">optimizers</span><span class="p">,</span> <span class="n">evaluators</span><span class="p">,</span> <span class="n">log_every_iters</span><span class="p">):</span>
+    <span class="k">raise</span> <span class="ne">DeprecationWarning</span><span class="p">(</span>
+        <span class="s2">&quot;ignite.contrib.engines.common.setup_any_logging is deprecated since 0.4.0. &quot;</span>
+        <span class="s2">&quot;Please use ignite.contrib.engines.common._setup_logging instead.&quot;</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_setup_logging</span><span class="p">(</span><span class="n">logger</span><span class="p">,</span> <span class="n">trainer</span><span class="p">,</span> <span class="n">optimizers</span><span class="p">,</span> <span class="n">evaluators</span><span class="p">,</span> <span class="n">log_every_iters</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">optimizers</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">torch.optim.optimizer</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optimizer</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">optimizers</span><span class="p">,</span> <span class="p">(</span><span class="n">Optimizer</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Argument optimizers should be either a single optimizer or a dictionary or optimizers&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">evaluators</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">evaluators</span><span class="p">,</span> <span class="p">(</span><span class="n">Engine</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Argument evaluators should be either a single engine or a dictionary or engines&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">log_every_iters</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">log_every_iters</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">attach_output_handler</span><span class="p">(</span>
+        <span class="n">trainer</span><span class="p">,</span> <span class="n">event_name</span><span class="o">=</span><span class="n">Events</span><span class="o">.</span><span class="n">ITERATION_COMPLETED</span><span class="p">(</span><span class="n">every</span><span class="o">=</span><span class="n">log_every_iters</span><span class="p">),</span> <span class="n">tag</span><span class="o">=</span><span class="s2">&quot;training&quot;</span><span class="p">,</span> <span class="n">metric_names</span><span class="o">=</span><span class="s2">&quot;all&quot;</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">optimizers</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Log optimizer parameters</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">optimizers</span><span class="p">,</span> <span class="n">Optimizer</span><span class="p">):</span>
+            <span class="n">optimizers</span> <span class="o">=</span> <span class="p">{</span><span class="kc">None</span><span class="p">:</span> <span class="n">optimizers</span><span class="p">}</span>
+
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">optimizer</span> <span class="ow">in</span> <span class="n">optimizers</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">attach_opt_params_handler</span><span class="p">(</span>
+                <span class="n">trainer</span><span class="p">,</span> <span class="n">Events</span><span class="o">.</span><span class="n">ITERATION_STARTED</span><span class="p">(</span><span class="n">every</span><span class="o">=</span><span class="n">log_every_iters</span><span class="p">),</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">param_name</span><span class="o">=</span><span class="s2">&quot;lr&quot;</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="n">k</span>
+            <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">evaluators</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Log evaluation metrics</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">evaluators</span><span class="p">,</span> <span class="n">Engine</span><span class="p">):</span>
+            <span class="n">evaluators</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;validation&quot;</span><span class="p">:</span> <span class="n">evaluators</span><span class="p">}</span>
+
+        <span class="n">event_name</span> <span class="o">=</span> <span class="n">Events</span><span class="o">.</span><span class="n">ITERATION_COMPLETED</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">logger</span><span class="p">,</span> <span class="n">WandBLogger</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="n">gst</span> <span class="o">=</span> <span class="n">global_step_from_engine</span><span class="p">(</span><span class="n">trainer</span><span class="p">,</span> <span class="n">custom_event_name</span><span class="o">=</span><span class="n">event_name</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">evaluator</span> <span class="ow">in</span> <span class="n">evaluators</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">attach_output_handler</span><span class="p">(</span>
+                <span class="n">evaluator</span><span class="p">,</span> <span class="n">event_name</span><span class="o">=</span><span class="n">Events</span><span class="o">.</span><span class="n">COMPLETED</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="n">metric_names</span><span class="o">=</span><span class="s2">&quot;all&quot;</span><span class="p">,</span> <span class="n">global_step_transform</span><span class="o">=</span><span class="n">gst</span>
+            <span class="p">)</span>
+
+
+<div class="viewcode-block" id="setup_tb_logging"><a class="viewcode-back" href="../../../../contrib/engines.html#ignite.contrib.engines.common.setup_tb_logging">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">setup_tb_logging</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="n">trainer</span><span class="p">,</span> <span class="n">optimizers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">evaluators</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log_every_iters</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Method to setup TensorBoard logging on trainer and a list of evaluators. Logged metrics are:</span>
+<span class="sd">        - Training metrics, e.g. running average loss values</span>
+<span class="sd">        - Learning rate(s)</span>
+<span class="sd">        - Evaluation metrics</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        output_path (str): logging directory path</span>
+<span class="sd">        trainer (Engine): trainer engine</span>
+<span class="sd">        optimizers (torch.optim.Optimizer or dict of torch.optim.Optimizer, optional): single or dictionary of</span>
+<span class="sd">            torch optimizers. If a dictionary, keys are used as tags arguments for logging.</span>
+<span class="sd">        evaluators (Engine or dict of Engine, optional): single or dictionary of evaluators. If a dictionary,</span>
+<span class="sd">            keys are used as tags arguments for logging.</span>
+<span class="sd">        log_every_iters (int, optional): interval for loggers attached to iteration events. To log every iteration,</span>
+<span class="sd">            value can be set to 1 or None.</span>
+<span class="sd">        **kwargs: optional keyword args to be passed to construct the logger.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        TensorboardLogger</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logger</span> <span class="o">=</span> <span class="n">TensorboardLogger</span><span class="p">(</span><span class="n">log_dir</span><span class="o">=</span><span class="n">output_path</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">_setup_logging</span><span class="p">(</span><span class="n">logger</span><span class="p">,</span> <span class="n">trainer</span><span class="p">,</span> <span class="n">optimizers</span><span class="p">,</span> <span class="n">evaluators</span><span class="p">,</span> <span class="n">log_every_iters</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">logger</span></div>
+
+
+<div class="viewcode-block" id="setup_visdom_logging"><a class="viewcode-back" href="../../../../contrib/engines.html#ignite.contrib.engines.common.setup_visdom_logging">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">setup_visdom_logging</span><span class="p">(</span><span class="n">trainer</span><span class="p">,</span> <span class="n">optimizers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">evaluators</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log_every_iters</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Method to setup Visdom logging on trainer and a list of evaluators. Logged metrics are:</span>
+<span class="sd">        - Training metrics, e.g. running average loss values</span>
+<span class="sd">        - Learning rate(s)</span>
+<span class="sd">        - Evaluation metrics</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        trainer (Engine): trainer engine</span>
+<span class="sd">        optimizers (torch.optim.Optimizer or dict of torch.optim.Optimizer, optional): single or dictionary of</span>
+<span class="sd">            torch optimizers. If a dictionary, keys are used as tags arguments for logging.</span>
+<span class="sd">        evaluators (Engine or dict of Engine, optional): single or dictionary of evaluators. If a dictionary,</span>
+<span class="sd">            keys are used as tags arguments for logging.</span>
+<span class="sd">        log_every_iters (int, optional): interval for loggers attached to iteration events. To log every iteration,</span>
+<span class="sd">            value can be set to 1 or None.</span>
+<span class="sd">        **kwargs: optional keyword args to be passed to construct the logger.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        VisdomLogger</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logger</span> <span class="o">=</span> <span class="n">VisdomLogger</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">_setup_logging</span><span class="p">(</span><span class="n">logger</span><span class="p">,</span> <span class="n">trainer</span><span class="p">,</span> <span class="n">optimizers</span><span class="p">,</span> <span class="n">evaluators</span><span class="p">,</span> <span class="n">log_every_iters</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">logger</span></div>
+
+
+<div class="viewcode-block" id="setup_mlflow_logging"><a class="viewcode-back" href="../../../../contrib/engines.html#ignite.contrib.engines.common.setup_mlflow_logging">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">setup_mlflow_logging</span><span class="p">(</span><span class="n">trainer</span><span class="p">,</span> <span class="n">optimizers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">evaluators</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log_every_iters</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Method to setup MLflow logging on trainer and a list of evaluators. Logged metrics are:</span>
+<span class="sd">        - Training metrics, e.g. running average loss values</span>
+<span class="sd">        - Learning rate(s)</span>
+<span class="sd">        - Evaluation metrics</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        trainer (Engine): trainer engine</span>
+<span class="sd">        optimizers (torch.optim.Optimizer or dict of torch.optim.Optimizer, optional): single or dictionary of</span>
+<span class="sd">            torch optimizers. If a dictionary, keys are used as tags arguments for logging.</span>
+<span class="sd">        evaluators (Engine or dict of Engine, optional): single or dictionary of evaluators. If a dictionary,</span>
+<span class="sd">            keys are used as tags arguments for logging.</span>
+<span class="sd">        log_every_iters (int, optional): interval for loggers attached to iteration events. To log every iteration,</span>
+<span class="sd">            value can be set to 1 or None.</span>
+<span class="sd">        **kwargs: optional keyword args to be passed to construct the logger.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        MLflowLogger</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logger</span> <span class="o">=</span> <span class="n">MLflowLogger</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">_setup_logging</span><span class="p">(</span><span class="n">logger</span><span class="p">,</span> <span class="n">trainer</span><span class="p">,</span> <span class="n">optimizers</span><span class="p">,</span> <span class="n">evaluators</span><span class="p">,</span> <span class="n">log_every_iters</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">logger</span></div>
+
+
+<div class="viewcode-block" id="setup_neptune_logging"><a class="viewcode-back" href="../../../../contrib/engines.html#ignite.contrib.engines.common.setup_neptune_logging">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">setup_neptune_logging</span><span class="p">(</span><span class="n">trainer</span><span class="p">,</span> <span class="n">optimizers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">evaluators</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log_every_iters</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Method to setup Neptune logging on trainer and a list of evaluators. Logged metrics are:</span>
+<span class="sd">        - Training metrics, e.g. running average loss values</span>
+<span class="sd">        - Learning rate(s)</span>
+<span class="sd">        - Evaluation metrics</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        trainer (Engine): trainer engine</span>
+<span class="sd">        optimizers (torch.optim.Optimizer or dict of torch.optim.Optimizer, optional): single or dictionary of</span>
+<span class="sd">            torch optimizers. If a dictionary, keys are used as tags arguments for logging.</span>
+<span class="sd">        evaluators (Engine or dict of Engine, optional): single or dictionary of evaluators. If a dictionary,</span>
+<span class="sd">            keys are used as tags arguments for logging.</span>
+<span class="sd">        log_every_iters (int, optional): interval for loggers attached to iteration events. To log every iteration,</span>
+<span class="sd">            value can be set to 1 or None.</span>
+<span class="sd">        **kwargs: optional keyword args to be passed to construct the logger.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        NeptuneLogger</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logger</span> <span class="o">=</span> <span class="n">NeptuneLogger</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">_setup_logging</span><span class="p">(</span><span class="n">logger</span><span class="p">,</span> <span class="n">trainer</span><span class="p">,</span> <span class="n">optimizers</span><span class="p">,</span> <span class="n">evaluators</span><span class="p">,</span> <span class="n">log_every_iters</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">logger</span></div>
+
+
+<div class="viewcode-block" id="setup_wandb_logging"><a class="viewcode-back" href="../../../../contrib/engines.html#ignite.contrib.engines.common.setup_wandb_logging">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">setup_wandb_logging</span><span class="p">(</span><span class="n">trainer</span><span class="p">,</span> <span class="n">optimizers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">evaluators</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log_every_iters</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Method to setup WandB logging on trainer and a list of evaluators. Logged metrics are:</span>
+<span class="sd">        - Training metrics, e.g. running average loss values</span>
+<span class="sd">        - Learning rate(s)</span>
+<span class="sd">        - Evaluation metrics</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        trainer (Engine): trainer engine</span>
+<span class="sd">        optimizers (torch.optim.Optimizer or dict of torch.optim.Optimizer, optional): single or dictionary of</span>
+<span class="sd">            torch optimizers. If a dictionary, keys are used as tags arguments for logging.</span>
+<span class="sd">        evaluators (Engine or dict of Engine, optional): single or dictionary of evaluators. If a dictionary,</span>
+<span class="sd">            keys are used as tags arguments for logging.</span>
+<span class="sd">        log_every_iters (int, optional): interval for loggers attached to iteration events. To log every iteration,</span>
+<span class="sd">            value can be set to 1 or None.</span>
+<span class="sd">        **kwargs: optional keyword args to be passed to construct the logger.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        WandBLogger</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logger</span> <span class="o">=</span> <span class="n">WandBLogger</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">_setup_logging</span><span class="p">(</span><span class="n">logger</span><span class="p">,</span> <span class="n">trainer</span><span class="p">,</span> <span class="n">optimizers</span><span class="p">,</span> <span class="n">evaluators</span><span class="p">,</span> <span class="n">log_every_iters</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">logger</span></div>
+
+
+<div class="viewcode-block" id="setup_plx_logging"><a class="viewcode-back" href="../../../../contrib/engines.html#ignite.contrib.engines.common.setup_plx_logging">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">setup_plx_logging</span><span class="p">(</span><span class="n">trainer</span><span class="p">,</span> <span class="n">optimizers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">evaluators</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log_every_iters</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Method to setup Polyaxon logging on trainer and a list of evaluators. Logged metrics are:</span>
+<span class="sd">        - Training metrics, e.g. running average loss values</span>
+<span class="sd">        - Learning rate(s)</span>
+<span class="sd">        - Evaluation metrics</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        trainer (Engine): trainer engine</span>
+<span class="sd">        optimizers (torch.optim.Optimizer or dict of torch.optim.Optimizer, optional): single or dictionary of</span>
+<span class="sd">            torch optimizers. If a dictionary, keys are used as tags arguments for logging.</span>
+<span class="sd">        evaluators (Engine or dict of Engine, optional): single or dictionary of evaluators. If a dictionary,</span>
+<span class="sd">            keys are used as tags arguments for logging.</span>
+<span class="sd">        log_every_iters (int, optional): interval for loggers attached to iteration events. To log every iteration,</span>
+<span class="sd">            value can be set to 1 or None.</span>
+<span class="sd">        **kwargs: optional keyword args to be passed to construct the logger.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        PolyaxonLogger</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logger</span> <span class="o">=</span> <span class="n">PolyaxonLogger</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">_setup_logging</span><span class="p">(</span><span class="n">logger</span><span class="p">,</span> <span class="n">trainer</span><span class="p">,</span> <span class="n">optimizers</span><span class="p">,</span> <span class="n">evaluators</span><span class="p">,</span> <span class="n">log_every_iters</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">logger</span></div>
+
+
+<div class="viewcode-block" id="setup_trains_logging"><a class="viewcode-back" href="../../../../contrib/engines.html#ignite.contrib.engines.common.setup_trains_logging">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">setup_trains_logging</span><span class="p">(</span><span class="n">trainer</span><span class="p">,</span> <span class="n">optimizers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">evaluators</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log_every_iters</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Method to setup Trains logging on trainer and a list of evaluators. Logged metrics are:</span>
+<span class="sd">        - Training metrics, e.g. running average loss values</span>
+<span class="sd">        - Learning rate(s)</span>
+<span class="sd">        - Evaluation metrics</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        trainer (Engine): trainer engine</span>
+<span class="sd">        optimizers (torch.optim.Optimizer or dict of torch.optim.Optimizer, optional): single or dictionary of</span>
+<span class="sd">            torch optimizers. If a dictionary, keys are used as tags arguments for logging.</span>
+<span class="sd">        evaluators (Engine or dict of Engine, optional): single or dictionary of evaluators. If a dictionary,</span>
+<span class="sd">            keys are used as tags arguments for logging.</span>
+<span class="sd">        log_every_iters (int, optional): interval for loggers attached to iteration events. To log every iteration,</span>
+<span class="sd">            value can be set to 1 or None.</span>
+<span class="sd">        **kwargs: optional keyword args to be passed to construct the logger.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        TrainsLogger</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logger</span> <span class="o">=</span> <span class="n">TrainsLogger</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">_setup_logging</span><span class="p">(</span><span class="n">logger</span><span class="p">,</span> <span class="n">trainer</span><span class="p">,</span> <span class="n">optimizers</span><span class="p">,</span> <span class="n">evaluators</span><span class="p">,</span> <span class="n">log_every_iters</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">logger</span></div>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">get_default_score_fn</span><span class="p">(</span><span class="n">metric_name</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">wrapper</span><span class="p">(</span><span class="n">engine</span><span class="p">):</span>
+        <span class="n">score</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="n">metric_name</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">score</span>
+
+    <span class="k">return</span> <span class="n">wrapper</span>
+
+
+<div class="viewcode-block" id="gen_save_best_models_by_val_score"><a class="viewcode-back" href="../../../../contrib/engines.html#ignite.contrib.engines.common.gen_save_best_models_by_val_score">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">gen_save_best_models_by_val_score</span><span class="p">(</span>
+    <span class="n">save_handler</span><span class="p">,</span> <span class="n">evaluator</span><span class="p">,</span> <span class="n">models</span><span class="p">,</span> <span class="n">metric_name</span><span class="p">,</span> <span class="n">n_saved</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">trainer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="s2">&quot;val&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Method adds a handler to ``evaluator`` to save ``n_saved`` of best models based on the metric</span>
+<span class="sd">    (named by ``metric_name``) provided by ``evaluator`` (i.e. ``evaluator.state.metrics[metric_name]``).</span>
+<span class="sd">    Models with highest metric value will be retained. The logic of how to store objects is delegated to</span>
+<span class="sd">    ``save_handler``.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        save_handler (callable or :class:`~ignite.handlers.checkpoint.BaseSaveHandler`): Method or callable class to</span>
+<span class="sd">            use to save engine and other provided objects. Function receives two objects: checkpoint as a dictionary</span>
+<span class="sd">            and filename. If ``save_handler`` is callable class, it can</span>
+<span class="sd">            inherit of :class:`~ignite.handlers.checkpoint.BaseSaveHandler` and optionally implement ``remove`` method</span>
+<span class="sd">            to keep a fixed number of saved checkpoints. In case if user needs to save engine&#39;s checkpoint on a disk,</span>
+<span class="sd">            ``save_handler`` can be defined with :class:`~ignite.handlers.DiskSaver`.</span>
+<span class="sd">        evaluator (Engine): evaluation engine used to provide the score</span>
+<span class="sd">        models (nn.Module or Mapping): model or dictionary with the object to save. Objects should have</span>
+<span class="sd">            implemented ``state_dict`` and ``load_state_dict`` methods.</span>
+<span class="sd">        metric_name (str): metric name to use for score evaluation. This metric should be present in</span>
+<span class="sd">            `evaluator.state.metrics`.</span>
+<span class="sd">        n_saved (int, optional): number of best models to store</span>
+<span class="sd">        trainer (Engine, optional): trainer engine to fetch the epoch when saving the best model.</span>
+<span class="sd">        tag (str, optional): score name prefix: `{tag}_{metric_name}`. By default, tag is &quot;val&quot;.</span>
+<span class="sd">        **kwargs: optional keyword args to be passed to construct :class:`~ignite.handlers.checkpoint.Checkpoint`.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A :class:`~ignite.handlers.checkpoint.Checkpoint` handler.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">global_step_transform</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">trainer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">global_step_transform</span> <span class="o">=</span> <span class="n">global_step_from_engine</span><span class="p">(</span><span class="n">trainer</span><span class="p">)</span>
+
+    <span class="n">to_save</span> <span class="o">=</span> <span class="n">models</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">models</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+        <span class="n">to_save</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="n">models</span><span class="p">}</span>
+
+    <span class="n">best_model_handler</span> <span class="o">=</span> <span class="n">Checkpoint</span><span class="p">(</span>
+        <span class="n">to_save</span><span class="p">,</span>
+        <span class="n">save_handler</span><span class="p">,</span>
+        <span class="n">filename_prefix</span><span class="o">=</span><span class="s2">&quot;best&quot;</span><span class="p">,</span>
+        <span class="n">n_saved</span><span class="o">=</span><span class="n">n_saved</span><span class="p">,</span>
+        <span class="n">global_step_transform</span><span class="o">=</span><span class="n">global_step_transform</span><span class="p">,</span>
+        <span class="n">score_name</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tag</span><span class="p">,</span> <span class="n">metric_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()),</span>
+        <span class="n">score_function</span><span class="o">=</span><span class="n">get_default_score_fn</span><span class="p">(</span><span class="n">metric_name</span><span class="p">),</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">evaluator</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span>
+        <span class="n">Events</span><span class="o">.</span><span class="n">COMPLETED</span><span class="p">,</span> <span class="n">best_model_handler</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">best_model_handler</span></div>
+
+
+<div class="viewcode-block" id="save_best_model_by_val_score"><a class="viewcode-back" href="../../../../contrib/engines.html#ignite.contrib.engines.common.save_best_model_by_val_score">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">save_best_model_by_val_score</span><span class="p">(</span>
+    <span class="n">output_path</span><span class="p">,</span> <span class="n">evaluator</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">metric_name</span><span class="p">,</span> <span class="n">n_saved</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">trainer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="s2">&quot;val&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Method adds a handler to ``evaluator`` to save on a disk ``n_saved`` of best models based on the metric</span>
+<span class="sd">    (named by ``metric_name``) provided by ``evaluator`` (i.e. ``evaluator.state.metrics[metric_name]``).</span>
+<span class="sd">    Models with highest metric value will be retained.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        output_path (str): output path to indicate where to save best models</span>
+<span class="sd">        evaluator (Engine): evaluation engine used to provide the score</span>
+<span class="sd">        model (nn.Module): model to store</span>
+<span class="sd">        metric_name (str): metric name to use for score evaluation. This metric should be present in</span>
+<span class="sd">            `evaluator.state.metrics`.</span>
+<span class="sd">        n_saved (int, optional): number of best models to store</span>
+<span class="sd">        trainer (Engine, optional): trainer engine to fetch the epoch when saving the best model.</span>
+<span class="sd">        tag (str, optional): score name prefix: `{tag}_{metric_name}`. By default, tag is &quot;val&quot;.</span>
+<span class="sd">        **kwargs: optional keyword args to be passed to construct :class:`~ignite.handlers.checkpoint.Checkpoint`.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A :class:`~ignite.handlers.checkpoint.Checkpoint` handler.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">gen_save_best_models_by_val_score</span><span class="p">(</span>
+        <span class="n">save_handler</span><span class="o">=</span><span class="n">DiskSaver</span><span class="p">(</span><span class="n">dirname</span><span class="o">=</span><span class="n">output_path</span><span class="p">,</span> <span class="n">require_empty</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+        <span class="n">evaluator</span><span class="o">=</span><span class="n">evaluator</span><span class="p">,</span>
+        <span class="n">models</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+        <span class="n">metric_name</span><span class="o">=</span><span class="n">metric_name</span><span class="p">,</span>
+        <span class="n">n_saved</span><span class="o">=</span><span class="n">n_saved</span><span class="p">,</span>
+        <span class="n">trainer</span><span class="o">=</span><span class="n">trainer</span><span class="p">,</span>
+        <span class="n">tag</span><span class="o">=</span><span class="n">tag</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="add_early_stopping_by_val_score"><a class="viewcode-back" href="../../../../contrib/engines.html#ignite.contrib.engines.common.add_early_stopping_by_val_score">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">add_early_stopping_by_val_score</span><span class="p">(</span><span class="n">patience</span><span class="p">,</span> <span class="n">evaluator</span><span class="p">,</span> <span class="n">trainer</span><span class="p">,</span> <span class="n">metric_name</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Method setups early stopping handler based on the score (named by `metric_name`) provided by `evaluator`.</span>
+<span class="sd">    Metric value should increase in order to keep training and not early stop.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        patience (int): number of events to wait if no improvement and then stop the training.</span>
+<span class="sd">        evaluator (Engine): evaluation engine used to provide the score</span>
+<span class="sd">        trainer (Engine): trainer engine to stop the run if no improvement.</span>
+<span class="sd">        metric_name (str): metric name to use for score evaluation. This metric should be present in</span>
+<span class="sd">            `evaluator.state.metrics`.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A :class:`~ignite.handlers.early_stopping.EarlyStopping` handler.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">es_handler</span> <span class="o">=</span> <span class="n">EarlyStopping</span><span class="p">(</span><span class="n">patience</span><span class="o">=</span><span class="n">patience</span><span class="p">,</span> <span class="n">score_function</span><span class="o">=</span><span class="n">get_default_score_fn</span><span class="p">(</span><span class="n">metric_name</span><span class="p">),</span> <span class="n">trainer</span><span class="o">=</span><span class="n">trainer</span><span class="p">)</span>
+    <span class="n">evaluator</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">COMPLETED</span><span class="p">,</span> <span class="n">es_handler</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">es_handler</span></div>
+</pre></div>
+
+             </article>
+             
+            </div>
+            <footer>
+  
+
+  
+
+    <hr>
+
+  
+
+  <div role="contentinfo">
+    <table>
+      <tr>
+        <td>
+            <p>
+                &copy; Copyright 2026, PyTorch-Ignite Contributors.
+              Last updated on 03/01/2026, 6:45:29 PM.
+            </p>
+            
+              <div>
+                Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+              </div>
+          
+        </td>
+        <td>
+            
+              <div>
+                <a href="https://www.netlify.com" target="_blank" rel="noopener noreferrer">
+                  <img
+                  src="_static/img/netlify-light.svg"
+                  alt="Deploys by Netlify"
+                  width=114
+                  height=51 />
+                </a>
+              </div>
+            
+        </td>
+      </tr>
+    </table>
+  </div> 
+
+</footer>
+          </div>
+        </div>
+
+        <div class="pytorch-content-right" id="pytorch-content-right">
+          <div class="pytorch-right-menu" id="pytorch-right-menu">
+            <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
+              
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+  
+
+     
+       <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+         <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+         <script src="../../../../_static/jquery.js"></script>
+         <script src="../../../../_static/underscore.js"></script>
+         <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+         <script src="../../../../_static/doctools.js"></script>
+         <script src="../../../../_static/sphinx_highlight.js"></script>
+         <script src="../../../../_static/clipboard.min.js"></script>
+         <script src="../../../../_static/copybutton.js"></script>
+         <script>let toggleHintShow = 'Show default setup';</script>
+         <script>let toggleHintHide = 'Hide default setup';</script>
+         <script>let toggleOpenOnPrint = 'true';</script>
+         <script src="../../../../_static/togglebutton.js"></script>
+         <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+         <script src="../../../../_static/design-tabs.js"></script>
+     
+
+  
+
+  <script type="text/javascript" src="../../../../_static/js/vendor/popper.min.js"></script>
+  <script type="text/javascript" src="../../../../_static/js/vendor/bootstrap.min.js"></script>
+  <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+  <!-- Begin Footer -->
+
+  <!-- commented out for Ignite -->
+
+  <div class="container-fluid docs-tutorials-resources" id="docs-tutorials-resources">
+    <!-- <div class="container">
+      <div class="row">
+        <div class="text-center col-md-4">
+          <h2>Docs</h2>
+          <p>Access comprehensive developer documentation for PyTorch</p>
+          <a class="with-right-arrow" href="https://pytorch.org/ignite/index.html">View Docs</a>
+        </div>
+
+        <div class="text-center col-md-4">
+          <h2>Tutorials</h2>
+          <p>Get in-depth tutorials for beginners and advanced developers</p>
+          <a class="with-right-arrow" href="">View Tutorials</a>
+        </div>
+
+        <div class="text-center col-md-4">
+          <h2>Resources</h2>
+          <p>Find development resources and get your questions answered</p>
+          <a class="with-right-arrow" href="">View Resources</a>
+        </div>
+      </div>
+    </div> -->
+  </div>
+
+  <!-- <footer class="site-footer">
+    <div class="container footer-container">
+      <div class="footer-logo-wrapper">
+        <a href="https://pytorch-ignite.ai" class="footer-logo"></a>
+      </div>
+
+      <div class="footer-links-wrapper">
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title"><a href="https://pytorch-ignite.ai">PyTorch</a></li>
+            <li><a href="">Get Started</a></li>
+            <li><a href="">Features</a></li>
+            <li><a href="">Ecosystem</a></li>
+            <li><a href="">Blog</a></li>
+            <li><a href="">Resources</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title"><a href="">Support</a></li>
+            <li><a href="">Tutorials</a></li>
+            <li><a href="https://pytorch.org/ignite/index.html">Docs</a></li>
+            <li><a href="" target="_blank">Discuss</a></li>
+            <li><a href="https://github.com/pytorch/ignite/issues" target="_blank">Github Issues</a></li>
+            <li><a href="" target="_blank">Slack</a></li>
+            <li><a href="https://github.com/pytorch/ignite/blob/master/CONTRIBUTING.md" target="_blank">Contributing</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links-col follow-us-col">
+          <ul>
+            <li class="list-title">Follow Us</li>
+            <li>
+              <div id="mc_embed_signup">
+                <form
+                  action="https://twitter.us14.list-manage.com/subscribe/post?u=75419c71fe0a935e53dfa4a3f&id=91d0dccd39"
+                  method="post"
+                  id="mc-embedded-subscribe-form"
+                  name="mc-embedded-subscribe-form"
+                  class="email-subscribe-form validate"
+                  target="_blank"
+                  novalidate>
+                  <div id="mc_embed_signup_scroll" class="email-subscribe-form-fields-wrapper">
+                    <div class="mc-field-group">
+                      <label for="mce-EMAIL" style="display:none;">Email Address</label>
+                      <input type="email" value="" name="EMAIL" class="required email" id="mce-EMAIL" placeholder="Email Address">
+                    </div>
+
+                    <div id="mce-responses" class="clear">
+                      <div class="response" id="mce-error-response" style="display:none"></div>
+                      <div class="response" id="mce-success-response" style="display:none"></div>
+                    </div>    <!~~ real people should not fill this in and expect good things - do not remove this or risk form bot signups ~~>
+
+                    <div style="position: absolute; left: -5000px;" aria-hidden="true"><input type="text" name="b_75419c71fe0a935e53dfa4a3f_91d0dccd39" tabindex="-1" value=""></div>
+
+                    <div class="clear">
+                      <input type="submit" value="" name="subscribe" id="mc-embedded-subscribe" class="button email-subscribe-button">
+                    </div>
+                  </div>
+                </form>
+              </div>
+
+            </li>
+          </ul>
+
+          <div class="footer-social-icons">
+            <a href="" target="_blank" class="facebook"></a>
+            <a href="" target="_blank" class="twitter"></a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer> -->
+
+
+  <!-- end of commented out for Ignite -->
+
+  <!-- <div class="cookie-banner-wrapper">
+  <div class="container">
+    <p class="gdpr-notice">To analyze traffic and optimize your experience, we serve cookies on this site. By clicking or navigating, you agree to allow our usage of cookies. As the current maintainers of this site, Facebook’s Cookies Policy applies. Learn more, including about available controls: <a href="https://www.facebook.com/policies/cookies/">Cookies Policy</a>.</p>
+    <img class="close-button" src="../../../../_static/images/pytorch-x.svg">
+  </div>
+</div> -->
+
+  <!-- End Footer -->
+
+  <!-- Begin Mobile Menu -->
+  <!--
+  <div class="mobile-main-menu">
+    <div class="container-fluid">
+      <div class="container">
+        <div class="mobile-main-menu-header-container">
+          <a class="header-logo" href="https://pytorch-ignite.ai" aria-label="PyTorch"></a>
+          <a class="main-menu-close-button" href="#" data-behavior="close-mobile-menu"></a>
+        </div>
+      </div>
+    </div>
+
+    <div class="mobile-main-menu-links-container">
+      <div class="main-menu">
+        <ul>
+          <li>
+            <a href="#">Get Started</a>
+          </li>
+
+          <li>
+            <a href="#">Features</a>
+          </li>
+
+          <li>
+            <a href="#">Ecosystem</a>
+          </li>
+
+          <li>
+            <a href="">Blog</a>
+          </li>
+
+          <li>
+            <a href="">Tutorials</a>
+          </li>
+
+          <li>
+            <a href="https://pytorch.org/ignite/index.html">Docs</a>
+          </li>
+
+          <li>
+            <a href="">Resources</a>
+          </li>
+
+          <li>
+            <a href="https://github.com/pytorch/ignite">Github</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  -->
+  <!-- End Mobile Menu -->
+
+  <script type="text/javascript" src="../../../../_static/js/vendor/anchor.min.js"></script>
+
+  <script type="text/javascript">
+    var collapsedSections = []
+    $(document).ready(function() {
+      mobileMenu.bind();
+      mobileTOC.bind();
+      pytorchAnchors.bind();
+      sideMenus.bind();
+      scrollToAnchor.bind();
+      highlightNavigation.bind();
+
+      // Add class to links that have code blocks, since we cannot create links in code blocks
+      $("article.pytorch-article a span.pre").each(function(e) {
+        $(this).closest("a").addClass("has-code");
+      });
+    })
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@docsearch/js@3"></script>
+  <script type="text/javascript">
+  let VERSION
+  if ('v0.4.2'.startsWith('v')) {
+    VERSION = 'v0.4.2'
+  } else {
+    VERSION = 'master'
+  }
+  docsearch({
+    container: '#docsearch',
+    appId: '7EWYE1JCT3',
+    apiKey: '841e93e60c16975ba1bd8c7c716eed82',
+    indexName: 'pytorch-ignite',
+    placeholder: 'Search PyTorch-Ignite docs',
+    searchParameters: {
+      facetFilters: [`version:${VERSION}`, 'tags:API-reference'],
+    }
+  });
+  </script>
+</body>
+</html>

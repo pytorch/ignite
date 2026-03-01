@@ -1,0 +1,45 @@
+﻿R2Score
+=======
+
+.. currentmodule:: ignite.contrib.metrics.regression
+
+.. autoclass:: R2Score
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~R2Score.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~R2Score.reset
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   

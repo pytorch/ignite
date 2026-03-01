@@ -1,0 +1,24 @@
+﻿trains\_logger
+==============
+
+.. automodule:: ignite.contrib.handlers.trains_logger
+   :members:
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+
+

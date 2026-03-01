@@ -1,0 +1,33 @@
+﻿MultiStepStateScheduler
+=======================
+
+.. currentmodule:: ignite.handlers.state_param_scheduler
+
+.. autoclass:: MultiStepStateScheduler
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+      ~MultiStepStateScheduler.get_param
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   

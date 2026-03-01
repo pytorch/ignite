@@ -1,0 +1,47 @@
+﻿ObjectDetectionAvgPrecisionRecall
+=================================
+
+.. currentmodule:: ignite.metrics
+
+.. autoclass:: ObjectDetectionAvgPrecisionRecall
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~ObjectDetectionAvgPrecisionRecall.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~ObjectDetectionAvgPrecisionRecall.reset
+   
+   
+   
+   
+   
+   
+   
+      ~ObjectDetectionAvgPrecisionRecall.update
+   
+   
+   
+   

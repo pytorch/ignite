@@ -1,0 +1,45 @@
+﻿SpearmanRankCorrelation
+=======================
+
+.. currentmodule:: ignite.metrics.regression
+
+.. autoclass:: SpearmanRankCorrelation
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~SpearmanRankCorrelation.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~SpearmanRankCorrelation.update
+   
+   
+   
+   

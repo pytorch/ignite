@@ -1,0 +1,1529 @@
+
+
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta name="author" content="PyTorch-Ignite Contributors">
+  <meta name="creator" content="PyTorch-Ignite Contributors">
+  <meta name="publisher" content="PyTorch-Ignite Contributors">
+  <meta name="generator" content="Sphinx 5.3.0">
+  <meta name="description" content="High-level library to help with training and evaluating neural networks in PyTorch flexibly and transparently.">
+  <meta name="keywords" content="pytorch, pytorch ignite, ignite, engine, events, handlers, metrics">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#ee4c2c">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@pytorch_ignite">
+  <meta name="twitter:creator" content="@pytorch_ignite">
+  <meta name="twitter:description" content="High-level library to help with training and evaluating neural networks in PyTorch flexibly and transparently.">
+  <meta name="twitter:title" content="ignite.metrics.metric &mdash; PyTorch-Ignite master (e56f4f9f) Documentation">
+  <meta name="twitter:image" content="https://raw.githubusercontent.com/pytorch/ignite/master/assets/logo/ignite_logo.png">
+  <meta name="twitter:image:alt" content="PyTorch-Ignite logo">
+
+  <meta property="og:title" content="ignite.metrics.metric &mdash; PyTorch-Ignite master (e56f4f9f) Documentation">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://pytorch.org/ignite/">
+  <meta property="og:site_name" content="PyTorch-Ignite">
+  <meta property="og:image" content="https://raw.githubusercontent.com/pytorch/ignite/master/assets/logo/ignite_logo.png">
+  <meta property="og:image:alt" content="PyTorch-Ignite logo">
+  <meta property="og:description" content="High-level library to help with training and evaluating neural networks in PyTorch flexibly and transparently.">
+
+  <link rel="preconnect" href="https://BH4D9OD16A-dsn.algolia.net" crossorigin />
+
+  
+  <title>ignite.metrics.metric &mdash; PyTorch-Ignite master (e56f4f9f) Documentation</title>
+  
+
+  
+  
+    <link rel="shortcut icon" type="image/svg+xml" href="../../../_static/ignite_logomark.svg"/>
+  
+  
+  
+    <link rel="canonical" href="https://pytorch.org/ignite/_modules/ignite/metrics/metric.html"/>
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="preload" href="../../../_static/css/theme.css" as="style" />
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <!-- <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" /> -->
+  <link rel="preload" href="../../../_static/pygments.css" as="style" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <link rel="preload" href="../../../_static/css/theme.css" as="style" />
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="preload" href="../../../_static/copybutton.css" as="style" />
+  <link rel="stylesheet" href="../../../_static/copybutton.css" type="text/css" />
+  <link rel="preload" href="../../../_static/togglebutton.css" as="style" />
+  <link rel="stylesheet" href="../../../_static/togglebutton.css" type="text/css" />
+  <link rel="preload" href="../../../_static/banner.css" as="style" />
+  <link rel="stylesheet" href="../../../_static/banner.css" type="text/css" />
+  <link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" as="style" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" type="text/css" />
+  <link rel="preload" href="../../../_static/katex-math.css" as="style" />
+  <link rel="stylesheet" href="../../../_static/katex-math.css" type="text/css" />
+  <link rel="preload" href="../../../_static/sphinx-design.5ea377869091fd0449014c60fc090103.min.css" as="style" />
+  <link rel="stylesheet" href="../../../_static/sphinx-design.5ea377869091fd0449014c60fc090103.min.css" type="text/css" />
+    <link rel="preload" href="../../../_static/css/ignite_theme.css" as="style" />
+    <link rel="stylesheet" href="../../../_static/css/ignite_theme.css" type="text/css" />
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/@docsearch/css@3" as="style" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@docsearch/css@3" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+
+  <!-- katex links / this needs to be loaded before fonts.html -->
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/katex.min.css" crossorigin="anonymous">
+<script async src="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/katex.min.js" crossorigin="anonymous"></script>
+
+<!-- Preload the theme fonts -->
+
+<link rel="preload" href="../../../_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../_static/fonts/IBMPlexMono/IBMPlexMono-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+
+<!-- Preload the katex fonts -->
+
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Math-Italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Main-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Main-Bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Size1-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Size4-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Size2-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Size3-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Caligraphic-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-5FELLLFHCP"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-5FELLLFHCP');
+  </script>
+</head>
+
+<div class="container-fluid header-holder tutorials-header" id="header-holder">
+  <div class="container">
+
+    <a class="header-logo" href="/ignite" aria-label="PyTorch-Ignite"></a>
+
+    <div class="header-container">
+
+      <div class="main-menu">
+        <ul>
+          <li>
+            <a href="https://pytorch-ignite.ai/tutorials/beginner/01-getting-started/">Quickstart</a>
+          </li>
+
+          <li>
+            <a href="https://pytorch-ignite.ai/concepts/">Concepts</a>
+          </li>
+
+          <!-- <li>
+            <a href="https://pytorch-ignite.ai/tutorials/beginner/01-getting-started/#complete-code">Examples</a>
+          </li> -->
+
+          <li>
+            <a href="https://pytorch-ignite.ai/how-to-guides/">FAQ</a>
+          </li>
+
+          <li>
+            <a href="https://github.com/pytorch/ignite" target="_blank" rel="noopener noreferrer">GitHub</a>
+          </li>
+
+          <li>
+            <a href="https://pytorch-ignite.ai/about/community/">About us</a>
+          </li>
+
+          <li>
+            <a href="https://pytorch-ignite.ai">⊳ pytorch-ignite.ai</a>
+          </li>
+
+
+        </ul>
+      </div>
+
+      <!-- <a class="main-menu-open-button" href="#" data-behavior="open-mobile-menu"></a> -->
+    </div>
+
+  </div>
+</div>
+
+
+<body class="pytorch-body">
+
+   
+
+    
+
+    <div class="table-of-contents-link-wrapper">
+      <span>Table of Contents</span>
+      <div class="toggle-table-of-contents" data-behavior="toggle-table-of-contents"></div>
+    </div>
+
+    <nav data-toggle="wy-nav-shift" class="pytorch-left-menu" id="pytorch-left-menu">
+      <div class="pytorch-side-scroll">
+        <div class="pytorch-menu pytorch-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          <div class="pytorch-left-menu-search">
+            
+
+            
+              
+              
+                <div class="version">
+                  master (e56f4f9f)
+                </div>
+              
+            
+
+            <div id="docsearch"></div>
+
+            
+          </div>
+
+          
+            
+            
+              
+            
+            
+              <p class="caption" role="heading"><span class="caption-text">Package Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../engine.html">ignite.engine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../handlers.html">ignite.handlers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../metrics.html">ignite.metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../distributed.html">ignite.distributed</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../exceptions.html">ignite.exceptions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../utils.html">ignite.utils</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Contrib Package Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../contrib/engines.html">ignite.contrib.engines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contrib/metrics.html">ignite.contrib.metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contrib/handlers.html">ignite.contrib.handlers</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+
+      <div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: master
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../../v0.4.0.post1/index.html">v0.4.0.post1</a></dd>
+            <dd><a href="../../../../v0.4.1/index.html">v0.4.1</a></dd>
+            <dd><a href="../../../../v0.4.10/index.html">v0.4.10</a></dd>
+            <dd><a href="../../../../v0.4.11/index.html">v0.4.11</a></dd>
+            <dd><a href="../../../../v0.4.12/index.html">v0.4.12</a></dd>
+            <dd><a href="../../../../v0.4.13/index.html">v0.4.13</a></dd>
+            <dd><a href="../../../../v0.4.2/index.html">v0.4.2</a></dd>
+            <dd><a href="../../../../v0.4.3/index.html">v0.4.3</a></dd>
+            <dd><a href="../../../../v0.4.4.post1/index.html">v0.4.4.post1</a></dd>
+            <dd><a href="../../../../v0.4.5/index.html">v0.4.5</a></dd>
+            <dd><a href="../../../../v0.4.6/index.html">v0.4.6</a></dd>
+            <dd><a href="../../../../v0.4.7/index.html">v0.4.7</a></dd>
+            <dd><a href="../../../../v0.4.8/index.html">v0.4.8</a></dd>
+            <dd><a href="../../../../v0.4.9/index.html">v0.4.9</a></dd>
+            <dd><a href="../../../../v0.4rc.0.post1/index.html">v0.4rc.0.post1</a></dd>
+            <dd><a href="../../../../v0.5.0.post2/index.html">v0.5.0.post2</a></dd>
+            <dd><a href="../../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../../v0.5.2/index.html">v0.5.2</a></dd>
+            <dd><a href="../../../../v0.5.3/index.html">v0.5.3</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="metric.html">master</a></dd>
+        </dl>
+    </div>
+</div>
+
+    </nav>
+
+    <div class="pytorch-container">
+      <div class="pytorch-page-level-bar" id="pytorch-page-level-bar">
+        <div class="pytorch-breadcrumbs-wrapper">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="pytorch-breadcrumbs">
+    
+      <li>
+        <a href="../../../index.html">
+          
+            Docs
+          
+        </a> &gt;
+      </li>
+
+        
+          <li><a href="../../index.html">Module code</a> &gt;</li>
+        
+      <li>ignite.metrics.metric</li>
+    
+    
+      <li class="pytorch-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+</div>
+        </div>
+
+        <div class="pytorch-shortcuts-wrapper" id="pytorch-shortcuts-wrapper">
+          Shortcuts
+        </div>
+      </div>
+
+      <section data-toggle="wy-nav-shift" id="pytorch-content-wrap" class="pytorch-content-wrap">
+        <div class="pytorch-content-left">
+
+        
+          
+          <div class="rst-content">
+          
+            <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
+             <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
+              
+  <h1>Source code for ignite.metrics.metric</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">ABCMeta</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">OrderedDict</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Mapping</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">wraps</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">numbers</span><span class="w"> </span><span class="kn">import</span> <span class="n">Number</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">cast</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">ignite.distributed</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">idist</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ignite.base.mixins</span><span class="w"> </span><span class="kn">import</span> <span class="n">Serializable</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ignite.engine</span><span class="w"> </span><span class="kn">import</span> <span class="n">CallableEventWithFilter</span><span class="p">,</span> <span class="n">Engine</span><span class="p">,</span> <span class="n">Events</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ignite.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">_CollectionItem</span><span class="p">,</span> <span class="n">_tree_apply2</span><span class="p">,</span> <span class="n">_tree_map</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">ignite.metrics.metrics_lambda</span><span class="w"> </span><span class="kn">import</span> <span class="n">MetricsLambda</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;Metric&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;MetricUsage&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;EpochWise&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;BatchWise&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;BatchFiltered&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;RunningEpochWise&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;RunningBatchWise&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;SingleEpochRunningBatchWise&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
+
+<div class="viewcode-block" id="MetricUsage"><a class="viewcode-back" href="../../../metrics.html#ignite.metrics.metric.MetricUsage">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">MetricUsage</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base class for all usages of metrics.</span>
+
+<span class="sd">    A usage of metric defines the events when a metric starts to compute, updates and completes.</span>
+<span class="sd">    Valid events are from :class:`~ignite.engine.events.Events`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        started: event when the metric starts to compute. This event will be associated to</span>
+<span class="sd">            :meth:`~ignite.metrics.metric.Metric.started`.</span>
+<span class="sd">        completed: event when the metric completes. This event will be associated to</span>
+<span class="sd">            :meth:`~ignite.metrics.metric.Metric.completed`.</span>
+<span class="sd">        iteration_completed: event when the metric updates. This event will be associated to</span>
+<span class="sd">            :meth:`~ignite.metrics.metric.Metric.iteration_completed`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">usage_name</span><span class="p">:</span> <span class="nb">str</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">started</span><span class="p">:</span> <span class="n">Events</span><span class="p">,</span> <span class="n">completed</span><span class="p">:</span> <span class="n">Events</span><span class="p">,</span> <span class="n">iteration_completed</span><span class="p">:</span> <span class="n">CallableEventWithFilter</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__started</span> <span class="o">=</span> <span class="n">started</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__completed</span> <span class="o">=</span> <span class="n">completed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__iteration_completed</span> <span class="o">=</span> <span class="n">iteration_completed</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">STARTED</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Events</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__started</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">COMPLETED</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Events</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__completed</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">ITERATION_COMPLETED</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CallableEventWithFilter</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__iteration_completed</span></div>
+
+
+<div class="viewcode-block" id="EpochWise"><a class="viewcode-back" href="../../../metrics.html#ignite.metrics.metric.EpochWise">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">EpochWise</span><span class="p">(</span><span class="n">MetricUsage</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Epoch-wise usage of Metrics. It&#39;s the default and most common usage of metrics.</span>
+
+<span class="sd">    Metric&#39;s methods are triggered on the following engine events:</span>
+
+<span class="sd">    - :meth:`~ignite.metrics.metric.Metric.started` on every ``EPOCH_STARTED``</span>
+<span class="sd">      (See :class:`~ignite.engine.events.Events`).</span>
+<span class="sd">    - :meth:`~ignite.metrics.metric.Metric.iteration_completed` on every ``ITERATION_COMPLETED``.</span>
+<span class="sd">    - :meth:`~ignite.metrics.metric.Metric.completed` on every ``EPOCH_COMPLETED``.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        usage_name: usage name string</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">usage_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;epoch_wise&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">EpochWise</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">started</span><span class="o">=</span><span class="n">Events</span><span class="o">.</span><span class="n">EPOCH_STARTED</span><span class="p">,</span>
+            <span class="n">completed</span><span class="o">=</span><span class="n">Events</span><span class="o">.</span><span class="n">EPOCH_COMPLETED</span><span class="p">,</span>
+            <span class="n">iteration_completed</span><span class="o">=</span><span class="n">Events</span><span class="o">.</span><span class="n">ITERATION_COMPLETED</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="RunningEpochWise"><a class="viewcode-back" href="../../../metrics.html#ignite.metrics.metric.RunningEpochWise">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">RunningEpochWise</span><span class="p">(</span><span class="n">EpochWise</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Running epoch-wise usage of Metrics. It&#39;s the running version of the :class:`~.metrics.metric.EpochWise` metric</span>
+<span class="sd">    usage. A metric with such a usage most likely accompanies an :class:`~.metrics.metric.EpochWise` one to compute</span>
+<span class="sd">    a running measure of it e.g. running average.</span>
+
+<span class="sd">    Metric&#39;s methods are triggered on the following engine events:</span>
+
+<span class="sd">    - :meth:`~ignite.metrics.metric.Metric.started` on every ``STARTED``</span>
+<span class="sd">      (See :class:`~ignite.engine.events.Events`).</span>
+<span class="sd">    - :meth:`~ignite.metrics.metric.Metric.iteration_completed` on every ``EPOCH_COMPLETED``.</span>
+<span class="sd">    - :meth:`~ignite.metrics.metric.Metric.completed` on every ``EPOCH_COMPLETED``.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        usage_name: usage name string</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">usage_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;running_epoch_wise&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">EpochWise</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">started</span><span class="o">=</span><span class="n">Events</span><span class="o">.</span><span class="n">STARTED</span><span class="p">,</span>
+            <span class="n">completed</span><span class="o">=</span><span class="n">Events</span><span class="o">.</span><span class="n">EPOCH_COMPLETED</span><span class="p">,</span>
+            <span class="n">iteration_completed</span><span class="o">=</span><span class="n">Events</span><span class="o">.</span><span class="n">EPOCH_COMPLETED</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BatchWise"><a class="viewcode-back" href="../../../metrics.html#ignite.metrics.metric.BatchWise">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">BatchWise</span><span class="p">(</span><span class="n">MetricUsage</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Batch-wise usage of Metrics.</span>
+
+<span class="sd">    Metric&#39;s methods are triggered on the following engine events:</span>
+
+<span class="sd">    - :meth:`~ignite.metrics.metric.Metric.started` on every ``ITERATION_STARTED``</span>
+<span class="sd">      (See :class:`~ignite.engine.events.Events`).</span>
+<span class="sd">    - :meth:`~ignite.metrics.metric.Metric.iteration_completed` on every ``ITERATION_COMPLETED``.</span>
+<span class="sd">    - :meth:`~ignite.metrics.metric.Metric.completed` on every ``ITERATION_COMPLETED``.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        usage_name: usage name string</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">usage_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;batch_wise&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">BatchWise</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">started</span><span class="o">=</span><span class="n">Events</span><span class="o">.</span><span class="n">ITERATION_STARTED</span><span class="p">,</span>
+            <span class="n">completed</span><span class="o">=</span><span class="n">Events</span><span class="o">.</span><span class="n">ITERATION_COMPLETED</span><span class="p">,</span>
+            <span class="n">iteration_completed</span><span class="o">=</span><span class="n">Events</span><span class="o">.</span><span class="n">ITERATION_COMPLETED</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="RunningBatchWise"><a class="viewcode-back" href="../../../metrics.html#ignite.metrics.metric.RunningBatchWise">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">RunningBatchWise</span><span class="p">(</span><span class="n">BatchWise</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Running batch-wise usage of Metrics. It&#39;s the running version of the :class:`~.metrics.metric.EpochWise` metric</span>
+<span class="sd">    usage. A metric with such a usage could for example accompany a :class:`~.metrics.metric.BatchWise` one to compute</span>
+<span class="sd">    a running measure of it e.g. running average.</span>
+
+<span class="sd">    Metric&#39;s methods are triggered on the following engine events:</span>
+
+<span class="sd">    - :meth:`~ignite.metrics.metric.Metric.started` on every ``STARTED``</span>
+<span class="sd">      (See :class:`~ignite.engine.events.Events`).</span>
+<span class="sd">    - :meth:`~ignite.metrics.metric.Metric.iteration_completed` on every ``ITERATION_COMPLETED``.</span>
+<span class="sd">    - :meth:`~ignite.metrics.metric.Metric.completed` on every ``ITERATION_COMPLETED``.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        usage_name: usage name string</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">usage_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;running_batch_wise&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">BatchWise</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">started</span><span class="o">=</span><span class="n">Events</span><span class="o">.</span><span class="n">STARTED</span><span class="p">,</span>
+            <span class="n">completed</span><span class="o">=</span><span class="n">Events</span><span class="o">.</span><span class="n">ITERATION_COMPLETED</span><span class="p">,</span>
+            <span class="n">iteration_completed</span><span class="o">=</span><span class="n">Events</span><span class="o">.</span><span class="n">ITERATION_COMPLETED</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SingleEpochRunningBatchWise"><a class="viewcode-back" href="../../../metrics.html#ignite.metrics.metric.SingleEpochRunningBatchWise">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">SingleEpochRunningBatchWise</span><span class="p">(</span><span class="n">BatchWise</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Running batch-wise usage of Metrics in a single epoch. It&#39;s like :class:`~.metrics.metric.RunningBatchWise` metric</span>
+<span class="sd">    usage with the difference that is used during a single epoch.</span>
+
+<span class="sd">    Metric&#39;s methods are triggered on the following engine events:</span>
+
+<span class="sd">    - :meth:`~ignite.metrics.metric.Metric.started` on every ``EPOCH_STARTED``</span>
+<span class="sd">      (See :class:`~ignite.engine.events.Events`).</span>
+<span class="sd">    - :meth:`~ignite.metrics.metric.Metric.iteration_completed` on every ``ITERATION_COMPLETED``.</span>
+<span class="sd">    - :meth:`~ignite.metrics.metric.Metric.completed` on every ``ITERATION_COMPLETED``.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        usage_name: usage name string</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">usage_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;single_epoch_running_batch_wise&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">BatchWise</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">started</span><span class="o">=</span><span class="n">Events</span><span class="o">.</span><span class="n">EPOCH_STARTED</span><span class="p">,</span>
+            <span class="n">completed</span><span class="o">=</span><span class="n">Events</span><span class="o">.</span><span class="n">ITERATION_COMPLETED</span><span class="p">,</span>
+            <span class="n">iteration_completed</span><span class="o">=</span><span class="n">Events</span><span class="o">.</span><span class="n">ITERATION_COMPLETED</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BatchFiltered"><a class="viewcode-back" href="../../../metrics.html#ignite.metrics.metric.BatchFiltered">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">BatchFiltered</span><span class="p">(</span><span class="n">MetricUsage</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Batch filtered usage of Metrics. This usage is similar to epoch-wise but update event is filtered.</span>
+
+<span class="sd">    Metric&#39;s methods are triggered on the following engine events:</span>
+
+<span class="sd">    - :meth:`~ignite.metrics.metric.Metric.started` on every ``EPOCH_STARTED``</span>
+<span class="sd">      (See :class:`~ignite.engine.events.Events`).</span>
+<span class="sd">    - :meth:`~ignite.metrics.metric.Metric.iteration_completed` on filtered ``ITERATION_COMPLETED``.</span>
+<span class="sd">    - :meth:`~ignite.metrics.metric.Metric.completed` on every ``EPOCH_COMPLETED``.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        args: Positional arguments to setup :attr:`~ignite.engine.events.Events.ITERATION_COMPLETED`</span>
+<span class="sd">        kwargs: Keyword arguments to setup :attr:`~ignite.engine.events.Events.ITERATION_COMPLETED`</span>
+<span class="sd">            handled by :meth:`~ignite.metrics.metric.Metric.iteration_completed`.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">BatchFiltered</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">started</span><span class="o">=</span><span class="n">Events</span><span class="o">.</span><span class="n">EPOCH_STARTED</span><span class="p">,</span>
+            <span class="n">completed</span><span class="o">=</span><span class="n">Events</span><span class="o">.</span><span class="n">EPOCH_COMPLETED</span><span class="p">,</span>
+            <span class="n">iteration_completed</span><span class="o">=</span><span class="n">Events</span><span class="o">.</span><span class="n">ITERATION_COMPLETED</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Metric"><a class="viewcode-back" href="../../../generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric">[docs]</a><span class="k">class</span><span class="w"> </span><span class="nc">Metric</span><span class="p">(</span><span class="n">Serializable</span><span class="p">,</span> <span class="n">metaclass</span><span class="o">=</span><span class="n">ABCMeta</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base class for all Metrics.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        output_transform: a callable that is used to transform the</span>
+<span class="sd">            :class:`~ignite.engine.engine.Engine`&#39;s ``process_function``&#39;s output into the</span>
+<span class="sd">            form expected by the metric. This can be useful if, for example, you have a multi-output model and</span>
+<span class="sd">            you want to compute the metric with respect to one of the outputs.</span>
+<span class="sd">            By default, metrics require the output as ``(y_pred, y)`` or ``{&#39;y_pred&#39;: y_pred, &#39;y&#39;: y}``.</span>
+<span class="sd">        device: specifies which device updates are accumulated on. Setting the</span>
+<span class="sd">            metric&#39;s device to be the same as your ``update`` arguments ensures the ``update`` method is</span>
+<span class="sd">            non-blocking. By default, CPU.</span>
+<span class="sd">        skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be</span>
+<span class="sd">            true for multi-output model, for example, if ``y_pred`` contains multi-ouput as ``(y_pred_a, y_pred_b)``</span>
+<span class="sd">            Alternatively, ``output_transform`` can be used to handle this.</span>
+<span class="sd">        metrics_result_mode: specifies how to put the computed metrics results into</span>
+<span class="sd">            ``engine.state.metrics`` dictionary. Valid values are: &quot;flatten&quot;, &quot;named&quot;, &quot;both&quot;.</span>
+<span class="sd">            - &quot;flatten&quot;: if the computed result is a mapping, its keys/values are put directly into the engine state metrics dictionary</span>
+<span class="sd">            - &quot;named&quot;: if the computed result is a mapping, the whole mapping is put into the engine state metrics dictionary under the metric name</span>
+<span class="sd">            - &quot;both&quot;: combination of &quot;flatten&quot; and &quot;named&quot;.</span>
+
+
+<span class="sd">            Examples:</span>
+<span class="sd">                The following example shows a custom loss metric that expects input from a multi-output model.</span>
+
+<span class="sd">                .. code-block:: python</span>
+
+<span class="sd">                    import torch</span>
+<span class="sd">                    import torch.nn as nn</span>
+<span class="sd">                    import torch.nn.functional as F</span>
+
+<span class="sd">                    from ignite.engine import create_supervised_evaluator</span>
+<span class="sd">                    from ignite.metrics import Loss</span>
+
+<span class="sd">                    class MyLoss(nn.Module):</span>
+<span class="sd">                        def __init__(self, ca: float = 1.0, cb: float = 1.0) -&gt; None:</span>
+<span class="sd">                            super().__init__()</span>
+<span class="sd">                            self.ca = ca</span>
+<span class="sd">                            self.cb = cb</span>
+
+<span class="sd">                        def forward(self,</span>
+<span class="sd">                                    y_pred: Tuple[torch.Tensor, torch.Tensor],</span>
+<span class="sd">                                    y_true: Tuple[torch.Tensor, torch.Tensor]) -&gt; torch.Tensor:</span>
+<span class="sd">                            a_true, b_true = y_true</span>
+<span class="sd">                            a_pred, b_pred = y_pred</span>
+<span class="sd">                            return self.ca * F.mse_loss(a_pred, a_true) + self.cb * F.cross_entropy(b_pred, b_true)</span>
+
+
+<span class="sd">                    def prepare_batch(batch, device, non_blocking):</span>
+<span class="sd">                        return torch.rand(4, 1), (torch.rand(4, 1), torch.rand(4, 2))</span>
+
+
+<span class="sd">                    class MyModel(nn.Module):</span>
+
+<span class="sd">                        def forward(self, x):</span>
+<span class="sd">                            return torch.rand(4, 1), torch.rand(4, 2)</span>
+
+
+<span class="sd">                    model = MyModel()</span>
+
+<span class="sd">                    device = &quot;cpu&quot;</span>
+<span class="sd">                    loss = MyLoss(0.5, 1.0)</span>
+<span class="sd">                    metrics = {</span>
+<span class="sd">                        &quot;Loss&quot;: Loss(loss, skip_unrolling=True)</span>
+<span class="sd">                    }</span>
+<span class="sd">                    train_evaluator = create_supervised_evaluator(model, metrics, device, prepare_batch=prepare_batch)</span>
+
+
+<span class="sd">                    data = range(10)</span>
+<span class="sd">                    train_evaluator.run(data)</span>
+<span class="sd">                    train_evaluator.state.metrics[&quot;Loss&quot;]</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        required_output_keys: dictionary defines required keys to be found in ``engine.state.output`` if the</span>
+<span class="sd">            latter is a dictionary. By default, ``(&quot;y_pred&quot;, &quot;y&quot;)``. This is useful with custom metrics that can require</span>
+<span class="sd">            other arguments than predictions ``y_pred`` and targets ``y``. See an example below.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        Let&#39;s implement a custom metric that requires ``y_pred``, ``y`` and ``x`` as input for ``update`` function.</span>
+<span class="sd">        In the example below we show how to setup standard metric like Accuracy and the custom metric using by an</span>
+<span class="sd">        ``evaluator`` created with :meth:`~ignite.engine.create_supervised_evaluator` method.</span>
+
+<span class="sd">        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.</span>
+
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            # https://discuss.pytorch.org/t/how-access-inputs-in-custom-ignite-metric/91221/5</span>
+
+<span class="sd">            import torch</span>
+<span class="sd">            import torch.nn as nn</span>
+
+<span class="sd">            from ignite.metrics import Metric, Accuracy</span>
+<span class="sd">            from ignite.engine import create_supervised_evaluator</span>
+
+<span class="sd">            class CustomMetric(Metric):</span>
+
+<span class="sd">                required_output_keys = (&quot;y_pred&quot;, &quot;y&quot;, &quot;x&quot;)</span>
+
+<span class="sd">                def __init__(self, *args, **kwargs):</span>
+<span class="sd">                    super().__init__(*args, **kwargs)</span>
+
+<span class="sd">                def update(self, output):</span>
+<span class="sd">                    y_pred, y, x = output</span>
+<span class="sd">                    # ...</span>
+
+<span class="sd">                def reset(self):</span>
+<span class="sd">                    # ...</span>
+<span class="sd">                    pass</span>
+
+<span class="sd">                def compute(self):</span>
+<span class="sd">                    # ...</span>
+<span class="sd">                    pass</span>
+
+<span class="sd">            model = ...</span>
+
+<span class="sd">            metrics = {</span>
+<span class="sd">                &quot;Accuracy&quot;: Accuracy(),</span>
+<span class="sd">                &quot;CustomMetric&quot;: CustomMetric()</span>
+<span class="sd">            }</span>
+
+<span class="sd">            evaluator = create_supervised_evaluator(</span>
+<span class="sd">                model,</span>
+<span class="sd">                metrics=metrics,</span>
+<span class="sd">                output_transform=lambda x, y, y_pred: {&quot;x&quot;: x, &quot;y&quot;: y, &quot;y_pred&quot;: y_pred}</span>
+<span class="sd">            )</span>
+
+<span class="sd">            res = evaluator.run(data)</span>
+
+<span class="sd">    .. versionchanged:: 0.4.2</span>
+<span class="sd">        ``required_output_keys`` became public attribute.</span>
+
+<span class="sd">    .. versionchanged:: 0.5.1</span>
+<span class="sd">        ``skip_unrolling`` argument is added.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># public class attribute</span>
+    <span class="n">required_output_keys</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tuple</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;y_pred&quot;</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">)</span>
+    <span class="c1"># for backward compatibility</span>
+    <span class="n">_required_output_keys</span> <span class="o">=</span> <span class="n">required_output_keys</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">output_transform</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span>
+        <span class="n">device</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">),</span>
+        <span class="n">skip_unrolling</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">metrics_result_mode</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;flatten&quot;</span><span class="p">,</span> <span class="s2">&quot;named&quot;</span><span class="p">,</span> <span class="s2">&quot;both&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;both&quot;</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">callable</span><span class="p">(</span><span class="n">output_transform</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Argument output_transform should be callable, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">output_transform</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_output_transform</span> <span class="o">=</span> <span class="n">output_transform</span>
+
+        <span class="c1"># Some metrics have a large performance regression when run on XLA devices, so for now, we disallow it.</span>
+        <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;xla&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Cannot create metric on an XLA device. Use device=&#39;cpu&#39; instead.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># pyrefly: ignore [read-only]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_skip_unrolling</span> <span class="o">=</span> <span class="n">skip_unrolling</span>
+
+        <span class="n">valid_modes</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;flatten&quot;</span><span class="p">,</span> <span class="s2">&quot;named&quot;</span><span class="p">,</span> <span class="s2">&quot;both&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">metrics_result_mode</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="n">metrics_result_mode</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">valid_modes</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Argument metrics_result_mode should be one of </span><span class="si">{</span><span class="n">valid_modes</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">metrics_result_mode</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_metrics_result_mode</span> <span class="o">=</span> <span class="n">metrics_result_mode</span>
+
+        <span class="c1"># MPS framework doesn&#39;t support float64, should use float32</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_double_dtype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">float64</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;mps&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_double_dtype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">float32</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Metric.reset"><a class="viewcode-back" href="../../../generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.reset">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Resets the metric to its initial state.</span>
+
+<span class="sd">        By default, this is called at the start of each epoch.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="Metric.update"><a class="viewcode-back" href="../../../generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.update">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Updates the metric&#39;s state using the passed batch output.</span>
+
+<span class="sd">        By default, this is called once for each batch.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            output: the is the output from the engine&#39;s process function.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="Metric.compute"><a class="viewcode-back" href="../../../generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.compute">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the metric based on its accumulated state.</span>
+
+<span class="sd">        By default, this is called at the end of each epoch.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Any: | the actual quantity of interest. However, if a :class:`~collections.abc.Mapping` is returned,</span>
+<span class="sd">                 it will be (shallow) flattened into `engine.state.metrics` when</span>
+<span class="sd">                 :func:`~ignite.metrics.metric.Metric.completed` is called.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            NotComputableError: raised when the metric cannot be computed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="Metric.started"><a class="viewcode-back" href="../../../generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.started">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">started</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">:</span> <span class="n">Engine</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Helper method to start data gathering for metric&#39;s computation. It is automatically attached to the</span>
+<span class="sd">        `engine` with :meth:`~ignite.metrics.metric.Metric.attach`.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            engine: the engine to which the metric must be attached</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Metric.iteration_completed"><a class="viewcode-back" href="../../../generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.iteration_completed">[docs]</a>    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">iteration_completed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">:</span> <span class="n">Engine</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Helper method to update metric&#39;s computation. It is automatically attached to the</span>
+<span class="sd">        `engine` with :meth:`~ignite.metrics.metric.Metric.attach`.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            engine: the engine to which the metric must be attached</span>
+
+<span class="sd">        Note:</span>
+<span class="sd">            ``engine.state.output`` is used to compute metric values.</span>
+<span class="sd">            The majority of implemented metrics accept the following formats for ``engine.state.output``:</span>
+<span class="sd">            ``(y_pred, y)`` or ``{&#39;y_pred&#39;: y_pred, &#39;y&#39;: y}``. ``y_pred`` and ``y`` can be torch tensors or</span>
+<span class="sd">            list of tensors/numbers if applicable.</span>
+
+<span class="sd">        .. versionchanged:: 0.4.5</span>
+<span class="sd">            ``y_pred`` and ``y`` can be torch tensors or list of tensors/numbers</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_output_transform</span><span class="p">(</span><span class="n">engine</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">output</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">required_output_keys</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Transformed engine output for </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> metric should be a tuple/list, &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;but given </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">output</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">([</span><span class="n">k</span> <span class="ow">in</span> <span class="n">output</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">required_output_keys</span><span class="p">]):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;When transformed engine&#39;s output is a mapping, &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;it should contain </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">required_output_keys</span><span class="si">}</span><span class="s2"> keys, but given </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">output</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">output</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">required_output_keys</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_skip_unrolling</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="nb">all</span><span class="p">([</span><span class="n">_is_list_of_tensors_or_numbers</span><span class="p">(</span><span class="n">o</span><span class="p">)</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">output</span><span class="p">])</span>
+        <span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">output</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">output</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">output</span><span class="p">[</span><span class="mi">1</span><span class="p">])):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Output should have 2 items of the same length, &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">output</span><span class="p">)</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">output</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">output</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+            <span class="k">for</span> <span class="n">o1</span><span class="p">,</span> <span class="n">o2</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">output</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">output</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+                <span class="c1"># o1 and o2 are list of tensors or numbers</span>
+                <span class="n">tensor_o1</span> <span class="o">=</span> <span class="n">_to_batched_tensor</span><span class="p">(</span><span class="n">o1</span><span class="p">)</span>
+                <span class="n">tensor_o2</span> <span class="o">=</span> <span class="n">_to_batched_tensor</span><span class="p">(</span><span class="n">o2</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">tensor_o1</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">((</span><span class="n">tensor_o1</span><span class="p">,</span> <span class="n">tensor_o2</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">output</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Metric.completed"><a class="viewcode-back" href="../../../generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.completed">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">completed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">:</span> <span class="n">Engine</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Helper method to compute metric&#39;s value and put into the engine. It is automatically attached to the</span>
+<span class="sd">        `engine` with :meth:`~ignite.metrics.metric.Metric.attach`. If metrics&#39; value is torch tensor, it is</span>
+<span class="sd">        explicitly sent to CPU device.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            engine: the engine to which the metric must be attached</span>
+<span class="sd">            name: the name of the metric used as key in dict `engine.state.metrics`</span>
+
+<span class="sd">        .. versionchanged:: 0.4.3</span>
+<span class="sd">            Added dict in metrics results.</span>
+
+<span class="sd">        .. versionchanged:: 0.4.5</span>
+<span class="sd">            metric&#39;s value is put on CPU if torch tensor.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">):</span>
+            <span class="c1"># Only raise conflict when we will set the mapping under `name`.</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metrics_result_mode</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;named&quot;</span><span class="p">,</span> <span class="s2">&quot;both&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Argument name &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39; is conflicting with mapping keys: </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metrics_result_mode</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;flatten&quot;</span><span class="p">,</span> <span class="s2">&quot;both&quot;</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="n">engine</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metrics_result_mode</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;named&quot;</span><span class="p">,</span> <span class="s2">&quot;both&quot;</span><span class="p">):</span>
+                <span class="n">engine</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">size</span><span class="p">())</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+                <span class="k">elif</span> <span class="s2">&quot;cpu&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">type</span><span class="p">:</span>
+                    <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+
+            <span class="n">engine</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span></div>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_check_usage</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">usage</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">MetricUsage</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">MetricUsage</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">usage</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">usages</span> <span class="o">=</span> <span class="p">[</span><span class="n">EpochWise</span><span class="p">,</span> <span class="n">RunningEpochWise</span><span class="p">,</span> <span class="n">BatchWise</span><span class="p">,</span> <span class="n">RunningBatchWise</span><span class="p">,</span> <span class="n">SingleEpochRunningBatchWise</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">usage_cls</span> <span class="ow">in</span> <span class="n">usages</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">usage</span> <span class="o">==</span> <span class="n">usage_cls</span><span class="o">.</span><span class="n">usage_name</span><span class="p">:</span>
+                    <span class="n">usage</span> <span class="o">=</span> <span class="n">usage_cls</span><span class="p">()</span>
+                    <span class="k">break</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">usage</span><span class="p">,</span> <span class="n">MetricUsage</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;Argument usage should be &#39;(Running)EpochWise.usage_name&#39; or &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;&#39;((SingleEpoch)Running)BatchWise.usage_name&#39;, got </span><span class="si">{</span><span class="n">usage</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">usage</span><span class="p">,</span> <span class="n">MetricUsage</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unhandled usage type </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">usage</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">usage</span>
+
+<div class="viewcode-block" id="Metric.attach"><a class="viewcode-back" href="../../../generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.attach">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">attach</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">:</span> <span class="n">Engine</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">usage</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">MetricUsage</span><span class="p">]</span> <span class="o">=</span> <span class="n">EpochWise</span><span class="p">())</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Attaches current metric to provided engine. On the end of engine&#39;s run, `engine.state.metrics` dictionary will</span>
+<span class="sd">        contain computed metric&#39;s value under provided name.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            engine: the engine to which the metric must be attached</span>
+<span class="sd">            name: the name of the metric to attach</span>
+<span class="sd">            usage: the usage of the metric. Valid string values should be</span>
+<span class="sd">                :attr:`ignite.metrics.metric.EpochWise.usage_name` (default) or</span>
+<span class="sd">                :attr:`ignite.metrics.metric.BatchWise.usage_name`.</span>
+
+<span class="sd">        Examples:</span>
+
+<span class="sd">            .. code-block:: python</span>
+
+<span class="sd">                metric = ...</span>
+<span class="sd">                metric.attach(engine, &quot;mymetric&quot;)</span>
+
+<span class="sd">                assert &quot;mymetric&quot; in engine.run(data).metrics</span>
+
+<span class="sd">                assert metric.is_attached(engine)</span>
+
+<span class="sd">            Example with usage:</span>
+
+<span class="sd">            .. code-block:: python</span>
+
+<span class="sd">                metric = ...</span>
+<span class="sd">                metric.attach(engine, &quot;mymetric&quot;, usage=BatchWise.usage_name)</span>
+
+<span class="sd">                assert &quot;mymetric&quot; in engine.run(data).metrics</span>
+
+<span class="sd">                assert metric.is_attached(engine, usage=BatchWise.usage_name)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">usage</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_check_usage</span><span class="p">(</span><span class="n">usage</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">engine</span><span class="o">.</span><span class="n">has_event_handler</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">started</span><span class="p">,</span> <span class="n">usage</span><span class="o">.</span><span class="n">STARTED</span><span class="p">):</span>
+            <span class="n">engine</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="n">usage</span><span class="o">.</span><span class="n">STARTED</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">started</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">engine</span><span class="o">.</span><span class="n">has_event_handler</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">iteration_completed</span><span class="p">,</span> <span class="n">usage</span><span class="o">.</span><span class="n">ITERATION_COMPLETED</span><span class="p">):</span>
+            <span class="n">engine</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="n">usage</span><span class="o">.</span><span class="n">ITERATION_COMPLETED</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">iteration_completed</span><span class="p">)</span>
+        <span class="n">engine</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="n">usage</span><span class="o">.</span><span class="n">COMPLETED</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">completed</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Metric.detach"><a class="viewcode-back" href="../../../generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.detach">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">detach</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">:</span> <span class="n">Engine</span><span class="p">,</span> <span class="n">usage</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">MetricUsage</span><span class="p">]</span> <span class="o">=</span> <span class="n">EpochWise</span><span class="p">())</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Detaches current metric from the engine and no metric&#39;s computation is done during the run.</span>
+<span class="sd">        This method in conjunction with :meth:`~ignite.metrics.metric.Metric.attach` can be useful if several</span>
+<span class="sd">        metrics need to be computed with different periods. For example, one metric is computed every training epoch</span>
+<span class="sd">        and another metric (e.g. more expensive one) is done every n-th training epoch.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            engine: the engine from which the metric must be detached</span>
+<span class="sd">            usage: the usage of the metric. Valid string values should be</span>
+<span class="sd">                &#39;epoch_wise&#39; (default) or &#39;batch_wise&#39;.</span>
+
+<span class="sd">        Examples:</span>
+<span class="sd">            .. code-block:: python</span>
+
+<span class="sd">                metric = ...</span>
+<span class="sd">                engine = ...</span>
+<span class="sd">                metric.detach(engine)</span>
+
+<span class="sd">                assert &quot;mymetric&quot; not in engine.run(data).metrics</span>
+
+<span class="sd">                assert not metric.is_attached(engine)</span>
+
+<span class="sd">            Example with usage:</span>
+
+<span class="sd">            .. code-block:: python</span>
+
+<span class="sd">                metric = ...</span>
+<span class="sd">                engine = ...</span>
+<span class="sd">                metric.detach(engine, usage=&quot;batch_wise&quot;)</span>
+
+<span class="sd">                assert &quot;mymetric&quot; not in engine.run(data).metrics</span>
+
+<span class="sd">                assert not metric.is_attached(engine, usage=&quot;batch_wise&quot;)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">usage</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_check_usage</span><span class="p">(</span><span class="n">usage</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">engine</span><span class="o">.</span><span class="n">has_event_handler</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">completed</span><span class="p">,</span> <span class="n">usage</span><span class="o">.</span><span class="n">COMPLETED</span><span class="p">):</span>
+            <span class="n">engine</span><span class="o">.</span><span class="n">remove_event_handler</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">completed</span><span class="p">,</span> <span class="n">usage</span><span class="o">.</span><span class="n">COMPLETED</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">engine</span><span class="o">.</span><span class="n">has_event_handler</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">started</span><span class="p">,</span> <span class="n">usage</span><span class="o">.</span><span class="n">STARTED</span><span class="p">):</span>
+            <span class="n">engine</span><span class="o">.</span><span class="n">remove_event_handler</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">started</span><span class="p">,</span> <span class="n">usage</span><span class="o">.</span><span class="n">STARTED</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">engine</span><span class="o">.</span><span class="n">has_event_handler</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">iteration_completed</span><span class="p">,</span> <span class="n">usage</span><span class="o">.</span><span class="n">ITERATION_COMPLETED</span><span class="p">):</span>
+            <span class="n">engine</span><span class="o">.</span><span class="n">remove_event_handler</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">iteration_completed</span><span class="p">,</span> <span class="n">usage</span><span class="o">.</span><span class="n">ITERATION_COMPLETED</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Metric.is_attached"><a class="viewcode-back" href="../../../generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.is_attached">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">is_attached</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">:</span> <span class="n">Engine</span><span class="p">,</span> <span class="n">usage</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">MetricUsage</span><span class="p">]</span> <span class="o">=</span> <span class="n">EpochWise</span><span class="p">())</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Checks if current metric is attached to provided engine. If attached, metric&#39;s computed</span>
+<span class="sd">        value is written to `engine.state.metrics` dictionary.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            engine: the engine checked from which the metric should be attached</span>
+<span class="sd">            usage: the usage of the metric. Valid string values should be</span>
+<span class="sd">                &#39;epoch_wise&#39; (default) or &#39;batch_wise&#39;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">usage</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_check_usage</span><span class="p">(</span><span class="n">usage</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">engine</span><span class="o">.</span><span class="n">has_event_handler</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">completed</span><span class="p">,</span> <span class="n">usage</span><span class="o">.</span><span class="n">COMPLETED</span><span class="p">)</span></div>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_state_dict_per_rank</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">OrderedDict</span><span class="p">:</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">func</span><span class="p">(</span>
+            <span class="n">x</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Metric</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
+        <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="n">OrderedDict</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">Metric</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">x</span><span class="o">.</span><span class="n">_state_dict_per_rank</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)):</span>
+                <span class="k">return</span> <span class="n">x</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                    <span class="s2">&quot;Found attribute of unsupported type. Currently, supported types include&quot;</span>
+                    <span class="s2">&quot; numeric types, tensor, Metric or sequence/mapping of metrics.&quot;</span>
+                <span class="p">)</span>
+
+        <span class="n">state</span><span class="p">:</span> <span class="n">OrderedDict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="kc">None</span><span class="p">]]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">attr_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state_dict_all_req_keys</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">attr_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Found a value in _state_dict_all_req_keys that is not among metric attributes: </span><span class="si">{</span><span class="n">attr_name</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+            <span class="n">attr</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr_name</span><span class="p">)</span>
+            <span class="n">state</span><span class="p">[</span><span class="n">attr_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">_tree_map</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>  <span class="c1"># type: ignore[assignment]</span>
+
+        <span class="k">return</span> <span class="n">state</span>
+
+    <span class="n">__state_dict_key_per_rank</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;__metric_state_per_rank&quot;</span>
+
+<div class="viewcode-block" id="Metric.state_dict"><a class="viewcode-back" href="../../../generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.state_dict">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">state_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">OrderedDict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Method returns state dict with attributes of the metric specified in its</span>
+<span class="sd">        `_state_dict_all_req_keys` attribute. Can be used to save internal state of the class.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state_dict_per_rank</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">idist</span><span class="o">.</span><span class="n">get_world_size</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">OrderedDict</span><span class="p">([(</span><span class="n">Metric</span><span class="o">.</span><span class="n">__state_dict_key_per_rank</span><span class="p">,</span> <span class="n">idist</span><span class="o">.</span><span class="n">all_gather</span><span class="p">(</span><span class="n">state</span><span class="p">))])</span>
+        <span class="k">return</span> <span class="n">OrderedDict</span><span class="p">([(</span><span class="n">Metric</span><span class="o">.</span><span class="n">__state_dict_key_per_rank</span><span class="p">,</span> <span class="p">[</span><span class="n">state</span><span class="p">])])</span></div>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_load_state_dict_per_rank</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_dict</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">state_dict</span><span class="p">)</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">func</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">Metric</span><span class="p">):</span>
+                <span class="n">x</span><span class="o">.</span><span class="n">_load_state_dict_per_rank</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">_CollectionItem</span><span class="p">):</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">value</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">y</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">_CollectionItem</span><span class="o">.</span><span class="n">types_as_collection_item</span><span class="p">):</span>
+                    <span class="n">x</span><span class="o">.</span><span class="n">load_value</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">Metric</span><span class="p">):</span>
+                    <span class="n">value</span><span class="o">.</span><span class="n">_load_state_dict_per_rank</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported type for provided state_dict data: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">y</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">attr_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state_dict_all_req_keys</span><span class="p">:</span>
+            <span class="n">attr</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr_name</span><span class="p">)</span>
+            <span class="n">attr</span> <span class="o">=</span> <span class="n">_CollectionItem</span><span class="o">.</span><span class="n">wrap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">,</span> <span class="n">attr_name</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
+            <span class="n">_tree_apply2</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">state_dict</span><span class="p">[</span><span class="n">attr_name</span><span class="p">])</span>
+
+<div class="viewcode-block" id="Metric.load_state_dict"><a class="viewcode-back" href="../../../generated/ignite.metrics.metric.Metric.html#ignite.metrics.metric.Metric.load_state_dict">[docs]</a>    <span class="k">def</span><span class="w"> </span><span class="nf">load_state_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_dict</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Method replaces internal state of the class with provided state dict data.</span>
+
+<span class="sd">        If there&#39;s an active distributed configuration, the process uses its rank to pick the proper value from</span>
+<span class="sd">        the list of values saved under each attribute&#39;s name in the dict.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            state_dict: a dict containing attributes of the metric specified in its `_state_dict_all_req_keys`</span>
+<span class="sd">                attribute.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">state_dict</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Argument state_dict should be a dictionary, but given </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">state_dict</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">state_dict</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">Metric</span><span class="o">.</span><span class="n">__state_dict_key_per_rank</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Incorrect state_dict object. Argument state_dict should be a dictionary &quot;</span>
+                <span class="s2">&quot;provided by Metric.state_dict(). &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Expected single key: </span><span class="si">{</span><span class="n">Metric</span><span class="o">.</span><span class="n">__state_dict_key_per_rank</span><span class="si">}</span><span class="s2">, but given </span><span class="si">{</span><span class="n">state_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">list_state_dicts_per_rank</span> <span class="o">=</span> <span class="n">state_dict</span><span class="p">[</span><span class="n">Metric</span><span class="o">.</span><span class="n">__state_dict_key_per_rank</span><span class="p">]</span>
+        <span class="n">rank</span> <span class="o">=</span> <span class="n">idist</span><span class="o">.</span><span class="n">get_rank</span><span class="p">()</span>
+        <span class="n">world_size</span> <span class="o">=</span> <span class="n">idist</span><span class="o">.</span><span class="n">get_world_size</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">list_state_dicts_per_rank</span><span class="p">)</span> <span class="o">!=</span> <span class="n">world_size</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Incorrect state_dict object. Argument state_dict should be a dictionary &quot;</span>
+                <span class="s2">&quot;provided by Metric.state_dict(). &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Expected a list of state_dicts of size equal world_size: </span><span class="si">{</span><span class="n">world_size</span><span class="si">}</span><span class="s2">, &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;but got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">list_state_dicts_per_rank</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">state_dict</span> <span class="o">=</span> <span class="n">list_state_dicts_per_rank</span><span class="p">[</span><span class="n">rank</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_load_state_dict_per_rank</span><span class="p">(</span><span class="n">state_dict</span><span class="p">)</span></div>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__add__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MetricsLambda&quot;</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">ignite.metrics.metrics_lambda</span><span class="w"> </span><span class="kn">import</span> <span class="n">MetricsLambda</span>
+
+        <span class="k">return</span> <span class="n">MetricsLambda</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span> <span class="o">+</span> <span class="n">y</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__radd__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MetricsLambda&quot;</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">ignite.metrics.metrics_lambda</span><span class="w"> </span><span class="kn">import</span> <span class="n">MetricsLambda</span>
+
+        <span class="k">return</span> <span class="n">MetricsLambda</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span> <span class="o">+</span> <span class="n">y</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__sub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MetricsLambda&quot;</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">ignite.metrics.metrics_lambda</span><span class="w"> </span><span class="kn">import</span> <span class="n">MetricsLambda</span>
+
+        <span class="k">return</span> <span class="n">MetricsLambda</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span> <span class="o">-</span> <span class="n">y</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__rsub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MetricsLambda&quot;</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">ignite.metrics.metrics_lambda</span><span class="w"> </span><span class="kn">import</span> <span class="n">MetricsLambda</span>
+
+        <span class="k">return</span> <span class="n">MetricsLambda</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span> <span class="o">-</span> <span class="n">y</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__mul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MetricsLambda&quot;</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">ignite.metrics.metrics_lambda</span><span class="w"> </span><span class="kn">import</span> <span class="n">MetricsLambda</span>
+
+        <span class="k">return</span> <span class="n">MetricsLambda</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span> <span class="o">*</span> <span class="n">y</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__rmul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MetricsLambda&quot;</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">ignite.metrics.metrics_lambda</span><span class="w"> </span><span class="kn">import</span> <span class="n">MetricsLambda</span>
+
+        <span class="k">return</span> <span class="n">MetricsLambda</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span> <span class="o">*</span> <span class="n">y</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__pow__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MetricsLambda&quot;</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">ignite.metrics.metrics_lambda</span><span class="w"> </span><span class="kn">import</span> <span class="n">MetricsLambda</span>
+
+        <span class="k">return</span> <span class="n">MetricsLambda</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span><span class="o">**</span><span class="n">y</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__rpow__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MetricsLambda&quot;</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">ignite.metrics.metrics_lambda</span><span class="w"> </span><span class="kn">import</span> <span class="n">MetricsLambda</span>
+
+        <span class="k">return</span> <span class="n">MetricsLambda</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span><span class="o">**</span><span class="n">y</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__mod__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MetricsLambda&quot;</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">ignite.metrics.metrics_lambda</span><span class="w"> </span><span class="kn">import</span> <span class="n">MetricsLambda</span>
+
+        <span class="k">return</span> <span class="n">MetricsLambda</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span> <span class="o">%</span> <span class="n">y</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__truediv__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MetricsLambda&quot;</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">ignite.metrics.metrics_lambda</span><span class="w"> </span><span class="kn">import</span> <span class="n">MetricsLambda</span>
+
+        <span class="k">return</span> <span class="n">MetricsLambda</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="fm">__truediv__</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__rtruediv__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MetricsLambda&quot;</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">ignite.metrics.metrics_lambda</span><span class="w"> </span><span class="kn">import</span> <span class="n">MetricsLambda</span>
+
+        <span class="k">return</span> <span class="n">MetricsLambda</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="fm">__truediv__</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="n">other</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__floordiv__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MetricsLambda&quot;</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">ignite.metrics.metrics_lambda</span><span class="w"> </span><span class="kn">import</span> <span class="n">MetricsLambda</span>
+
+        <span class="k">return</span> <span class="n">MetricsLambda</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span> <span class="o">//</span> <span class="n">y</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">ignite.metrics.metrics_lambda</span><span class="w"> </span><span class="kn">import</span> <span class="n">MetricsLambda</span>
+
+        <span class="k">if</span> <span class="n">attr</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;__&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">attr</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;__&quot;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">fn</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">Metric</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">attr</span><span class="p">)(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">wrapper</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MetricsLambda&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">MetricsLambda</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">wrapper</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MetricsLambda&quot;</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">ignite.metrics.metrics_lambda</span><span class="w"> </span><span class="kn">import</span> <span class="n">MetricsLambda</span>
+
+        <span class="k">return</span> <span class="n">MetricsLambda</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="n">index</span><span class="p">],</span> <span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__getstate__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__setstate__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">d</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="sync_all_reduce"><a class="viewcode-back" href="../../../metrics.html#ignite.metrics.metric.sync_all_reduce">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">sync_all_reduce</span><span class="p">(</span><span class="o">*</span><span class="n">attrs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Helper decorator for distributed configuration to collect instance attribute value</span>
+<span class="sd">    across all participating processes and apply the specified reduction operation.</span>
+
+<span class="sd">    See :doc:`metrics` on how to use it.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        attrs: attribute names of decorated class</span>
+
+<span class="sd">    .. versionchanged:: 0.4.5</span>
+<span class="sd">        - Ability to handle different reduction operations (SUM, MAX, MIN, PRODUCT).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">wrapper</span><span class="p">(</span><span class="n">func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
+        <span class="nd">@wraps</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">another_wrapper</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">Metric</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Metric</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                    <span class="s2">&quot;Decorator sync_all_reduce should be used on ignite.metric.Metric class methods only&quot;</span>
+                <span class="p">)</span>
+            <span class="n">ws</span> <span class="o">=</span> <span class="n">idist</span><span class="o">.</span><span class="n">get_world_size</span><span class="p">()</span>
+            <span class="n">unreduced_attrs</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">attrs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">ws</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">attrs</span><span class="p">:</span>
+                    <span class="n">op_kwargs</span> <span class="o">=</span> <span class="p">{}</span>
+                    <span class="k">if</span> <span class="s2">&quot;:&quot;</span> <span class="ow">in</span> <span class="n">attr</span><span class="p">:</span>
+                        <span class="n">attr</span><span class="p">,</span> <span class="n">op</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)</span>
+                        <span class="n">valid_ops</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;MIN&quot;</span><span class="p">,</span> <span class="s2">&quot;MAX&quot;</span><span class="p">,</span> <span class="s2">&quot;SUM&quot;</span><span class="p">,</span> <span class="s2">&quot;PRODUCT&quot;</span><span class="p">]</span>
+                        <span class="k">if</span> <span class="n">op</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">valid_ops</span><span class="p">:</span>
+                            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Reduction operation is not valid (expected : </span><span class="si">{</span><span class="n">valid_ops</span><span class="si">}</span><span class="s2">, got: </span><span class="si">{</span><span class="n">op</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                        <span class="n">op_kwargs</span><span class="p">[</span><span class="s2">&quot;op&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">op</span>
+                    <span class="k">if</span> <span class="n">attr</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Metric </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="si">}</span><span class="s2"> has no attribute named `</span><span class="si">{</span><span class="n">attr</span><span class="si">}</span><span class="s2">`.&quot;</span><span class="p">)</span>
+                    <span class="n">t</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="p">(</span><span class="n">Number</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)):</span>
+                        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                            <span class="s2">&quot;Attribute provided to sync_all_reduce should be a &quot;</span>
+                            <span class="sa">f</span><span class="s2">&quot;number or tensor but `</span><span class="si">{</span><span class="n">attr</span><span class="si">}</span><span class="s2">` has type </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">t</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+                        <span class="p">)</span>
+                    <span class="n">unreduced_attrs</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span> <span class="o">=</span> <span class="n">t</span>
+                    <span class="c1"># Here `clone` is necessary since `idist.all_reduce` modifies `t` inplace in the case</span>
+                    <span class="c1"># `t` is a tensor and its `device` is same as that of the process.</span>
+                    <span class="c1"># TODO: Remove this dual behavior of `all_reduce` to always either return a new tensor or</span>
+                    <span class="c1">#       modify it in-place.</span>
+                    <span class="n">t_reduced</span> <span class="o">=</span> <span class="n">idist</span><span class="o">.</span><span class="n">all_reduce</span><span class="p">(</span><span class="n">cast</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">Number</span><span class="p">)</span> <span class="k">else</span> <span class="n">t</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span> <span class="o">**</span><span class="n">op_kwargs</span><span class="p">)</span>
+                    <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">t_reduced</span><span class="p">)</span>
+
+            <span class="n">result</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">attr</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">unreduced_attrs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">result</span>
+
+        <span class="k">return</span> <span class="n">another_wrapper</span>
+
+    <span class="nb">setattr</span><span class="p">(</span><span class="n">wrapper</span><span class="p">,</span> <span class="s2">&quot;_decorated&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">wrapper</span></div>
+
+
+<div class="viewcode-block" id="reinit__is_reduced"><a class="viewcode-back" href="../../../metrics.html#ignite.metrics.metric.reinit__is_reduced">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">reinit__is_reduced</span><span class="p">(</span><span class="n">func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Helper decorator for distributed configuration.</span>
+
+<span class="sd">    See :doc:`metrics` on how to use it.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        func: A callable to reinit.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@wraps</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">wrapper</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">Metric</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">func</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">&quot;_result&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_result</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># type: ignore[attr-defined]</span>
+
+    <span class="nb">setattr</span><span class="p">(</span><span class="n">wrapper</span><span class="p">,</span> <span class="s2">&quot;_decorated&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">wrapper</span></div>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_is_list_of_tensors_or_numbers</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">float</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">([</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Number</span><span class="p">))</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">x</span><span class="p">])</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_to_batched_tensor</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Number</span><span class="p">],</span> <span class="n">device</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">x</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">x</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+</pre></div>
+
+             </article>
+             
+            </div>
+            <footer>
+  
+
+  
+
+    <hr>
+
+  
+
+  <div role="contentinfo">
+    <table>
+      <tr>
+        <td>
+            <p>
+                &copy; Copyright 2026, PyTorch-Ignite Contributors.
+              Last updated on 03/01/2026, 6:42:20 PM.
+            </p>
+            
+              <div>
+                Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+              </div>
+          
+        </td>
+        <td>
+            
+              <div>
+                <a href="https://www.netlify.com" target="_blank" rel="noopener noreferrer">
+                  <img
+                  src="_static/img/netlify-light.svg"
+                  alt="Deploys by Netlify"
+                  width=114
+                  height=51 />
+                </a>
+              </div>
+            
+        </td>
+      </tr>
+    </table>
+  </div> 
+
+</footer>
+          </div>
+        </div>
+
+        <div class="pytorch-content-right" id="pytorch-content-right">
+          <div class="pytorch-right-menu" id="pytorch-right-menu">
+            <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
+              
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+  
+
+     
+       <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+         <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+         <script src="../../../_static/jquery.js"></script>
+         <script src="../../../_static/underscore.js"></script>
+         <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+         <script src="../../../_static/doctools.js"></script>
+         <script src="../../../_static/sphinx_highlight.js"></script>
+         <script src="../../../_static/clipboard.min.js"></script>
+         <script src="../../../_static/copybutton.js"></script>
+         <script>let toggleHintShow = 'Show default setup';</script>
+         <script>let toggleHintHide = 'Hide default setup';</script>
+         <script>let toggleOpenOnPrint = 'true';</script>
+         <script src="../../../_static/togglebutton.js"></script>
+         <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+         <script src="../../../_static/design-tabs.js"></script>
+     
+
+  
+
+  <script type="text/javascript" src="../../../_static/js/vendor/popper.min.js"></script>
+  <script type="text/javascript" src="../../../_static/js/vendor/bootstrap.min.js"></script>
+  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+  <!-- Begin Footer -->
+
+  <!-- commented out for Ignite -->
+
+  <div class="container-fluid docs-tutorials-resources" id="docs-tutorials-resources">
+    <!-- <div class="container">
+      <div class="row">
+        <div class="text-center col-md-4">
+          <h2>Docs</h2>
+          <p>Access comprehensive developer documentation for PyTorch</p>
+          <a class="with-right-arrow" href="https://pytorch.org/ignite/index.html">View Docs</a>
+        </div>
+
+        <div class="text-center col-md-4">
+          <h2>Tutorials</h2>
+          <p>Get in-depth tutorials for beginners and advanced developers</p>
+          <a class="with-right-arrow" href="">View Tutorials</a>
+        </div>
+
+        <div class="text-center col-md-4">
+          <h2>Resources</h2>
+          <p>Find development resources and get your questions answered</p>
+          <a class="with-right-arrow" href="">View Resources</a>
+        </div>
+      </div>
+    </div> -->
+  </div>
+
+  <!-- <footer class="site-footer">
+    <div class="container footer-container">
+      <div class="footer-logo-wrapper">
+        <a href="https://pytorch-ignite.ai" class="footer-logo"></a>
+      </div>
+
+      <div class="footer-links-wrapper">
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title"><a href="https://pytorch-ignite.ai">PyTorch</a></li>
+            <li><a href="">Get Started</a></li>
+            <li><a href="">Features</a></li>
+            <li><a href="">Ecosystem</a></li>
+            <li><a href="">Blog</a></li>
+            <li><a href="">Resources</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title"><a href="">Support</a></li>
+            <li><a href="">Tutorials</a></li>
+            <li><a href="https://pytorch.org/ignite/index.html">Docs</a></li>
+            <li><a href="" target="_blank">Discuss</a></li>
+            <li><a href="https://github.com/pytorch/ignite/issues" target="_blank">Github Issues</a></li>
+            <li><a href="" target="_blank">Slack</a></li>
+            <li><a href="https://github.com/pytorch/ignite/blob/master/CONTRIBUTING.md" target="_blank">Contributing</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links-col follow-us-col">
+          <ul>
+            <li class="list-title">Follow Us</li>
+            <li>
+              <div id="mc_embed_signup">
+                <form
+                  action="https://twitter.us14.list-manage.com/subscribe/post?u=75419c71fe0a935e53dfa4a3f&id=91d0dccd39"
+                  method="post"
+                  id="mc-embedded-subscribe-form"
+                  name="mc-embedded-subscribe-form"
+                  class="email-subscribe-form validate"
+                  target="_blank"
+                  novalidate>
+                  <div id="mc_embed_signup_scroll" class="email-subscribe-form-fields-wrapper">
+                    <div class="mc-field-group">
+                      <label for="mce-EMAIL" style="display:none;">Email Address</label>
+                      <input type="email" value="" name="EMAIL" class="required email" id="mce-EMAIL" placeholder="Email Address">
+                    </div>
+
+                    <div id="mce-responses" class="clear">
+                      <div class="response" id="mce-error-response" style="display:none"></div>
+                      <div class="response" id="mce-success-response" style="display:none"></div>
+                    </div>    <!~~ real people should not fill this in and expect good things - do not remove this or risk form bot signups ~~>
+
+                    <div style="position: absolute; left: -5000px;" aria-hidden="true"><input type="text" name="b_75419c71fe0a935e53dfa4a3f_91d0dccd39" tabindex="-1" value=""></div>
+
+                    <div class="clear">
+                      <input type="submit" value="" name="subscribe" id="mc-embedded-subscribe" class="button email-subscribe-button">
+                    </div>
+                  </div>
+                </form>
+              </div>
+
+            </li>
+          </ul>
+
+          <div class="footer-social-icons">
+            <a href="" target="_blank" class="facebook"></a>
+            <a href="" target="_blank" class="twitter"></a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer> -->
+
+
+  <!-- end of commented out for Ignite -->
+
+  <!-- <div class="cookie-banner-wrapper">
+  <div class="container">
+    <p class="gdpr-notice">To analyze traffic and optimize your experience, we serve cookies on this site. By clicking or navigating, you agree to allow our usage of cookies. As the current maintainers of this site, Facebook’s Cookies Policy applies. Learn more, including about available controls: <a href="https://www.facebook.com/policies/cookies/">Cookies Policy</a>.</p>
+    <img class="close-button" src="../../../_static/images/pytorch-x.svg">
+  </div>
+</div> -->
+
+  <!-- End Footer -->
+
+  <!-- Begin Mobile Menu -->
+  <!--
+  <div class="mobile-main-menu">
+    <div class="container-fluid">
+      <div class="container">
+        <div class="mobile-main-menu-header-container">
+          <a class="header-logo" href="https://pytorch-ignite.ai" aria-label="PyTorch"></a>
+          <a class="main-menu-close-button" href="#" data-behavior="close-mobile-menu"></a>
+        </div>
+      </div>
+    </div>
+
+    <div class="mobile-main-menu-links-container">
+      <div class="main-menu">
+        <ul>
+          <li>
+            <a href="#">Get Started</a>
+          </li>
+
+          <li>
+            <a href="#">Features</a>
+          </li>
+
+          <li>
+            <a href="#">Ecosystem</a>
+          </li>
+
+          <li>
+            <a href="">Blog</a>
+          </li>
+
+          <li>
+            <a href="">Tutorials</a>
+          </li>
+
+          <li>
+            <a href="https://pytorch.org/ignite/index.html">Docs</a>
+          </li>
+
+          <li>
+            <a href="">Resources</a>
+          </li>
+
+          <li>
+            <a href="https://github.com/pytorch/ignite">Github</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  -->
+  <!-- End Mobile Menu -->
+
+  <script type="text/javascript" src="../../../_static/js/vendor/anchor.min.js"></script>
+
+  <script type="text/javascript">
+    var collapsedSections = []
+    $(document).ready(function() {
+      mobileMenu.bind();
+      mobileTOC.bind();
+      pytorchAnchors.bind();
+      sideMenus.bind();
+      scrollToAnchor.bind();
+      highlightNavigation.bind();
+
+      // Add class to links that have code blocks, since we cannot create links in code blocks
+      $("article.pytorch-article a span.pre").each(function(e) {
+        $(this).closest("a").addClass("has-code");
+      });
+    })
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@docsearch/js@3"></script>
+  <script type="text/javascript">
+  let VERSION
+  if ('master (e56f4f9f)'.startsWith('v')) {
+    VERSION = 'master (e56f4f9f)'
+  } else {
+    VERSION = 'master'
+  }
+  docsearch({
+    container: '#docsearch',
+    appId: '7EWYE1JCT3',
+    apiKey: '841e93e60c16975ba1bd8c7c716eed82',
+    indexName: 'pytorch-ignite',
+    placeholder: 'Search PyTorch-Ignite docs',
+    searchParameters: {
+      facetFilters: [`version:${VERSION}`, 'tags:API-reference'],
+    }
+  });
+  </script>
+</body>
+</html>
