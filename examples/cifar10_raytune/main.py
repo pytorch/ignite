@@ -78,7 +78,7 @@ def tune_cifar(num_samples=10, num_epochs=10, gpus_per_trial=0, cpus_per_trial=2
         "l1": tune.choice([2**i for i in range(2, 9)]),
         "l2": tune.choice([2**i for i in range(2, 9)]),
         "lr": tune.loguniform(1e-4, 1e-1),
-        "batch_size": tune.choice([2, 4, 8, 16]),
+        "batch_size": tune.choice([256, 512, 1024]),
         "device": "cuda" if gpus_per_trial > 0 else "cpu",
     }
 
@@ -147,8 +147,8 @@ def main():
     parser = argparse.ArgumentParser(description="Ignite + Ray Tune CIFAR10 Example")
     parser.add_argument("--num_samples", type=int, default=10, help="Number of trials for Ray Tune")
     parser.add_argument("--num_epochs", type=int, default=10, help="Number of epochs per trial")
-    parser.add_argument("--gpus_per_trial", type=float, default=0, help="GPUs per trial")
-    parser.add_argument("--cpus_per_trial", type=int, default=2, help="CPUs per trial")
+    parser.add_argument("--gpus_per_trial", type=float, default=1, help="GPUs per trial")
+    parser.add_argument("--cpus_per_trial", type=int, default=4, help="CPUs per trial")
     parser.add_argument(
         "--data_dir",
         type=str,
