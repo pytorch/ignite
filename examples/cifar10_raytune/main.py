@@ -38,8 +38,6 @@ def train_with_ignite(config, data_dir=None, num_epochs=10, num_workers=8):
     checkpoint_handler = Checkpoint(to_save, save_handler=save_handler, filename_pattern="checkpoint.pt")
     trainer.add_event_handler(Events.EPOCH_COMPLETED, checkpoint_handler)
 
-    checkpoint_path = Path(checkpoint_dir) / "checkpoint.pt"
-
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_and_report(engine):
         epoch = engine.state.epoch
@@ -69,7 +67,7 @@ def test_accuracy(model, device, data_dir):
     return evaluator.state.metrics["accuracy"]
 
 
-def tune_cifar(num_samples=10, num_epochs=10, gpus_per_trial=0, cpus_per_trial=2, data_dir="./data"):
+def tune_cifar(num_samples=10, num_epochs=10, gpus_per_trial=1, cpus_per_trial=4, data_dir="./data"):
     data_dir = Path(data_dir).resolve()
 
     config = {
