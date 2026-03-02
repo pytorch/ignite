@@ -1,5 +1,5 @@
 import argparse
-import os
+from pathlib import Path
 
 import torch
 import torch.nn as nn
@@ -17,7 +17,7 @@ from ignite.handlers import Checkpoint, DiskSaver
 from utils import Net, get_data_loaders, get_test_loader, load_data
 
 
-def train_with_ignite(config, data_dir=None, checkpoint_dir=None, num_epochs=10, num_workers=8):
+def train_with_ignite(config, data_dir=None, num_epochs=10, num_workers=8):
     device = config.get("device", "cpu")
     net = Net(config["l1"], config["l2"])
     net = net.to(device)
@@ -38,9 +38,7 @@ def train_with_ignite(config, data_dir=None, checkpoint_dir=None, num_epochs=10,
     checkpoint_handler = Checkpoint(to_save, save_handler=save_handler, filename_pattern="checkpoint.pt")
     trainer.add_event_handler(Events.EPOCH_COMPLETED, checkpoint_handler)
 
-    if checkpoint_dir and os.path.exists(os.path.join(checkpoint_dir, "checkpoint.pt")):
-        load_handler = Checkpoint(to_save, save_handler=DiskSaver(checkpoint_dir, create_dir=False))
-        load_handler.load_objects(checkpoint=os.path.join(checkpoint_dir, "checkpoint.pt"))
+    checkpoint_path = Path(checkpoint_dir) / "checkpoint.pt"
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_and_report(engine):
@@ -72,7 +70,7 @@ def test_accuracy(model, device, data_dir):
 
 
 def tune_cifar(num_samples=10, num_epochs=10, gpus_per_trial=0, cpus_per_trial=2, data_dir="./data"):
-    data_dir = os.path.abspath(data_dir)
+    data_dir = Path(data_dir).resolve()
 
     config = {
         "l1": tune.choice([2**i for i in range(2, 9)]),
@@ -133,7 +131,7 @@ def tune_cifar(num_samples=10, num_epochs=10, gpus_per_trial=0, cpus_per_trial=2
 
     best_checkpoint = best_result.checkpoint
     with best_checkpoint.as_directory() as checkpoint_dir:
-        checkpoint_path = os.path.join(checkpoint_dir, "checkpoint.pt")
+        checkpoint_path = Path(checkpoint_dir) / "checkpoint.pt"
         best_checkpoint_data = torch.load(checkpoint_path, map_location=device)
         best_trained_model.load_state_dict(best_checkpoint_data["net"])
 

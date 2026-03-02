@@ -5,7 +5,7 @@ This example demonstrates how to use **Ray Tune** for hyperparameter tuning with
 In this example, we show how to use _Ignite_ to train a neural network with:
 
 - hyperparameter search using Ray Tune,
-- ASHA scheduler for early stopping
+- ASHA scheduler for early stopping, see also: https://docs.ray.io/en/latest/tune/api/doc/ray.tune.schedulers.ASHAScheduler.html
 
 ## Requirements
 
@@ -100,4 +100,6 @@ Best trial final validation accuracy: 0.6184
 Best trial test set accuracy: 0.6154
 ```
 
-We see that most trials stop earlier than the number of maximum epochs (= 10, here).
+We see that most trials stop earlier than the number of maximum epochs (= 10, here). This is because the ASHAScheduler performs early stopping: 
+after each reported epoch, it compares trial performance and prunes the worst-performing ones. So `num_epochs = 10` is the upper limit
+here, most trials stop earlier. 
