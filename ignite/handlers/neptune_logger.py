@@ -2,7 +2,8 @@
 
 import tempfile
 import warnings
-from typing import Any, Callable, List, Mapping, Optional, Union
+from collections.abc import Callable, Mapping
+from typing import Any
 
 import torch
 from torch.optim import Optimizer
@@ -171,7 +172,7 @@ class NeptuneLogger(BaseLogger):
     def __setitem__(self, key: str, val: Any) -> Any:
         self.experiment[key] = val
 
-    def __init__(self, api_token: Optional[str] = None, project: Optional[str] = None, **kwargs: Any) -> None:
+    def __init__(self, api_token: str | None = None, project: str | None = None, **kwargs: Any) -> None:
         try:
             import neptune
         except ImportError:
@@ -319,14 +320,14 @@ class OutputHandler(BaseOutputHandler):
     def __init__(
         self,
         tag: str,
-        metric_names: Optional[Union[str, List[str]]] = None,
-        output_transform: Optional[Callable] = None,
-        global_step_transform: Optional[Callable[[Engine, Union[str, Events]], int]] = None,
-        state_attributes: Optional[List[str]] = None,
+        metric_names: str | list[str] | None = None,
+        output_transform: Callable | None = None,
+        global_step_transform: Callable[[Engine, str | Events], int] | None = None,
+        state_attributes: list[str] | None = None,
     ):
         super().__init__(tag, metric_names, output_transform, global_step_transform, state_attributes)
 
-    def __call__(self, engine: Engine, logger: NeptuneLogger, event_name: Union[str, Events]) -> None:
+    def __call__(self, engine: Engine, logger: NeptuneLogger, event_name: str | Events) -> None:
         if not isinstance(logger, NeptuneLogger):
             raise TypeError("Handler OutputHandler works only with NeptuneLogger")
 
@@ -383,10 +384,10 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
             )
     """
 
-    def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None):
+    def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: str | None = None):
         super().__init__(optimizer, param_name, tag)
 
-    def __call__(self, engine: Engine, logger: NeptuneLogger, event_name: Union[str, Events]) -> None:
+    def __call__(self, engine: Engine, logger: NeptuneLogger, event_name: str | Events) -> None:
         if not isinstance(logger, NeptuneLogger):
             raise TypeError("Handler OptimizerParamsHandler works only with NeptuneLogger")
 
@@ -489,7 +490,7 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
         optional argument `whitelist` added.
     """
 
-    def __call__(self, engine: Engine, logger: NeptuneLogger, event_name: Union[str, Events]) -> None:
+    def __call__(self, engine: Engine, logger: NeptuneLogger, event_name: str | Events) -> None:
         if not isinstance(logger, NeptuneLogger):
             raise TypeError("Handler WeightsScalarHandler works only with NeptuneLogger")
 
@@ -593,7 +594,7 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
         optional argument `whitelist` added.
     """
 
-    def __call__(self, engine: Engine, logger: NeptuneLogger, event_name: Union[str, Events]) -> None:
+    def __call__(self, engine: Engine, logger: NeptuneLogger, event_name: str | Events) -> None:
         if not isinstance(logger, NeptuneLogger):
             raise TypeError("Handler GradsScalarHandler works only with NeptuneLogger")
 
@@ -671,7 +672,7 @@ class NeptuneSaver(BaseSaveHandler):
         self._logger = neptune_logger
 
     @idist.one_rank_only()
-    def __call__(self, checkpoint: Mapping, filename: str, metadata: Optional[Mapping] = None) -> None:
+    def __call__(self, checkpoint: Mapping, filename: str, metadata: Mapping | None = None) -> None:
         # wont work on XLA
 
         # Imports for BC compatibility
