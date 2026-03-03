@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Any, Callable, cast, Mapping, Literal, Optional
+from typing import Any, Callable, cast, Mapping, Literal
 import warnings
 
 from ignite.base import Serializable, ResettableHandler
@@ -14,31 +14,34 @@ class EarlyStopping(Serializable, ResettableHandler):
 
     Args:
         patience: Number of events to wait if no improvement and then stop the training.
-        score_function: It should be a function taking a single argument, an :class:`~ignite.engine.engine.Engine`
-            object, and return a score `float`. An improvement is considered if the score is higher (for ``mode='max'``)
+        score_function: It should be a function taking a single argument, an
+            :class:`~ignite.engine.engine.Engine` object, and return a score ``float``.
+            An improvement is considered if the score is higher (for ``mode='max'``)
             or lower (for ``mode='min'``).
         trainer: Trainer engine to stop the run if no improvement.
-        threshold: A minimum change in the score to qualify as an improvement. For ``mode='max'``, it's a minimum
-            increase; for ``mode='min'``, it's a minimum decrease. Default is 0.0.
-        threshold_mode: Determines whether `threshold` is an absolute change or a relative change.
+        threshold: A minimum change in the score to qualify as an improvement.
+            For ``mode='max'``, it is a minimum increase; for ``mode='min'``, it is a
+            minimum decrease. An improvement is only considered if the change
+            exceeds the threshold determined by ``threshold`` and ``threshold_mode``.
+        cumulative: If True, ``threshold`` defines the change since the last
+            ``patience`` reset, otherwise it defines the change after the last
+            event. Default value is False.
+        threshold_mode: Determines whether ``threshold`` is an absolute change
+            or a relative change.
 
-            - In 'abs' mode:
-                - For ``mode='max'``: improvement if score > best_score + threshold
-                - For ``mode='min'``: improvement if score < best_score - threshold
+            - In ``'abs'`` mode:
 
-            - In 'rel' mode:
-                - For ``mode='max'``: improvement if score > best_score * (1 + threshold)
-                - For ``mode='min'``: improvement if score < best_score * (1 - threshold)
+              - For ``mode='max'``: improvement if ``score > best_score + threshold``
+              - For ``mode='min'``: improvement if ``score < best_score - threshold``
 
-            Possible values are "abs" and "rel". Default value is "abs".
-        cumulative: If True, `threshold` defines the change since the last `patience` reset, otherwise,
-            it defines the change after the last event. Default value is False.
-        mode: Whether to maximize ('max') or minimize ('min') the score. Default is 'max'.
+            - In ``'rel'`` mode:
 
-        # Deprecated args for backward compatibility (will be removed in future)
-        min_delta: *Deprecated: use `threshold` instead*
-        min_delta_mode: *Deprecated: use `threshold_mode` instead*
-        cumulative_delta: *Deprecated: use `cumulative` instead*
+              - For ``mode='max'``: improvement if ``score > best_score * (1 + threshold)``
+              - For ``mode='min'``: improvement if ``score < best_score * (1 - threshold)``
+
+            Possible values are ``"abs"`` and ``"rel"``. Default value is ``"abs"``.
+        mode: Whether to maximize (``'max'``) or minimize (``'min'``) the score.
+            Default is ``'max'``.
 
     Examples:
         .. code-block:: python
@@ -47,16 +50,21 @@ class EarlyStopping(Serializable, ResettableHandler):
             from ignite.handlers import EarlyStopping
 
             def score_function(engine):
-                val_loss = engine.state.metrics['nll']
+                val_loss = engine.state.metrics["nll"]
                 return -val_loss
 
-            handler = EarlyStopping(patience=10, score_function=score_function, trainer=trainer)
-            # Note: the handler is attached to an *Evaluator* (runs one epoch on validation dataset).
+            handler = EarlyStopping(
+                patience=10,
+                score_function=score_function,
+                trainer=trainer,
+            )
+
+            # Note: the handler is attached to an *Evaluator*
             evaluator.add_event_handler(Events.COMPLETED, handler)
 
     .. versionchanged:: 0.6.0
-        Added `mode` parameter to support minimization in addition to maximization.
-        Added `threshold`/`threshold_mode` parameters to support both absolute and relative improvements.
+        Added ``mode`` parameter to support minimization in addition to maximization.
+        Added ``threshold_mode`` parameter to support both absolute and relative improvements.
     """
 
     _state_dict_all_req_keys = (
@@ -74,9 +82,9 @@ class EarlyStopping(Serializable, ResettableHandler):
         cumulative: bool = False,
         mode: Literal["min", "max"] = "max",
         # Deprecated args for BC
-        min_delta: Optional[float] = None,
-        min_delta_mode: Optional[Literal["abs", "rel"]] = None,
-        cumulative_delta: Optional[bool] = None,
+        min_delta: float | None = None,
+        min_delta_mode: Literal["abs", "rel"] | None = None,
+        cumulative_delta: bool | None = None,
     ):
         if not callable(score_function):
             raise TypeError("Argument score_function should be a function.")
@@ -90,7 +98,7 @@ class EarlyStopping(Serializable, ResettableHandler):
         # Backward compatibility for deprecated args
         if min_delta is not None:
             warnings.warn(
-                "'min_delta' is deprecated and will be removed in a future version. " "Please use 'threshold' instead.",
+                "'min_delta' is deprecated and will be removed in a future version. Please use 'threshold' instead.",
                 DeprecationWarning,
                 stacklevel=2,
             )
@@ -144,11 +152,11 @@ class EarlyStopping(Serializable, ResettableHandler):
             self.best_score = score
             return
 
-        min_delta = -self.threshold if self.mode == "min" else self.threshold
+        delta = -self.threshold if self.mode == "min" else self.threshold
         if self.threshold_mode == "abs":
-            improvement_threshold = self.best_score + min_delta
+            improvement_threshold = self.best_score + delta
         else:
-            improvement_threshold = self.best_score * (1 + min_delta)
+            improvement_threshold = self.best_score * (1 + delta)
 
         no_improvement = score <= improvement_threshold if self.mode == "max" else score >= improvement_threshold
 
