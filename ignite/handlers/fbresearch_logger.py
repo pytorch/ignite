@@ -1,7 +1,8 @@
 """FBResearch logger and its helper handlers."""
 
 import datetime
-from typing import Any, Callable, List, Optional
+from collections.abc import Callable
+from typing import Any
 
 import torch
 
@@ -102,9 +103,9 @@ class FBResearchLogger:
         engine: Engine,
         name: str,
         every: int = 1,
-        output_transform: Optional[Callable] = None,
-        state_attributes: Optional[List[str]] = None,
-        optimizer: Optional[torch.optim.Optimizer] = None,
+        output_transform: Callable | None = None,
+        state_attributes: list[str] | None = None,
+        optimizer: torch.optim.Optimizer | None = None,
     ) -> None:
         """Attaches all the logging handlers to the given engine.
 
@@ -141,7 +142,7 @@ class FBResearchLogger:
             step=Events.GET_BATCH_COMPLETED,
         )
 
-    def log_every(self, engine: Engine, optimizer: Optional[torch.optim.Optimizer] = None) -> None:
+    def log_every(self, engine: Engine, optimizer: torch.optim.Optimizer | None = None) -> None:
         """
         Logs the training progress at regular intervals.
 

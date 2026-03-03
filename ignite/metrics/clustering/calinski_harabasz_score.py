@@ -1,4 +1,5 @@
-from typing import Any, Callable, Union
+from collections.abc import Callable
+from typing import Any
 
 import torch
 from torch import Tensor
@@ -86,7 +87,7 @@ class CalinskiHarabaszScore(_ClusteringMetricBase):
 
         .. testoutput::
 
-            5.733935832977295
+            5.73393...
 
     .. versionadded:: 0.5.2
     """
@@ -95,7 +96,7 @@ class CalinskiHarabaszScore(_ClusteringMetricBase):
         self,
         output_transform: Callable[..., Any] = lambda x: x,
         check_compute_fn: bool = True,
-        device: Union[str, torch.device] = torch.device("cpu"),
+        device: str | torch.device = torch.device("cpu"),
         skip_unrolling: bool = False,
     ) -> None:
         try:

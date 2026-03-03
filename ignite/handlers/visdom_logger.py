@@ -1,7 +1,9 @@
 """Visdom logger and its helper handlers."""
 
 import os
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
+from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
+from typing import Any
 
 import torch
 import torch.nn as nn
@@ -96,7 +98,7 @@ class VisdomLogger(BaseLogger):
                 event_name=Events.EPOCH_COMPLETED,
                 tag="validation",
                 metric_names=["nll", "accuracy"],
-                global_step_transform=global_step_from_engine(trainer)),
+                global_step_transform=global_step_from_engine(trainer),
             )
 
             # Attach the logger to the trainer to log optimizer's parameters, e.g. learning rate at each iteration
@@ -154,8 +156,8 @@ class VisdomLogger(BaseLogger):
 
     def __init__(
         self,
-        server: Optional[str] = None,
-        port: Optional[int] = None,
+        server: str | None = None,
+        port: int | None = None,
         num_workers: int = 1,
         raise_exceptions: bool = True,
         **kwargs: Any,
@@ -168,19 +170,6 @@ class VisdomLogger(BaseLogger):
                 "Please install it with command:\n"
                 "pip install git+https://github.com/fossasia/visdom.git"
             )
-
-        if num_workers > 0 or TYPE_CHECKING:
-            # If visdom is installed, one of its dependencies `tornado`
-            # requires also `futures` to be installed.
-            # Let's check anyway if we can import it.
-            try:
-                from concurrent.futures import ThreadPoolExecutor
-            except ImportError:
-                raise ModuleNotFoundError(
-                    "This contrib module requires concurrent.futures module"
-                    "Please install it with command:\n"
-                    "pip install futures"
-                )
 
         if server is None:
             server = os.environ.get("VISDOM_SERVER_URL", "localhost")
@@ -201,7 +190,7 @@ class VisdomLogger(BaseLogger):
         if not self.vis.offline and not self.vis.check_connection():  # type: ignore[attr-defined]
             raise RuntimeError(f"Failed to connect to Visdom server at {server}. Did you run python -m visdom.server ?")
 
-        self.executor: Union[_DummyExecutor, "ThreadPoolExecutor"] = _DummyExecutor()
+        self.executor: _DummyExecutor | ThreadPoolExecutor = _DummyExecutor()
         if num_workers > 0:
             self.executor = ThreadPoolExecutor(max_workers=num_workers)
 
@@ -221,11 +210,11 @@ class VisdomLogger(BaseLogger):
 
 class _BaseVisDrawer:
     def __init__(self, show_legend: bool = False):
-        self.windows: Dict[str, Any] = {}
+        self.windows: dict[str, Any] = {}
         self.show_legend = show_legend
 
     def add_scalar(
-        self, logger: VisdomLogger, k: str, v: Union[str, float, torch.Tensor], event_name: Any, global_step: int
+        self, logger: VisdomLogger, k: str, v: str | float | torch.Tensor, event_name: Any, global_step: int
     ) -> None:
         """
         Helper method to log a scalar with VisdomLogger.
@@ -365,16 +354,16 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
     def __init__(
         self,
         tag: str,
-        metric_names: Optional[Union[List[str], str]] = None,
-        output_transform: Optional[Callable] = None,
-        global_step_transform: Optional[Callable[[Engine, Union[str, Events]], int]] = None,
+        metric_names: list[str] | str | None = None,
+        output_transform: Callable | None = None,
+        global_step_transform: Callable[[Engine, str | Events], int] | None = None,
         show_legend: bool = False,
-        state_attributes: Optional[List[str]] = None,
+        state_attributes: list[str] | None = None,
     ):
         super().__init__(tag, metric_names, output_transform, global_step_transform, state_attributes)
         _BaseVisDrawer.__init__(self, show_legend=show_legend)
 
-    def __call__(self, engine: Engine, logger: VisdomLogger, event_name: Union[str, Events]) -> None:
+    def __call__(self, engine: Engine, logger: VisdomLogger, event_name: str | Events) -> None:
         if not isinstance(logger, VisdomLogger):
             raise RuntimeError("Handler 'OutputHandler' works only with VisdomLogger")
 
@@ -425,13 +414,11 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler, _BaseVisDrawer):
             )
     """
 
-    def __init__(
-        self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None, show_legend: bool = False
-    ):
+    def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: str | None = None, show_legend: bool = False):
         super().__init__(optimizer, param_name, tag)
         _BaseVisDrawer.__init__(self, show_legend=show_legend)
 
-    def __call__(self, engine: Engine, logger: VisdomLogger, event_name: Union[str, Events]) -> None:
+    def __call__(self, engine: Engine, logger: VisdomLogger, event_name: str | Events) -> None:
         if not isinstance(logger, VisdomLogger):
             raise RuntimeError("Handler OptimizerParamsHandler works only with VisdomLogger")
 
@@ -476,12 +463,12 @@ class WeightsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
     """
 
     def __init__(
-        self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None, show_legend: bool = False
+        self, model: nn.Module, reduction: Callable = torch.norm, tag: str | None = None, show_legend: bool = False
     ):
         super().__init__(model, reduction, tag=tag)
         _BaseVisDrawer.__init__(self, show_legend=show_legend)
 
-    def __call__(self, engine: Engine, logger: VisdomLogger, event_name: Union[str, Events]) -> None:
+    def __call__(self, engine: Engine, logger: VisdomLogger, event_name: str | Events) -> None:
         if not isinstance(logger, VisdomLogger):
             raise RuntimeError("Handler 'WeightsScalarHandler' works only with VisdomLogger")
 
@@ -524,12 +511,12 @@ class GradsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
     """
 
     def __init__(
-        self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None, show_legend: bool = False
+        self, model: nn.Module, reduction: Callable = torch.norm, tag: str | None = None, show_legend: bool = False
     ):
         super().__init__(model, reduction, tag)
         _BaseVisDrawer.__init__(self, show_legend=show_legend)
 
-    def __call__(self, engine: Engine, logger: VisdomLogger, event_name: Union[str, Events]) -> None:
+    def __call__(self, engine: Engine, logger: VisdomLogger, event_name: str | Events) -> None:
         if not isinstance(logger, VisdomLogger):
             raise RuntimeError("Handler 'GradsScalarHandler' works only with VisdomLogger")
 

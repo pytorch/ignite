@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 """TQDM logger."""
 from collections import OrderedDict
-from typing import Any, Callable, List, Optional, Union
+from collections.abc import Callable
+from typing import Any
 
 from ignite.engine import Engine, Events
 from ignite.engine.events import CallableEventWithFilter, RemovableEventHandle
@@ -106,7 +107,7 @@ class ProgressBar(BaseLogger):
 
     """
 
-    _events_order: List[Union[Events, CallableEventWithFilter]] = [
+    _events_order: list[Events | CallableEventWithFilter] = [
         Events.STARTED,
         Events.EPOCH_STARTED,
         Events.ITERATION_STARTED,
@@ -118,9 +119,9 @@ class ProgressBar(BaseLogger):
     def __init__(
         self,
         persist: bool = False,
-        bar_format: Union[
-            str, None
-        ] = "{desc}[{n_fmt}/{total_fmt}] {percentage:3.0f}%|{bar}{postfix} [{elapsed}<{remaining}]",
+        bar_format: (
+            str | None
+        ) = "{desc}[{n_fmt}/{total_fmt}] {percentage:3.0f}%|{bar}{postfix} [{elapsed}<{remaining}]",
         **tqdm_kwargs: Any,
     ):
         try:
@@ -137,7 +138,7 @@ class ProgressBar(BaseLogger):
         self.bar_format = bar_format
         self.tqdm_kwargs = tqdm_kwargs
 
-    def _reset(self, pbar_total: Optional[int]) -> None:
+    def _reset(self, pbar_total: int | None) -> None:
         self.pbar = self.pbar_cls(
             total=pbar_total, leave=self.persist, bar_format=self.bar_format, initial=1, **self.tqdm_kwargs
         )
@@ -153,9 +154,7 @@ class ProgressBar(BaseLogger):
         self.pbar = None
 
     @staticmethod
-    def _compare_lt(
-        event1: Union[Events, CallableEventWithFilter], event2: Union[Events, CallableEventWithFilter]
-    ) -> bool:
+    def _compare_lt(event1: Events | CallableEventWithFilter, event2: Events | CallableEventWithFilter) -> bool:
         i1 = ProgressBar._events_order.index(event1)
         i2 = ProgressBar._events_order.index(event2)
         return i1 < i2
@@ -174,11 +173,11 @@ class ProgressBar(BaseLogger):
     def attach(  # type: ignore[override]
         self,
         engine: Engine,
-        metric_names: Optional[Union[str, List[str]]] = None,
-        output_transform: Optional[Callable] = None,
-        event_name: Union[Events, CallableEventWithFilter] = Events.ITERATION_COMPLETED,
-        closing_event_name: Union[Events, CallableEventWithFilter] = Events.EPOCH_COMPLETED,
-        state_attributes: Optional[List[str]] = None,
+        metric_names: str | list[str] | None = None,
+        output_transform: Callable | None = None,
+        event_name: Events | CallableEventWithFilter = Events.ITERATION_COMPLETED,
+        closing_event_name: Events | CallableEventWithFilter = Events.EPOCH_COMPLETED,
+        state_attributes: list[str] | None = None,
     ) -> None:
         """
         Attaches the progress bar to an engine object.
@@ -226,7 +225,7 @@ class ProgressBar(BaseLogger):
     def attach_opt_params_handler(
         self,
         engine: Engine,
-        event_name: Union[str, Events],
+        event_name: str | Events,
         *args: Any,
         **kwargs: Any,
         # pyrefly: ignore [bad-return]
@@ -264,10 +263,10 @@ class _OutputHandler(BaseOutputHandler):
     def __init__(
         self,
         description: str,
-        metric_names: Optional[Union[str, List[str]]] = None,
-        output_transform: Optional[Callable] = None,
-        closing_event_name: Union[Events, CallableEventWithFilter] = Events.EPOCH_COMPLETED,
-        state_attributes: Optional[List[str]] = None,
+        metric_names: str | list[str] | None = None,
+        output_transform: Callable | None = None,
+        closing_event_name: Events | CallableEventWithFilter = Events.EPOCH_COMPLETED,
+        state_attributes: list[str] | None = None,
     ):
         if metric_names is None and output_transform is None:
             # This helps to avoid 'Either metric_names or output_transform should be defined' of BaseOutputHandler
@@ -278,14 +277,14 @@ class _OutputHandler(BaseOutputHandler):
         self.closing_event_name = closing_event_name
 
     @staticmethod
-    def get_max_number_events(event_name: Union[str, Events, CallableEventWithFilter], engine: Engine) -> Optional[int]:
+    def get_max_number_events(event_name: str | Events | CallableEventWithFilter, engine: Engine) -> int | None:
         if event_name in (Events.ITERATION_STARTED, Events.ITERATION_COMPLETED):
             return engine.state.epoch_length
         if event_name in (Events.EPOCH_STARTED, Events.EPOCH_COMPLETED):
             return engine.state.max_epochs
         return 1
 
-    def __call__(self, engine: Engine, logger: ProgressBar, event_name: Union[str, Events]) -> None:
+    def __call__(self, engine: Engine, logger: ProgressBar, event_name: str | Events) -> None:
         pbar_total = self.get_max_number_events(event_name, engine)
         if logger.pbar is None:
             logger._reset(pbar_total=pbar_total)

@@ -1,4 +1,5 @@
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any
 
 from ignite.engine import Engine, State
 from ignite.engine.events import Events
@@ -6,7 +7,7 @@ from ignite.engine.events import Events
 
 def global_step_from_engine(
     engine: Engine,
-    custom_event_name: Optional[Events] = None,
+    custom_event_name: Events | None = None,
     fallback_attr: str = "epoch",
 ) -> Callable:
     """Helper method to setup `global_step_transform` function using another engine.
