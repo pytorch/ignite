@@ -31,7 +31,7 @@ python main.py
 ### Command-line arguments
 
 | Argument           | Default  | Description                   |
-| ------------------ |----------| ----------------------------- |
+| ------------------ | -------- | ----------------------------- |
 | `--num_samples`    | 10       | Number of trials for Ray Tune |
 | `--num_epochs`     | 10       | Number of epochs per trial    |
 | `--gpus_per_trial` | 1        | GPUs per trial (0 for CPU)    |
@@ -63,7 +63,7 @@ python main.py --help
 The example searches over the following hyperparameters:
 
 | Parameter    | Values                       |
-| ------------ |------------------------------|
+| ------------ | ---------------------------- |
 | `l1`         | [4, 8, 16, 32, 64, 128, 256] |
 | `l2`         | [4, 8, 16, 32, 64, 128, 256] |
 | `lr`         | [1e-4, 1e-1]                 |
@@ -100,6 +100,6 @@ Best trial final validation accuracy: 0.5765
 Best trial test set accuracy: 0.5688
 ```
 
-We see that most trials stop earlier than the number of maximum epochs (= 10, here). This is because the ASHAScheduler performs early stopping: 
+We see that most trials stop earlier than the number of maximum epochs (= 10, here). This is because the ASHAScheduler performs early stopping:
 after each reported epoch, it compares trial performance and prunes the worst-performing ones. So `num_epochs = 10` is the upper limit
-here, most trials stop earlier. 
+here, most trials stop earlier.
