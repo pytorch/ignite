@@ -82,22 +82,22 @@ If we run main.py an example output could look like:
 ╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
 │ Trial name                      status         l1     l2            lr     batch_size     iter     total time (s)      loss     accuracy │
 ├──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-│ train_with_ignite_f740a_00000   TERMINATED     16    256   0.000174547              8       10           166.306    1.26467       0.5487 │
-│ train_with_ignite_f740a_00001   TERMINATED     64     32   0.0211235               16        1            10.6549   2.03642       0.3094 │
-│ train_with_ignite_f740a_00002   TERMINATED    128     32   0.000597011              4       10           351.698    1.16781       0.6184 │
-│ train_with_ignite_f740a_00003   TERMINATED     32     64   0.0898379               16        1            10.2487   2.32586       0.0985 │
-│ train_with_ignite_f740a_00004   TERMINATED     32     64   0.00243182               4        2            71.8534   1.52549       0.4728 │
-│ train_with_ignite_f740a_00005   TERMINATED    128     16   0.000177485              8        1            18.2198   1.96733       0.2845 │
-│ train_with_ignite_f740a_00006   TERMINATED    256     16   0.00147097               8       10           165.496    1.23385       0.6033 │
-│ train_with_ignite_f740a_00007   TERMINATED     16     16   0.0402147               16        1            10.5927   2.24759       0.1452 │
-│ train_with_ignite_f740a_00008   TERMINATED    256      8   0.000176101              4        2            71.1053   1.51049       0.4422 │
-│ train_with_ignite_f740a_00009   TERMINATED    128     32   0.000174279              4        4           139.638    1.31689       0.5304 │
+│ train_with_ignite_ab528_00000   TERMINATED      4    128   0.000202867           1024        1            4.28721   2.31388       0.0993 │
+│ train_with_ignite_ab528_00001   TERMINATED    128      4   0.0180925              256       10           20.296     1.24503       0.5711 │
+│ train_with_ignite_ab528_00002   TERMINATED      8    256   0.000386848           1024        1            4.01333   2.30241       0.1003 │
+│ train_with_ignite_ab528_00003   TERMINATED     16      4   0.00105969             256        1            3.59295   2.32562       0.0995 │
+│ train_with_ignite_ab528_00004   TERMINATED     16    128   0.000495626           1024        2            5.8557    2.30494       0.0876 │
+│ train_with_ignite_ab528_00005   TERMINATED     16    128   0.0379958              512       10           20.3416    1.20055       0.5765 │
+│ train_with_ignite_ab528_00006   TERMINATED      4     32   0.00186652            1024        1            4.06322   2.30845       0.1059 │
+│ train_with_ignite_ab528_00007   TERMINATED     16     16   0.00687211             512        2            5.40865   2.12892       0.2006 │
+│ train_with_ignite_ab528_00008   TERMINATED      4    256   0.000143329           1024        1            3.79915   2.30698       0.0908 │
+│ train_with_ignite_ab528_00009   TERMINATED     32    256   0.000630852            512        2            5.72633   2.29931       0.1221 │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 
-Best trial config: {'l1': 128, 'l2': 32, 'lr': 0.0005970108807327366, 'batch_size': 4, 'device': '...'}
-Best trial final validation loss: 1.16781484375
-Best trial final validation accuracy: 0.6184
-Best trial test set accuracy: 0.6154
+Best trial config: {'l1': 16, 'l2': 128, 'lr': 0.03799583796432589, 'batch_size': 512, 'device': 'cuda'}
+Best trial final validation loss: 1.200553125
+Best trial final validation accuracy: 0.5765
+Best trial test set accuracy: 0.5688
 ```
 
 We see that most trials stop earlier than the number of maximum epochs (= 10, here). This is because the ASHAScheduler performs early stopping: 
