@@ -189,8 +189,8 @@ jobs:
         run: |
           set -e
           echo "Testing the CIFAR10 with Ray Tune and Ignite example..."
-          if python -c "import torchvision; import torch; import ray; import ignite;"; then
-            python examples/cifar10_raytune/main.py --num_epochs 1 --num_samples 1 --cpus_per_trial 1 --gpus_per_trial 0 --data_dir ./data
+          if python -c "import torchvision; import torch; import ray; import ignite"; then
+            python examples/cifar10_raytune/main.py --num_epochs 1 --num_samples 1 --cpus_per_trial 1 --gpus_per_trial 0
           else
             echo "CIFAR10 with Ray Tune and Ignite example failed to download. Skipping Ray Tune and Ignite example test."
           fi
