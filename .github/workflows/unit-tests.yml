@@ -187,5 +187,5 @@ jobs:
       - name: Run CIFAR10 with Ray Tune and Ignite
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
-          pip install -r examples/cifar10_raytune/requirements.txt
+          uv pip install -r examples/cifar10_raytune/requirements.txt
           python examples/cifar10_raytune/main.py --num_epochs 1 --num_trials 1 --cpus_per_trial 1 --gpus_per_trial 0
