@@ -67,7 +67,7 @@ def test_accuracy(model, device, data_dir):
     return evaluator.state.metrics["accuracy"]
 
 
-def tune_cifar(num_samples=10, num_epochs=10, gpus_per_trial=1, cpus_per_trial=4, data_dir="./data"):
+def tune_cifar(num_trials=10, num_epochs=10, gpus_per_trial=1, cpus_per_trial=4, data_dir="./data"):
     data_dir = Path(data_dir).resolve()
 
     config = {
@@ -106,7 +106,7 @@ def tune_cifar(num_samples=10, num_epochs=10, gpus_per_trial=1, cpus_per_trial=4
             metric="loss",
             mode="min",
             scheduler=scheduler,
-            num_samples=num_samples,
+            num_samples=num_trials,
         ),
         param_space=config,
         run_config=ray.tune.RunConfig(
@@ -155,7 +155,7 @@ def main():
 
     ray.init(include_dashboard=False)
     tune_cifar(
-        num_samples=args.num_samples,
+        num_trials=args.num_samples,
         num_epochs=args.num_epochs,
         gpus_per_trial=args.gpus_per_trial,
         cpus_per_trial=args.cpus_per_trial,

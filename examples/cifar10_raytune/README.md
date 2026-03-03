@@ -31,8 +31,8 @@ python main.py
 ### Command-line arguments
 
 | Argument           | Default  | Description                   |
-| ------------------ | -------- | ----------------------------- |
-| `--num_samples`    | 10       | Number of trials for Ray Tune |
+|--------------------| -------- | ----------------------------- |
+| `--num_trials`     | 10       | Number of trials for Ray Tune |
 | `--num_epochs`     | 10       | Number of epochs per trial    |
 | `--gpus_per_trial` | 1        | GPUs per trial (0 for CPU)    |
 | `--cpus_per_trial` | 4        | CPUs per trial                |
