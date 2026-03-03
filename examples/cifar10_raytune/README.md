@@ -43,7 +43,7 @@ python main.py
 Run with custom settings:
 
 ```bash
-python main.py --num_samples 5 --num_epochs 5 --gpus_per_trial 1
+python main.py --num_trials 5 --num_epochs 5 --gpus_per_trial 1
 ```
 
 Use a different data directory:

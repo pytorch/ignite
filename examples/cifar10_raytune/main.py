@@ -141,7 +141,7 @@ def tune_cifar(num_trials=10, num_epochs=10, gpus_per_trial=1, cpus_per_trial=4,
 
 def main():
     parser = argparse.ArgumentParser(description="Ignite + Ray Tune CIFAR10 Example")
-    parser.add_argument("--num_samples", type=int, default=10, help="Number of trials for Ray Tune")
+    parser.add_argument("--num_trials", type=int, default=10, help="Number of trials for Ray Tune")
     parser.add_argument("--num_epochs", type=int, default=10, help="Number of epochs per trial")
     parser.add_argument("--gpus_per_trial", type=float, default=1, help="GPUs per trial")
     parser.add_argument("--cpus_per_trial", type=int, default=4, help="CPUs per trial")
@@ -155,7 +155,7 @@ def main():
 
     ray.init(include_dashboard=False)
     tune_cifar(
-        num_trials=args.num_samples,
+        num_trials=args.num_trials,
         num_epochs=args.num_epochs,
         gpus_per_trial=args.gpus_per_trial,
         cpus_per_trial=args.cpus_per_trial,
