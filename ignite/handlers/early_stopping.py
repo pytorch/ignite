@@ -65,6 +65,9 @@ class EarlyStopping(Serializable, ResettableHandler):
     .. versionchanged:: 0.6.0
         Added ``mode`` parameter to support minimization in addition to maximization.
         Added ``threshold_mode`` parameter to support both absolute and relative improvements.
+        Renamed ``min_delta`` to ``threshold``.
+        Renamed ``min_delta_mode`` to ``threshold_mode``.
+        Renamed ``cumulative_delta`` to ``cumulative``.
     """
 
     _state_dict_all_req_keys = (
