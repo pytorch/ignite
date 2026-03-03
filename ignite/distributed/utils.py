@@ -346,6 +346,11 @@ def all_reduce(
     if _need_to_sync and isinstance(_model, _SerialModel):
         sync(temporary=True)
 
+    # Clone tensor only for operations that modify the input tensor in-place like all_reduce to avoid unexpected side effects.
+    # This is required for native distributed and XLA distributed models, but not for Horovod since it does not modify the input tensor in-place.
+    if model_name() in ("native-dist", "xla-dist") and isinstance(tensor, torch.Tensor):
+        tensor = tensor.clone()
+
     return _model.all_reduce(tensor, op, group=group)
 
 
