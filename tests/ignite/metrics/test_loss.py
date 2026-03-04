@@ -374,9 +374,15 @@ def test_loss_with_empty_batch():
     y_pred = torch.tensor([]).reshape(0, 3)
     y = torch.tensor([], dtype=torch.long)
 
-    # Should handle empty batches gracefully
+    # Before any update, compute should not be possible
+    with pytest.raises(NotComputableError):
+        loss.compute()
+
+    # Should handle empty batches gracefully: no examples counted, still not computable
     loss.update((y_pred, y))
     assert loss._num_examples == 0
+    with pytest.raises(NotComputableError):
+        loss.compute()
 
 
 def test_loss_with_invalid_output_structure():
@@ -386,7 +392,7 @@ def test_loss_with_invalid_output_structure():
     # Test with single tensor instead of tuple
     y_pred = torch.randn(4, 3)
 
-    with pytest.raises((ValueError, TypeError)):
+    with pytest.raises(ValueError):
         # This should fail because output should be a tuple
         loss.update(y_pred)
 
@@ -408,14 +414,6 @@ def test_loss_with_nan_loss():
     assert math.isnan(float(result))
 
 
-def test_loss_compute_before_update():
-    """Test Loss metric compute before any update."""
-    loss = Loss(nll_loss)
-
-    with pytest.raises(NotComputableError):
-        loss.compute()
-
-
 def test_loss_multiple_updates_and_compute():
     """Test Loss metric with multiple updates before compute."""
     loss = Loss(nll_loss)
@@ -426,16 +424,26 @@ def test_loss_multiple_updates_and_compute():
     loss.update((y_pred_1, y_1))
     loss.update((y_pred_2, y_2))
 
-    # Should aggregate losses from multiple batches
+    # Should aggregate losses from multiple batches: since both batches
+    # come from y_test_1() and have the same size, the overall average
+    # loss should be the mean of the two per-batch losses.
+    expected_1 = nll_loss(y_pred_1, y_1)
+    expected_2 = nll_loss(y_pred_2, y_2)
+    expected = (expected_1 + expected_2) / 2.0
+
     result = loss.compute()
-    assert isinstance(result, (float, torch.Tensor))
+    assert_almost_equal(result, expected)
 
 
 def test_loss_with_custom_batch_size_fn(available_device):
     """Test Loss metric with custom batch size function."""
+    # Track invocations to verify the custom callable is actually used
+    call_count = [0]
 
     def custom_batch_size(y):
-        # Use shape[0] explicitly instead of len()
+        # Custom function that verifies it's being called
+        call_count[0] += 1
+        # Use shape[0] for batch dimension
         return y.shape[0]
 
     loss = Loss(nll_loss, batch_size=custom_batch_size, device=available_device)
@@ -445,3 +453,5 @@ def test_loss_with_custom_batch_size_fn(available_device):
     result = loss.compute()
     expected = nll_loss(y_pred, y)
     assert_almost_equal(result, expected)
+    # Verify the custom batch_size function was actually invoked
+    assert call_count[0] > 0, "Custom batch_size function was not called"
