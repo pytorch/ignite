@@ -65,8 +65,10 @@
 
   {% endif %}
 
+  {%- if style is defined %}
   <link rel="preload" href="{{ pathto('_static/' + style, 1) }}" as="style" />
   <link rel="stylesheet" href="{{ pathto('_static/' + style, 1) }}" type="text/css" />
+  {%- endif %}
   <!-- <link rel="stylesheet" href="{{ pathto('_static/pygments.css', 1) }}" type="text/css" /> -->
   {%- for css in css_files %}
     {%- if css|attr("rel") %}
