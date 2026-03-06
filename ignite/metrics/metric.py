@@ -438,7 +438,7 @@ class Metric(Serializable, metaclass=ABCMeta):
         """
         self.reset()
 
-    @torch.no_grad()
+    @torch.inference_mode()
     def iteration_completed(self, engine: Engine) -> None:
         """Helper method to update metric's computation. It is automatically attached to the
         `engine` with :meth:`~ignite.metrics.metric.Metric.attach`.

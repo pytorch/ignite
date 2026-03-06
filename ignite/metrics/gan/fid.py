@@ -137,7 +137,7 @@ class FID(_BaseInceptionMetric):
                     super().__init__()
                     self.fid_incv3 = fid_incv3
 
-                @torch.no_grad()
+                @torch.inference_mode()
                 def forward(self, x):
                     y = self.fid_incv3(x)
                     y = y[0]

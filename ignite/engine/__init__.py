@@ -684,7 +684,7 @@ def supervised_evaluation_step(
 
     def evaluate_step(engine: Engine, batch: Sequence[torch.Tensor]) -> Any | tuple[torch.Tensor]:
         model.eval()
-        with torch.no_grad():
+        with torch.inference_mode():
             x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
             output = model_fn(model, x)
             y_pred = model_transform(output)
@@ -746,7 +746,7 @@ def supervised_evaluation_step_amp(
 
     def evaluate_step(engine: Engine, batch: Sequence[torch.Tensor]) -> Any | tuple[torch.Tensor]:
         model.eval()
-        with torch.no_grad():
+        with torch.inference_mode():
             x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
             with autocast("cuda", enabled=True):
                 output = model_fn(model, x)

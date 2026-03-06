@@ -38,7 +38,7 @@ class InceptionModel(torch.nn.Module):
             self.model.fc = torch.nn.Sequential(self.model.fc, torch.nn.Softmax(dim=1))
         self.model.eval()
 
-    @torch.no_grad()
+    @torch.inference_mode()
     def forward(self, data: torch.Tensor) -> torch.Tensor:
         if data.dim() != 4:
             raise ValueError(f"Inputs should be a tensor of dim 4, got {data.dim()}")
@@ -94,7 +94,7 @@ class _BaseInceptionMetric(Metric):
         if inputs.device != torch.device(self._device):
             inputs = inputs.to(self._device)
 
-        with torch.no_grad():
+        with torch.inference_mode():
             outputs = self._feature_extractor(inputs).to(self._device, dtype=self._double_dtype)
         self._check_feature_shapes(outputs)
 
