@@ -19,7 +19,7 @@ import ignite.distributed as idist
 from ignite.engine import Engine
 from ignite.metrics import CommonObjectDetectionMetrics, ObjectDetectionAvgPrecisionRecall
 from ignite.metrics.vision.object_detection_average_precision_recall import coco_tensor_list_to_dict_list
-from ignite.utils import manual_seed
+from ignite.utils import manual_seed, convert_tensor
 
 torch.set_printoptions(linewidth=200)
 manual_seed(12)
@@ -612,14 +612,8 @@ def get_sample(request) -> Callable:
         data_pred, data_true = data
         if device is None:
             device = torch.device("cpu")
-        data_pred = [
-            {"bbox": d["bbox"].to(device), "scores": d["scores"].to(device), "labels": d["labels"].to(device)}
-            for d in data_pred
-        ]
-        data_true = [
-            {"bbox": d["bbox"].to(device), "labels": d["labels"].to(device), "iscrowd": d["iscrowd"].to(device)}
-            for d in data_true
-        ]
+        data_pred = convert_tensor(data_pred, device=device)
+        data_true = convert_tensor(data_true, device=device)
         return Sample((data_pred, data_true), mAP, len(data[0]))
 
     return sample_on_device
@@ -726,16 +720,8 @@ def test_empty_data(available_device):
     }
     metric.update(([pred], [target]))
     assert len(metric._tps) == len(metric._fps) == 1
-    pred_cpu = {
-        "bbox": pred["bbox"].cpu(),
-        "scores": pred["scores"].cpu(),
-        "labels": pred["labels"].cpu(),
-    }
-    target_cpu = {
-        "bbox": target["bbox"].cpu(),
-        "iscrowd": target["iscrowd"].cpu(),
-        "labels": target["labels"].cpu(),
-    }
+    pred_cpu = convert_tensor(pred, device="cpu")
+    target_cpu = convert_tensor(target, device="cpu")
     pycoco_result = pycoco_mAP([pred_cpu], [target_cpu])
     assert metric.compute() == (pycoco_result[0], pycoco_result[8])
 
@@ -913,16 +899,8 @@ def test__compute_recall_and_precision(available_device):
     sklearn_precision, sklearn_recall, _ = sklearn_precision_recall_curve_allowing_multiple_recalls_at_single_threshold(
         y_true.cpu().numpy(), scores.cpu().numpy()
     )
-    assert np.allclose(
-        ignite_recall.flip(0).cpu().numpy(),
-        sklearn_recall[:-1],
-        atol=1e-6
-    )
-    assert np.allclose(
-        ignite_precision.flip(0).cpu().numpy(),
-        sklearn_precision[:-1],
-        atol=1e-6
-    )
+    assert np.allclose(ignite_recall.flip(0).cpu().numpy(), sklearn_recall[:-1], atol=1e-6)
+    assert np.allclose(ignite_precision.flip(0).cpu().numpy(), sklearn_precision[:-1], atol=1e-6)
 
     # Like above but with two additional mean dimensions.
     scores = torch.rand((50,), device=current_device)
@@ -941,16 +919,8 @@ def test__compute_recall_and_precision(available_device):
     ignite_recall, ignite_precision = m._compute_recall_and_precision(
         y_true.bool(), ~(y_true.bool()), scores, torch.tensor(15)
     )
-    assert np.allclose(
-        ignite_recall.flip(-1).cpu().numpy(),
-        sklearn_recalls,
-        atol=1e-6
-    )
-    assert np.allclose(
-        ignite_precision.flip(-1).cpu().numpy(),
-        sklearn_precisions,
-        atol=1e-6
-    )
+    assert np.allclose(ignite_recall.flip(-1).cpu().numpy(), sklearn_recalls, atol=1e-6)
+    assert np.allclose(ignite_precision.flip(-1).cpu().numpy(), sklearn_precisions, atol=1e-6)
 
 
 def test_compute(get_sample):
