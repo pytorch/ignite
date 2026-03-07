@@ -29,6 +29,9 @@ class SilhouetteScore(_ClusteringMetricBase):
     The silhouette score ranges from -1 to +1,
     where the score becomes close to +1 when the clustering result is good (i.e., clusters are well-separated).
 
+    When the number of unique labels is less than 2 or equal to the number of samples (i.e., the score is
+    undefined), ``float('nan')`` is returned.
+
     The computation of this metric is implemented with
     `sklearn.metrics.silhouette_score
     <https://scikit-learn.org/1.5/modules/generated/sklearn.metrics.silhouette_score.html>`_.
@@ -114,5 +117,11 @@ class SilhouetteScore(_ClusteringMetricBase):
 
         np_features = features.cpu().numpy()
         np_labels = labels.cpu().numpy()
+
+        n_unique_labels = len(set(np_labels))
+        n_samples = len(np_labels)
+        if n_unique_labels < 2 or n_unique_labels >= n_samples:
+            return float("nan")
+
         score = silhouette_score(np_features, np_labels, **self._silhouette_kwargs)
         return score

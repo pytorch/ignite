@@ -19,6 +19,18 @@ def test_zero_sample():
         metric.compute()
 
 
+def test_single_cluster_returns_nan():
+    """DaviesBouldinScore should return NaN when all samples belong to a single cluster."""
+    import math
+
+    metric = DaviesBouldinScore()
+    features = torch.randn(10, 5)
+    labels = torch.zeros(10, dtype=torch.long)
+    metric.update((features, labels))
+    result = metric.compute()
+    assert math.isnan(result)
+
+
 def test_wrong_output_shape():
     wrong_features = torch.zeros(4, dtype=torch.float)
     correct_features = torch.zeros(4, 3, dtype=torch.float)
