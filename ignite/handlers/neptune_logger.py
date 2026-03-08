@@ -113,9 +113,6 @@ class NeptuneLogger(BaseLogger):
                 log_handler=WeightsScalarHandler(model),
             )
 
-        Explore runs with Neptune tracking here:
-        https://app.neptune.ai/o/common/org/pytorch-ignite-integration/
-
         You can also save model checkpoints to a Neptune:
 
         .. code-block:: python
@@ -661,9 +658,6 @@ class NeptuneSaver(BaseSaveHandler):
 
             # We need to close the logger when we are done
             npt_logger.close()
-
-    For example, you can access model checkpoints and download them from here:
-    https://app.neptune.ai/o/shared/org/pytorch-ignite-integration/e/PYTOR1-18/charts
 
     """
 
