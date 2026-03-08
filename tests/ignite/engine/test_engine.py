@@ -1328,6 +1328,57 @@ class TestEngine:
         assert trainer.state.epoch == 2
         assert trainer.state.iteration == 2 * 4
 
+    def test_run_with_data_whose_len_raises_type_error(self):
+        # covers: TypeError silently caught when data's __len__ raises
+        class BadLenData:
+            def __len__(self):
+                raise TypeError("IterableDataset has no len()")
+
+            def __iter__(self):
+                return iter([1, 2, 3])
+
+        engine = Engine(lambda e, b: None)
+        state = engine.run(BadLenData(), max_epochs=1, epoch_length=3)
+        assert state.epoch == 1
+        assert state.iteration == 3
+
+    def test_setup_dataloader_iter_raises_on_none_epoch_length(self):
+        # covers: RuntimeError raised when dataloader and epoch_length are both None during internal dataloader iterator setup
+        engine = Engine(lambda e, b: None)
+        engine.state = State(dataloader=None, epoch_length=None, max_epochs=1, iteration=0, epoch=0)
+
+        with pytest.raises(RuntimeError, match="Internal error, self.state.epoch_length is None"):
+            engine._setup_dataloader_iter()
+
+    def test_internal_run_raises_when_dataloader_iter_is_none(self):
+        # covers: RuntimeError raised when _dataloader_iter is None during the internal run loop
+        engine = Engine(lambda e, b: None)
+        engine.state = State(dataloader=[1, 2, 3], epoch_length=3, max_epochs=1, iteration=0, epoch=0)
+        engine._setup_engine()
+        engine._dataloader_iter = None
+
+        with pytest.raises(RuntimeError, match="Internal error, self._dataloader_iter is None"):
+            gen = engine._run_once_on_dataset_as_gen()
+            next(gen)
+
+    def test_max_epochs_calculated_from_max_iters_unknown_epoch_length(self):
+        # covers: max_epochs auto-calculated as ceil(max_iters / epoch_length) when data is an iterator of unknown length and max_iters is provided
+        import math
+
+        def data_iter():
+            for i in range(5):
+                yield i
+
+        engine = Engine(lambda e, b: None)
+
+        @engine.on(Events.DATALOADER_STOP_ITERATION)
+        def restart():
+            engine.state.dataloader = data_iter()
+
+        engine.run(data_iter(), max_iters=7)
+        assert engine.state.max_epochs == math.ceil(7 / engine.state.epoch_length)
+        assert engine.state.iteration == 7
+
 
 @pytest.mark.parametrize(
     "interrupt_event, e, i",
