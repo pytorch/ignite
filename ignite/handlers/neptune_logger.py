@@ -35,7 +35,7 @@ _INTEGRATION_VERSION_KEY = "source_code/integrations/neptune-pytorch-ignite"
 
 class NeptuneLogger(BaseLogger):
     """
-    `Neptune <https://neptune.ai/>`_ handler to log metrics, model/optimizer parameters and gradients during training
+    Neptune handler to log metrics, model/optimizer parameters and gradients during training
     and validation. It can also log model checkpoints to Neptune.
 
     .. code-block:: bash
@@ -43,7 +43,7 @@ class NeptuneLogger(BaseLogger):
         pip install neptune
 
     Args:
-        api_token: Neptune API token, found on https://neptune.ai -> User menu -> "Get your API token".
+        api_token: Neptune API token, found on the Neptune user menu -> "Get your API token".
            If None, the value of the NEPTUNE_API_TOKEN environment variable is used. To keep your token
            secure, you should set it to the environment variable rather than including it in your code.
         project: Name of a Neptune project, in the form "workspace-name/project-name".

@@ -11,8 +11,6 @@
     python mnist_with_neptune_logger.py
     ```
 
-    Go to https://neptune.ai and explore your run.
-
 """
 
 from argparse import ArgumentParser
