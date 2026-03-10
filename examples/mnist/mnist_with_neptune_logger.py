@@ -11,11 +11,6 @@
     python mnist_with_neptune_logger.py
     ```
 
-    Go to https://neptune.ai and explore your run.
-
-Note:
-    You can view example runs here:
-    https://app.neptune.ai/o/common/org/pytorch-ignite-integration/
 """
 
 from argparse import ArgumentParser

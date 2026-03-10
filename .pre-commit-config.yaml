@@ -1,5 +1,15 @@
 exclude: "^conda.recipe|assets|docs"
+
 repos:
+  - repo: https://github.com/srstevenson/nb-clean
+    rev: 3.2.0
+    hooks:
+      - id: nb-clean
+        args:
+          - --preserve-cell-outputs
+          - --remove-empty-cells
+        types: [jupyter]
+
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
