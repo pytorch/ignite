@@ -1329,7 +1329,6 @@ class TestEngine:
         assert trainer.state.iteration == 2 * 4
 
     def test_run_with_data_whose_len_raises_type_error(self):
-        # covers: TypeError silently caught when data's __len__ raises
         class BadLenData:
             def __len__(self):
                 raise TypeError("IterableDataset has no len()")
@@ -1338,9 +1337,10 @@ class TestEngine:
                 return iter([1, 2, 3])
 
         engine = Engine(lambda e, b: None)
-        state = engine.run(BadLenData(), max_epochs=1, epoch_length=3)
+        state = engine.run(BadLenData(), max_epochs=1)
         assert state.epoch == 1
         assert state.iteration == 3
+        assert state.epoch_length == 3
 
     def test_setup_dataloader_iter_raises_on_none_epoch_length(self):
         # covers: RuntimeError raised when dataloader and epoch_length are both None during internal dataloader iterator setup
@@ -1448,31 +1448,33 @@ class TestEngine:
         assert sd["best_loss"] == 0.42
 
     def test_internal_run_legacy_raises_when_dataloader_iter_is_none(self):
-        # covers: RuntimeError raised in _run_once_on_dataset_legacy when _dataloader_iter is None
         Engine.interrupt_resume_enabled = False
-        engine = Engine(lambda e, b: None)
-        engine.state = State(dataloader=[1, 2, 3], epoch_length=3, max_epochs=1, iteration=0, epoch=0)
-        engine._setup_engine()
-        engine._dataloader_iter = None
+        try:
+            engine = Engine(lambda e, b: None)
+            engine.state = State(dataloader=[1, 2, 3], epoch_length=3, max_epochs=1, iteration=0, epoch=0)
+            engine._setup_engine()
+            engine._dataloader_iter = None
 
-        with pytest.raises(RuntimeError, match="Internal error, self._dataloader_iter is None"):
-            engine._run_once_on_dataset_legacy()
-        Engine.interrupt_resume_enabled = True
+            with pytest.raises(RuntimeError, match="Internal error, self._dataloader_iter is None"):
+                engine._run_once_on_dataset_legacy()
+        finally:
+            Engine.interrupt_resume_enabled = True
 
     def test_internal_run_legacy_handles_exception(self):
-        # covers: exception handling in _run_once_on_dataset_legacy fires EXCEPTION_RAISED if handler exists
         Engine.interrupt_resume_enabled = False
-        engine = Engine(lambda e, b: (_ for _ in ()).throw(ValueError("boom")))
-        caught = []
+        try:
+            engine = Engine(lambda e, b: (_ for _ in ()).throw(ValueError("boom")))
+            caught = []
 
-        @engine.on(Events.EXCEPTION_RAISED)
-        def catch(exc):
-            caught.append(exc)
+            @engine.on(Events.EXCEPTION_RAISED)
+            def catch(exc):
+                caught.append(exc)
 
-        engine.run([1, 2, 3], max_epochs=1)
-        assert len(caught) == 1
-        assert isinstance(caught[0], ValueError)
-        Engine.interrupt_resume_enabled = True
+            engine.run([1, 2, 3], max_epochs=1)
+            assert len(caught) == 1
+            assert isinstance(caught[0], ValueError)
+        finally:
+            Engine.interrupt_resume_enabled = True
 
     def test_register_events_raises_on_invalid_event_to_attr(self):
         # covers: ValueError raised when event_to_attr is not a dict
