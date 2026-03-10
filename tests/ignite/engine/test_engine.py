@@ -1379,6 +1379,101 @@ class TestEngine:
         assert engine.state.max_epochs == math.ceil(7 / engine.state.epoch_length)
         assert engine.state.iteration == 7
 
+    def test_run_resume_raises_on_epoch_length_mismatch(self):
+        # covers: ValueError raised when resuming with a different epoch_length than the one stored in state
+        engine = Engine(lambda e, b: None)
+        engine.run([1, 2, 3], max_epochs=1)
+
+        with pytest.raises(ValueError, match="Argument epoch_length should be same as in the state"):
+            engine.run([1, 2, 3], max_epochs=2, epoch_length=10)
+
+    def test_load_state_dict_raises_on_missing_user_key(self):
+        # covers: ValueError raised when a user-defined state key is missing from the provided state_dict
+        engine = Engine(lambda e, b: None)
+        engine.state_dict_user_keys.append("custom_key")
+        engine.state.custom_key = 42
+
+        state_dict = engine.state_dict()
+        del state_dict["custom_key"]
+
+        with pytest.raises(ValueError, match="Required user state attribute 'custom_key' is absent"):
+            engine.load_state_dict(state_dict)
+
+    def test_load_state_dict_raises_when_epoch_provided_but_epoch_length_is_none(self):
+        # covers: ValueError raised when state_dict contains epoch but epoch_length is None
+        engine = Engine(lambda e, b: None)
+
+        with pytest.raises(ValueError, match="If epoch is provided in the state dict, epoch_length should not be None"):
+            engine.load_state_dict({"epoch": 3, "max_epochs": 10, "epoch_length": None})
+
+    def test_resume_after_terminate_resets_init_iter(self):
+        # covers: _init_iter set to 0 when resuming after engine was terminated mid-run
+        engine = Engine(lambda e, b: None)
+
+        @engine.on(Events.ITERATION_COMPLETED(once=5))
+        def stop():
+            engine.terminate()
+
+        engine.run([0] * 10, max_epochs=2)
+        assert engine.should_terminate
+
+        engine.run([0] * 10, max_epochs=2)
+        assert engine._init_iter is None  # consumed after setup
+
+    def test_handle_exception_fires_event_if_handler_registered(self):
+        # covers: _handle_exception fires EXCEPTION_RAISED event when a handler is registered
+        engine = Engine(lambda e, b: None)
+        caught = []
+
+        @engine.on(Events.EXCEPTION_RAISED)
+        def catch(exc):
+            caught.append(exc)
+
+        exc = ValueError("test error")
+        engine.state = State(dataloader=None, epoch_length=None, max_epochs=1, iteration=0, epoch=0)
+        engine._handle_exception(exc)
+
+        assert len(caught) == 1
+        assert caught[0] is exc
+
+    def test_state_dict_includes_user_keys(self):
+        # covers: state_dict() returns user-defined keys when state_dict_user_keys is populated
+        engine = Engine(lambda e, b: None)
+        engine.state_dict_user_keys.append("best_loss")
+        engine.state.best_loss = 0.42
+        engine.run([1, 2, 3], max_epochs=1)
+
+        sd = engine.state_dict()
+        assert "best_loss" in sd
+        assert sd["best_loss"] == 0.42
+
+    def test_internal_run_legacy_raises_when_dataloader_iter_is_none(self):
+        # covers: RuntimeError raised in _run_once_on_dataset_legacy when _dataloader_iter is None
+        Engine.interrupt_resume_enabled = False
+        engine = Engine(lambda e, b: None)
+        engine.state = State(dataloader=[1, 2, 3], epoch_length=3, max_epochs=1, iteration=0, epoch=0)
+        engine._setup_engine()
+        engine._dataloader_iter = None
+
+        with pytest.raises(RuntimeError, match="Internal error, self._dataloader_iter is None"):
+            engine._run_once_on_dataset_legacy()
+        Engine.interrupt_resume_enabled = True
+
+    def test_internal_run_legacy_handles_exception(self):
+        # covers: exception handling in _run_once_on_dataset_legacy fires EXCEPTION_RAISED if handler exists
+        Engine.interrupt_resume_enabled = False
+        engine = Engine(lambda e, b: (_ for _ in ()).throw(ValueError("boom")))
+        caught = []
+
+        @engine.on(Events.EXCEPTION_RAISED)
+        def catch(exc):
+            caught.append(exc)
+
+        engine.run([1, 2, 3], max_epochs=1)
+        assert len(caught) == 1
+        assert isinstance(caught[0], ValueError)
+        Engine.interrupt_resume_enabled = True
+
 
 @pytest.mark.parametrize(
     "interrupt_event, e, i",
