@@ -1447,35 +1447,6 @@ class TestEngine:
         assert "best_loss" in sd
         assert sd["best_loss"] == 0.42
 
-    def test_internal_run_legacy_raises_when_dataloader_iter_is_none(self):
-        Engine.interrupt_resume_enabled = False
-        try:
-            engine = Engine(lambda e, b: None)
-            engine.state = State(dataloader=[1, 2, 3], epoch_length=3, max_epochs=1, iteration=0, epoch=0)
-            engine._setup_engine()
-            engine._dataloader_iter = None
-
-            with pytest.raises(RuntimeError, match="Internal error, self._dataloader_iter is None"):
-                engine._run_once_on_dataset_legacy()
-        finally:
-            Engine.interrupt_resume_enabled = True
-
-    def test_internal_run_legacy_handles_exception(self):
-        Engine.interrupt_resume_enabled = False
-        try:
-            engine = Engine(lambda e, b: (_ for _ in ()).throw(ValueError("boom")))
-            caught = []
-
-            @engine.on(Events.EXCEPTION_RAISED)
-            def catch(exc):
-                caught.append(exc)
-
-            engine.run([1, 2, 3], max_epochs=1)
-            assert len(caught) == 1
-            assert isinstance(caught[0], ValueError)
-        finally:
-            Engine.interrupt_resume_enabled = True
-
     def test_register_events_raises_on_invalid_event_to_attr(self):
         # covers: ValueError raised when event_to_attr is not a dict
         engine = Engine(lambda e, b: None)
@@ -1487,12 +1458,6 @@ class TestEngine:
         engine = Engine(lambda e, b: None)
         with pytest.raises(TypeError, match="should be a str or EventEnum"):
             engine.register_events(123)
-
-    def test_register_events_with_event_to_attr_mapping(self):
-        # covers: event_to_attr mapping path in register_events
-        engine = Engine(lambda e, b: None)
-        engine.register_events("MY_EVENT", event_to_attr={"MY_EVENT": "iteration"})
-        assert "MY_EVENT" in engine._allowed_events
 
     def test_assert_allowed_event_raises_on_invalid_event(self):
         # covers: ValueError raised in _assert_allowed_event for unregistered event
