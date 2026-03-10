@@ -1474,6 +1474,101 @@ class TestEngine:
         assert isinstance(caught[0], ValueError)
         Engine.interrupt_resume_enabled = True
 
+    def test_register_events_raises_on_invalid_event_to_attr(self):
+        # covers: ValueError raised when event_to_attr is not a dict
+        engine = Engine(lambda e, b: None)
+        with pytest.raises(ValueError, match="Expected event_to_attr to be dictionary"):
+            engine.register_events("MY_EVENT", event_to_attr="not_a_dict")
+
+    def test_register_events_raises_on_invalid_event_name_type(self):
+        # covers: TypeError raised when event name is not str or EventEnum
+        engine = Engine(lambda e, b: None)
+        with pytest.raises(TypeError, match="should be a str or EventEnum"):
+            engine.register_events(123)
+
+    def test_register_events_with_event_to_attr_mapping(self):
+        # covers: event_to_attr mapping path in register_events
+        engine = Engine(lambda e, b: None)
+        engine.register_events("MY_EVENT", event_to_attr={"MY_EVENT": "iteration"})
+        assert "MY_EVENT" in engine._allowed_events
+
+    def test_assert_allowed_event_raises_on_invalid_event(self):
+        # covers: ValueError raised in _assert_allowed_event for unregistered event
+        engine = Engine(lambda e, b: None)
+        with pytest.raises(ValueError, match="is not a valid event"):
+            engine._assert_allowed_event("INVALID_EVENT")
+
+    def test_add_event_handler_with_events_list(self):
+        # covers: EventsList branch in add_event_handler returns RemovableEventHandle
+        from ignite.engine.events import EventsList
+
+        engine = Engine(lambda e, b: None)
+        events_list = EventsList()
+        events_list |= Events.STARTED
+        events_list |= Events.COMPLETED
+        called = []
+        handle = engine.add_event_handler(events_list, lambda: called.append(1))
+        engine.run([1], max_epochs=1)
+        assert len(called) == 2
+
+    def test_has_event_handler_returns_false_when_event_not_registered(self):
+        # covers: early return False when event_name not in _event_handlers
+        engine = Engine(lambda e, b: None)
+        assert not engine.has_event_handler(lambda: None, Events.STARTED)
+
+    def test_has_event_handler_searches_all_events_when_no_event_name(self):
+        # covers: iterating all events when event_name is None
+        engine = Engine(lambda e, b: None)
+
+        def my_handler():
+            pass
+
+        engine.add_event_handler(Events.STARTED, my_handler)
+        assert engine.has_event_handler(my_handler)
+        assert not engine.has_event_handler(lambda: None)
+
+    def test_remove_event_handler_raises_on_invalid_event(self):
+        # covers: ValueError raised when event_name not in _event_handlers
+        engine = Engine(lambda e, b: None)
+        with pytest.raises(ValueError, match="does not exist"):
+            engine.remove_event_handler(lambda: None, "INVALID_EVENT")
+
+    def test_remove_event_handler_raises_when_handler_not_found(self):
+        # covers: ValueError raised when handler not found among registered handlers
+        engine = Engine(lambda e, b: None)
+        engine.add_event_handler(Events.STARTED, lambda: None)
+        with pytest.raises(ValueError, match="is not found among registered event handlers"):
+            engine.remove_event_handler(lambda: None, Events.STARTED)
+
+    def test_fire_event_raises_on_invalid_event(self):
+        # covers: fire_event calls _assert_allowed_event raising ValueError
+        engine = Engine(lambda e, b: None)
+        engine.state = State(dataloader=None, epoch_length=1, max_epochs=1, iteration=0, epoch=0)
+        with pytest.raises(ValueError, match="is not a valid event"):
+            engine.fire_event("INVALID_EVENT")
+
+    def test_load_state_dict_with_iteration_key(self):
+        # covers: load_state_dict computes epoch from iteration when epoch_length is set
+        engine = Engine(lambda e, b: None)
+        engine.load_state_dict({"iteration": 30, "max_epochs": 10, "epoch_length": 10})
+        assert engine.state.iteration == 30
+        assert engine.state.epoch == 3
+
+    def test_resume_raises_when_data_none_and_epoch_length_none(self):
+        # covers: ValueError raised when resuming with data=None and epoch_length=None
+        engine = Engine(lambda e, b: None)
+
+        def data_iter():
+            for i in range(3):
+                yield i
+
+        engine.run(data_iter(), max_epochs=1)
+        engine.state.epoch_length = None
+        engine.state.max_epochs = 5
+
+        with pytest.raises(ValueError, match="epoch_length should be provided if data is None"):
+            engine.run(None, max_epochs=5)
+
 
 @pytest.mark.parametrize(
     "interrupt_event, e, i",
