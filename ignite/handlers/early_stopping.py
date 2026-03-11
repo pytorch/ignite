@@ -1,5 +1,6 @@
 from collections import OrderedDict
-from typing import Any, Callable, cast, Mapping, Literal
+from collections.abc import Callable, Mapping
+from typing import Any, cast, Literal
 
 from ignite.base import Serializable, ResettableHandler
 from ignite.engine import Engine, Events

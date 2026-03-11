@@ -1,12 +1,12 @@
-import collections.abc as collections
 import numbers
 import os
 import stat
 import tempfile
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
+from collections.abc import Callable, Mapping, MutableMapping
 from pathlib import Path
-from typing import Any, Callable, cast, Mapping, NamedTuple
+from typing import Any, cast, NamedTuple
 
 import torch
 import torch.nn as nn
@@ -348,13 +348,13 @@ class Checkpoint(Serializable):
         greater_or_equal: bool = False,
         save_on_rank: int = 0,
     ):
-        if not isinstance(to_save, collections.Mapping):
+        if not isinstance(to_save, Mapping):
             raise TypeError(f"Argument `to_save` should be a dictionary, but given {type(to_save)}")
 
         self._check_objects(to_save, "state_dict")
 
         if include_self:
-            if not isinstance(to_save, collections.MutableMapping):
+            if not isinstance(to_save, MutableMapping):
                 raise TypeError(
                     f"If `include_self` is True, then `to_save` must be mutable, but given {type(to_save)}."
                 )
@@ -652,7 +652,7 @@ class Checkpoint(Serializable):
             torch.nn.parallel.DistributedDataParallel.html
         .. _DataParallel: https://pytorch.org/docs/stable/generated/torch.nn.DataParallel.html
         """
-        if not isinstance(checkpoint, (collections.Mapping, str, Path)):
+        if not isinstance(checkpoint, (Mapping, str, Path)):
             raise TypeError(f"Argument checkpoint should be a string or a dictionary, but given {type(checkpoint)}")
 
         Checkpoint._check_objects(to_load, "load_state_dict")

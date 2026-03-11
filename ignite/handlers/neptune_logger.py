@@ -2,7 +2,8 @@
 
 import tempfile
 import warnings
-from typing import Any, Callable, List, Mapping, Optional, Union
+from collections.abc import Callable, Mapping
+from typing import Any
 
 import torch
 from torch.optim import Optimizer
@@ -34,7 +35,7 @@ _INTEGRATION_VERSION_KEY = "source_code/integrations/neptune-pytorch-ignite"
 
 class NeptuneLogger(BaseLogger):
     """
-    `Neptune <https://neptune.ai/>`_ handler to log metrics, model/optimizer parameters and gradients during training
+    Neptune handler to log metrics, model/optimizer parameters and gradients during training
     and validation. It can also log model checkpoints to Neptune.
 
     .. code-block:: bash
@@ -42,7 +43,7 @@ class NeptuneLogger(BaseLogger):
         pip install neptune
 
     Args:
-        api_token: Neptune API token, found on https://neptune.ai -> User menu -> "Get your API token".
+        api_token: Neptune API token, found on the Neptune user menu -> "Get your API token".
            If None, the value of the NEPTUNE_API_TOKEN environment variable is used. To keep your token
            secure, you should set it to the environment variable rather than including it in your code.
         project: Name of a Neptune project, in the form "workspace-name/project-name".
@@ -112,9 +113,6 @@ class NeptuneLogger(BaseLogger):
                 log_handler=WeightsScalarHandler(model),
             )
 
-        Explore runs with Neptune tracking here:
-        https://app.neptune.ai/o/common/org/pytorch-ignite-integration/
-
         You can also save model checkpoints to a Neptune:
 
         .. code-block:: python
@@ -171,7 +169,7 @@ class NeptuneLogger(BaseLogger):
     def __setitem__(self, key: str, val: Any) -> Any:
         self.experiment[key] = val
 
-    def __init__(self, api_token: Optional[str] = None, project: Optional[str] = None, **kwargs: Any) -> None:
+    def __init__(self, api_token: str | None = None, project: str | None = None, **kwargs: Any) -> None:
         try:
             import neptune
         except ImportError:
@@ -319,14 +317,14 @@ class OutputHandler(BaseOutputHandler):
     def __init__(
         self,
         tag: str,
-        metric_names: Optional[Union[str, List[str]]] = None,
-        output_transform: Optional[Callable] = None,
-        global_step_transform: Optional[Callable[[Engine, Union[str, Events]], int]] = None,
-        state_attributes: Optional[List[str]] = None,
+        metric_names: str | list[str] | None = None,
+        output_transform: Callable | None = None,
+        global_step_transform: Callable[[Engine, str | Events], int] | None = None,
+        state_attributes: list[str] | None = None,
     ):
         super().__init__(tag, metric_names, output_transform, global_step_transform, state_attributes)
 
-    def __call__(self, engine: Engine, logger: NeptuneLogger, event_name: Union[str, Events]) -> None:
+    def __call__(self, engine: Engine, logger: NeptuneLogger, event_name: str | Events) -> None:
         if not isinstance(logger, NeptuneLogger):
             raise TypeError("Handler OutputHandler works only with NeptuneLogger")
 
@@ -383,10 +381,10 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
             )
     """
 
-    def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None):
+    def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: str | None = None):
         super().__init__(optimizer, param_name, tag)
 
-    def __call__(self, engine: Engine, logger: NeptuneLogger, event_name: Union[str, Events]) -> None:
+    def __call__(self, engine: Engine, logger: NeptuneLogger, event_name: str | Events) -> None:
         if not isinstance(logger, NeptuneLogger):
             raise TypeError("Handler OptimizerParamsHandler works only with NeptuneLogger")
 
@@ -489,7 +487,7 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
         optional argument `whitelist` added.
     """
 
-    def __call__(self, engine: Engine, logger: NeptuneLogger, event_name: Union[str, Events]) -> None:
+    def __call__(self, engine: Engine, logger: NeptuneLogger, event_name: str | Events) -> None:
         if not isinstance(logger, NeptuneLogger):
             raise TypeError("Handler WeightsScalarHandler works only with NeptuneLogger")
 
@@ -593,7 +591,7 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
         optional argument `whitelist` added.
     """
 
-    def __call__(self, engine: Engine, logger: NeptuneLogger, event_name: Union[str, Events]) -> None:
+    def __call__(self, engine: Engine, logger: NeptuneLogger, event_name: str | Events) -> None:
         if not isinstance(logger, NeptuneLogger):
             raise TypeError("Handler GradsScalarHandler works only with NeptuneLogger")
 
@@ -661,9 +659,6 @@ class NeptuneSaver(BaseSaveHandler):
             # We need to close the logger when we are done
             npt_logger.close()
 
-    For example, you can access model checkpoints and download them from here:
-    https://app.neptune.ai/o/shared/org/pytorch-ignite-integration/e/PYTOR1-18/charts
-
     """
 
     @idist.one_rank_only()
@@ -671,7 +666,7 @@ class NeptuneSaver(BaseSaveHandler):
         self._logger = neptune_logger
 
     @idist.one_rank_only()
-    def __call__(self, checkpoint: Mapping, filename: str, metadata: Optional[Mapping] = None) -> None:
+    def __call__(self, checkpoint: Mapping, filename: str, metadata: Mapping | None = None) -> None:
         # wont work on XLA
 
         # Imports for BC compatibility

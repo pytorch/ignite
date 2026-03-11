@@ -1,0 +1,4 @@
+pytorch-ignite
+ray[tune]
+torch
+torchvision

@@ -40,8 +40,6 @@
   <meta property="og:image:alt" content="PyTorch-Ignite logo">
   <meta property="og:description" content="High-level library to help with training and evaluating neural networks in PyTorch flexibly and transparently.">
 
-  <link rel="preconnect" href="https://BH4D9OD16A-dsn.algolia.net" crossorigin />
-
   {% block htmltitle %}
   <title>{{ title|striptags|e }}{{ titlesuffix }}</title>
   {% endblock %}
@@ -67,8 +65,10 @@
 
   {% endif %}
 
+  {%- if style is defined %}
   <link rel="preload" href="{{ pathto('_static/' + style, 1) }}" as="style" />
   <link rel="stylesheet" href="{{ pathto('_static/' + style, 1) }}" type="text/css" />
+  {%- endif %}
   <!-- <link rel="stylesheet" href="{{ pathto('_static/pygments.css', 1) }}" type="text/css" /> -->
   {%- for css in css_files %}
     {%- if css|attr("rel") %}
@@ -196,7 +196,13 @@
               {% endif %}
             {% endif %}
 
-            <div id="docsearch"></div>
+            <div role="search">
+              <form id="rtd-search-form" class="wy-form" action="{{ pathto('search') }}" method="get">
+                <input type="text" name="q" placeholder="{{ _('Search docs') }}" />
+                <input type="hidden" name="check_keywords" value="yes" />
+                <input type="hidden" name="area" value="default" />
+              </form>
+            </div>
 
             {% endblock %}
           </div>
@@ -515,25 +521,6 @@
         $(this).closest("a").addClass("has-code");
       });
     })
-  </script>
-  <script src="https://cdn.jsdelivr.net/npm/@docsearch/js@3"></script>
-  <script type="text/javascript">
-  let VERSION
-  if ('{{ version }}'.startsWith('v')) {
-    VERSION = '{{ version }}'
-  } else {
-    VERSION = 'master'
-  }
-  docsearch({
-    container: '#docsearch',
-    appId: '7EWYE1JCT3',
-    apiKey: '841e93e60c16975ba1bd8c7c716eed82',
-    indexName: 'pytorch-ignite',
-    placeholder: 'Search PyTorch-Ignite docs',
-    searchParameters: {
-      facetFilters: [`version:${VERSION}`, 'tags:API-reference'],
-    }
-  });
   </script>
 </body>
 </html>

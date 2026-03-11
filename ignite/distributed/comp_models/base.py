@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
+from collections.abc import Callable
 from numbers import Number
-from typing import Any, Callable, cast
+from typing import Any, cast
 
 import torch
 from packaging.version import Version

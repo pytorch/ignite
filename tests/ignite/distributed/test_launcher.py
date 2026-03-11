@@ -48,11 +48,14 @@ def execute(cmd, env=None):
     env = dict(os.environ) if env is None else env
     env["PYTHONPATH"] = f"{os.path.dirname(ignite.__path__[0])}"
     process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
-    process.wait()
+    stdout, stderr = process.communicate()
+    stdout_str = stdout.decode("utf-8", errors="replace") if stdout else ""
+    stderr_str = stderr.decode("utf-8", errors="replace") if stderr else ""
+
     if process.returncode != 0:
-        print(str(process.stdout.read()) + str(process.stderr.read()))
-        raise subprocess.CalledProcessError(returncode=process.returncode, cmd=cmd, stderr=process.stderr.read())
-    return str(process.stdout.read()) + str(process.stderr.read())
+        print(stdout_str + stderr_str)
+        raise subprocess.CalledProcessError(returncode=process.returncode, cmd=cmd, stderr=stderr_str)
+    return stdout_str + stderr_str
 
 
 @pytest.mark.skipif(not is_mps_available_and_functional(), reason="Skip if MPS not functional")
@@ -96,7 +99,20 @@ def _test_check_idist_parallel_torch_launch(init_method, fp, backend, nprocs):
 @pytest.mark.distributed
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip because test uses torch launch")
-@pytest.mark.parametrize("init_method", [None, "tcp://0.0.0.0:29500", "FILE"])
+@pytest.mark.parametrize(
+    "init_method",
+    [
+        None,
+        pytest.param(
+            "tcp://0.0.0.0:29500",
+            marks=pytest.mark.skipif(
+                "dev" in torch.__version__,
+                reason="Skip tcp:// init_method with torchrun on nightly due to incompatibility",
+            ),
+        ),
+        "FILE",
+    ],
+)
 @pytest.mark.parametrize(
     "backend",
     ["gloo", pytest.param("nccl", marks=pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU"))],

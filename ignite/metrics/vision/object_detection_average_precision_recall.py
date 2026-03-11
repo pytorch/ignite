@@ -1,10 +1,10 @@
-from typing import Callable, cast, Sequence
+from collections.abc import Callable, Sequence
+from typing import cast
 
 import torch
 from typing_extensions import Literal
 
 from ignite.metrics import MetricGroup
-
 from ignite.metrics.mean_average_precision import _BaseAveragePrecision, _cat_and_agg_tensors
 from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
 

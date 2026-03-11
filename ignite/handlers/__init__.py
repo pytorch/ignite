@@ -1,5 +1,3 @@
-from typing import Any, Callable, Optional
-
 from ignite.engine import Engine
 from ignite.engine.events import Events
 from ignite.handlers.checkpoint import Checkpoint, DiskSaver, ModelCheckpoint

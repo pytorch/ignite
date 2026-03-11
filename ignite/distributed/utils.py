@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import itertools
 import socket
+from collections.abc import Callable, Mapping, Sequence
 from contextlib import contextmanager
 from functools import wraps
-from typing import Any, Callable, cast, Mapping, Sequence
+from typing import Any, cast
 
 import torch
 

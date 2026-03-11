@@ -1,7 +1,7 @@
-sphinx<6
+sphinx==7
 git+https://github.com/pytorch/pytorch_sphinx_theme.git#egg=pytorch_sphinx_theme
 sphinxcontrib-katex
 sphinx-copybutton==0.4.0
-docutils<0.18
+docutils==0.19
 sphinx_togglebutton
 sphinx_design

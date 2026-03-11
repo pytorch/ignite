@@ -5,8 +5,8 @@ import time
 import warnings
 import weakref
 from collections import defaultdict, OrderedDict
-from collections.abc import Mapping
-from typing import Any, Callable, Generator, Iterable, Iterator
+from collections.abc import Callable, Generator, Iterable, Iterator, Mapping
+from typing import Any
 
 from torch.utils.data import DataLoader
 

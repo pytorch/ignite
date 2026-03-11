@@ -2,7 +2,8 @@ import random
 import warnings
 from collections import OrderedDict
 from functools import wraps
-from typing import Any, Callable, Generator, Iterator
+from collections.abc import Callable, Generator, Iterator
+from typing import Any
 
 import torch
 from torch.utils.data import DataLoader

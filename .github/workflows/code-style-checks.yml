@@ -48,12 +48,18 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Get year & week number
+        id: get-date
+        run: |
+          echo "date=$(/bin/date "+%Y-%U")" >> $GITHUB_OUTPUT
+
       - uses: astral-sh/setup-uv@v7
         with:
           version: "latest"
           python-version: ${{ matrix.python-version }}
           activate-environment: true
           enable-cache: true
+          cache-suffix: "${{ steps.get-date.outputs.date }}-style-${{ runner.os }}-${{ matrix.python-version }}"
           cache-dependency-glob: |
             **/requirements-dev.txt
             **/pyproject.toml
