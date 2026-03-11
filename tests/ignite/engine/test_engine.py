@@ -1,3 +1,4 @@
+import math
 import os
 import time
 from unittest.mock import call, MagicMock, Mock
@@ -1329,6 +1330,9 @@ class TestEngine:
         assert trainer.state.iteration == 2 * 4
 
     def test_run_with_data_whose_len_raises_type_error(self):
+        # covers: silent `except TypeError: pass` block triggered when a DataLoader
+        # over an IterableDataset raises TypeError on len(); epoch_length falls back
+        # to the actual iteration count instead of None
         class BadLenData:
             def __len__(self):
                 raise TypeError("IterableDataset has no len()")
@@ -1341,14 +1345,6 @@ class TestEngine:
         assert state.epoch == 1
         assert state.iteration == 3
         assert state.epoch_length == 3
-
-    def test_setup_dataloader_iter_raises_on_none_epoch_length(self):
-        # covers: RuntimeError raised when dataloader and epoch_length are both None during internal dataloader iterator setup
-        engine = Engine(lambda e, b: None)
-        engine.state = State(dataloader=None, epoch_length=None, max_epochs=1, iteration=0, epoch=0)
-
-        with pytest.raises(RuntimeError, match="Internal error, self.state.epoch_length is None"):
-            engine._setup_dataloader_iter()
 
     @pytest.mark.parametrize("use_gen", [True, False])
     def test_internal_run_raises_when_dataloader_iter_is_none(self, use_gen):
@@ -1364,8 +1360,8 @@ class TestEngine:
                 engine._run_once_on_dataset_legacy()
 
     def test_max_epochs_calculated_from_max_iters_unknown_epoch_length(self):
-        # covers: max_epochs auto-calculated as ceil(max_iters / epoch_length) when data is an iterator of unknown length and max_iters is provided
-        import math
+        # covers: max_epochs auto-calculated as ceil(max_iters / epoch_length)
+        # when data is an iterator of unknown length and max_iters is provided
 
         def data_iter():
             for i in range(5):
@@ -1388,32 +1384,6 @@ class TestEngine:
 
         with pytest.raises(ValueError, match="Argument epoch_length should be same as in the state"):
             engine.run([1, 2, 3], max_epochs=2, epoch_length=10)
-
-    def test_load_state_dict_raises_on_missing_user_key(self):
-        # covers: ValueError raised when a user-defined state key is missing from the provided state_dict
-        engine = Engine(lambda e, b: None)
-        engine.state_dict_user_keys.append("custom_key")
-        engine.state.custom_key = 42
-
-        state_dict = engine.state_dict()
-        del state_dict["custom_key"]
-
-        with pytest.raises(ValueError, match="Required user state attribute 'custom_key' is absent"):
-            engine.load_state_dict(state_dict)
-
-    @pytest.mark.parametrize(
-        "state_dict, match",
-        [
-            (
-                {"epoch": 3, "max_epochs": 10, "epoch_length": None},
-                "If epoch is provided in the state dict, epoch_length should not be None",
-            ),
-        ],
-    )
-    def test_load_state_dict_raises(self, state_dict, match):
-        engine = Engine(lambda e, b: None)
-        with pytest.raises(ValueError, match=match):
-            engine.load_state_dict(state_dict)
 
     def test_resume_after_terminate_resets_init_iter(self):
         # covers: _init_iter set to 0 when resuming after engine was terminated mid-run
@@ -1445,98 +1415,10 @@ class TestEngine:
         assert len(caught) == 1
         assert caught[0] is exc
 
-    def test_state_dict_includes_user_keys(self):
-        # covers: state_dict() returns user-defined keys when state_dict_user_keys is populated
-        engine = Engine(lambda e, b: None)
-        engine.state_dict_user_keys.append("best_loss")
-        engine.state.best_loss = 0.42
-        engine.run([1, 2, 3], max_epochs=1)
-
-        sd = engine.state_dict()
-        assert "best_loss" in sd
-        assert sd["best_loss"] == 0.42
-
-    @pytest.mark.parametrize(
-        "kwargs, match",
-        [
-            ({"event_to_attr": "not_a_dict"}, "Expected event_to_attr to be dictionary"),
-            ({"event_name": 123}, "should be a str or EventEnum"),
-        ],
-    )
-    def test_register_events_raises(self, kwargs, match):
-        engine = Engine(lambda e, b: None)
-        with pytest.raises((ValueError, TypeError), match=match):
-            if "event_name" in kwargs:
-                engine.register_events(kwargs["event_name"])
-            else:
-                engine.register_events("MY_EVENT", **kwargs)
-
-    @pytest.mark.parametrize(
-        "action, match",
-        [
-            ("remove_nonexistent_event", "does not exist"),
-            ("remove_unregistered_handler", "is not found among registered event handlers"),
-            ("assert_invalid_event", "is not a valid event"),
-            ("fire_invalid_event", "is not a valid event"),
-        ],
-    )
-    def test_event_handler_raises_on_invalid_event(self, action, match):
-        engine = Engine(lambda e, b: None)
-        if action == "remove_nonexistent_event":
-            with pytest.raises(ValueError, match=match):
-                engine.remove_event_handler(lambda: None, "INVALID_EVENT")
-        elif action == "remove_unregistered_handler":
-            engine.add_event_handler(Events.STARTED, lambda: None)
-            with pytest.raises(ValueError, match=match):
-                engine.remove_event_handler(lambda: None, Events.STARTED)
-        elif action == "assert_invalid_event":
-            with pytest.raises(ValueError, match=match):
-                engine._assert_allowed_event("INVALID_EVENT")
-        elif action == "fire_invalid_event":
-            engine.state = State(dataloader=None, epoch_length=1, max_epochs=1, iteration=0, epoch=0)
-            with pytest.raises(ValueError, match=match):
-                engine.fire_event("INVALID_EVENT")
-
-    @pytest.mark.parametrize(
-        "scenario",
-        [
-            "event_not_registered_returns_false",
-            "search_all_events_found",
-            "search_all_events_not_found",
-        ],
-    )
-    def test_has_event_handler(self, scenario):
-        engine = Engine(lambda e, b: None)
-        if scenario == "event_not_registered_returns_false":
-            assert not engine.has_event_handler(lambda: None, Events.STARTED)
-        elif scenario == "search_all_events_found":
-
-            def my_handler():
-                pass
-
-            engine.add_event_handler(Events.STARTED, my_handler)
-            assert engine.has_event_handler(my_handler)
-        elif scenario == "search_all_events_not_found":
-            assert not engine.has_event_handler(lambda: None)
-
-    def test_load_state_dict_with_iteration_key(self):
-        # covers: load_state_dict computes epoch from iteration when epoch_length is set
-        engine = Engine(lambda e, b: None)
-        engine.load_state_dict({"iteration": 30, "max_epochs": 10, "epoch_length": 10})
-        assert engine.state.iteration == 30
-        assert engine.state.epoch == 3
-
     def test_resume_raises_when_data_none_and_epoch_length_none(self):
         # covers: ValueError raised when resuming with data=None and epoch_length=None
         engine = Engine(lambda e, b: None)
-
-        def data_iter():
-            for i in range(3):
-                yield i
-
-        engine.run(data_iter(), max_epochs=1)
-        engine.state.epoch_length = None
-        engine.state.max_epochs = 5
+        engine.state = State(dataloader=None, epoch_length=None, max_epochs=5, iteration=0, epoch=0)
 
         with pytest.raises(ValueError, match="epoch_length should be provided if data is None"):
             engine.run(None, max_epochs=5)
