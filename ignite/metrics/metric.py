@@ -2,6 +2,8 @@ from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from collections.abc import Callable, Mapping, Sequence
 from functools import wraps
+import inspect
+
 from numbers import Number
 from typing import TYPE_CHECKING, Any, Literal, cast
 
@@ -793,11 +795,28 @@ class Metric(Serializable, metaclass=ABCMeta):
         if attr.startswith("__") and attr.endswith("__"):
             return object.__getattribute__(self, attr)
 
+        # Capture the caller's frame at attribute-access time so that if attr
+        # turns out to be a typo, MetricsLambda.compute() can point the user
+        # back here instead of raising a cryptic error deep in the call stack.
+        # The frame is deleted immediately after to avoid reference cycles.
+        _frame = inspect.currentframe()
+        try:
+            _caller = inspect.getouterframes(_frame, context=1)[1]
+            _definition_site = (
+                _caller.filename,
+                _caller.lineno,
+                _caller.function,
+                _caller.code_context[0].strip() if _caller.code_context else "<unknown>",
+            )
+        finally:
+            del _frame
+
         def fn(x: Metric, *args: Any, **kwargs: Any) -> Any:
             return getattr(x, attr)(*args, **kwargs)
 
         def wrapper(*args: Any, **kwargs: Any) -> "MetricsLambda":
-            return MetricsLambda(fn, self, *args, **kwargs)
+            # OLD -> return MetricsLambda(fn, self, *args, **kwargs)
+            return MetricsLambda(fn, self, *args, _definition_site=_definition_site, _attr_name=attr, **kwargs)
 
         return wrapper
 

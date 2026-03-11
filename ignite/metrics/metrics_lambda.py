@@ -112,6 +112,13 @@ class MetricsLambda(Metric):
         metrics_result_mode: Literal["flatten", "named", "both"] = "both",
         **kwargs: Any,
     ) -> None:
+        # Metric.__getattr__ injects two private keys (_definition_site, _attr_name)
+        # to track where a chained attribute was accessed. We pop them here so they
+        # don't leak into self.kwargs, which gets passed to self.function in compute()
+        # and serialised by state_dict.
+        self._definition_site = kwargs.pop("_definition_site", None)
+        self.attr_name = kwargs.pop("_attr_name", None)
+
         self.function = f
         self.args = list(args)  # we need args to be a list instead of a tuple for state_dict/load_state_dict feature
         self.kwargs = kwargs
@@ -143,7 +150,21 @@ class MetricsLambda(Metric):
     def compute(self) -> Any:
         materialized = [_get_value_on_cpu(i) for i in self.args]
         materialized_kwargs = {k: _get_value_on_cpu(v) for k, v in self.kwargs.items()}
-        return self.function(*materialized, **materialized_kwargs)
+
+        try:
+            return self.function(*materialized, **materialized_kwargs)
+        except AttributeError as exc:
+            if self._definition_site is not None and self._attr_name is not None:
+                filename, lineno, func, code = self._definition_site
+                raise AttributeError(
+                    f"{exc}\n\n"
+                    f"This error originates from accessing '{self._attr_name}' on a Metric  at:\n"
+                    f'  File "{filename}", line {lineno}, in {func}\n'
+                    f"    {code}\n"
+                    f"Did you mean a different attribute? "
+                    f"Check the spelling of '{self._attr_name}'."
+                ) from exc
+            raise
 
     def _internal_attach(self, engine: Engine, usage: MetricUsage) -> None:
         self.engine = engine

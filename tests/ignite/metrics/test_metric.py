@@ -1529,3 +1529,37 @@ def test_metrics_result_mode_conflict_error():
     metric.attach(engine, "map")
     with pytest.raises(ValueError):
         engine.run([0], max_epochs=1)
+
+
+def test_metric_getattr_typo_reports_definition_site():
+    # A typo like .meen() should fail at compute() with the original call site in the error
+    precision = Precision(average=False)
+    bad_metric = precision.meen()  # typo — no error here yet
+
+    # feed data so precision.compute() returns a tensor — the typo error fires after that
+    y_pred = torch.tensor([[0.9, 0.1], [0.2, 0.8]])
+    y_true = torch.tensor([0, 1])
+    precision.update((y_pred, y_true))
+
+    with pytest.raises(AttributeError) as exc_info:
+        bad_metric.compute()
+
+    error_msg = str(exc_info.value)
+    assert "meen" in error_msg
+    assert "test_metric.py" in error_msg
+
+
+def test_metric_getattr_valid_chaining_unaffected():
+    # valid chaining like .mean() must keep working as before
+    precision = Precision(average=False)
+    mean_precision = precision.mean()
+
+    engine = Engine(lambda e, b: b)
+    mean_precision.attach(engine, "mean_precision")
+
+    y_pred = torch.tensor([[0.9, 0.1], [0.2, 0.8]])
+    y_true = torch.tensor([0, 1])
+    state = engine.run([[y_pred, y_true]])
+
+    assert "mean_precision" in state.metrics
+    assert isinstance(state.metrics["mean_precision"], float)
