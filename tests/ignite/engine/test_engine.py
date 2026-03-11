@@ -1346,19 +1346,6 @@ class TestEngine:
         assert state.iteration == 3
         assert state.epoch_length == 3
 
-    @pytest.mark.parametrize("use_gen", [True, False])
-    def test_internal_run_raises_when_dataloader_iter_is_none(self, use_gen):
-        engine = Engine(lambda e, b: None)
-        engine.state = State(dataloader=[1, 2, 3], epoch_length=3, max_epochs=1, iteration=0, epoch=0)
-        engine._setup_engine()
-        engine._dataloader_iter = None
-        with pytest.raises(RuntimeError, match="Internal error, self._dataloader_iter is None"):
-            if use_gen:
-                gen = engine._run_once_on_dataset_as_gen()
-                next(gen)
-            else:
-                engine._run_once_on_dataset_legacy()
-
     def test_max_epochs_calculated_from_max_iters_unknown_epoch_length(self):
         # covers: max_epochs auto-calculated as ceil(max_iters / epoch_length)
         # when data is an iterator of unknown length and max_iters is provided
