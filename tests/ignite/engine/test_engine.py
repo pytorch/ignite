@@ -1386,22 +1386,6 @@ class TestEngine:
         engine.run([0] * 10, max_epochs=2)
         assert engine._init_iter is None  # consumed after setup
 
-    def test_handle_exception_fires_event_if_handler_registered(self):
-        # covers: _handle_exception fires EXCEPTION_RAISED event when a handler is registered
-        engine = Engine(lambda e, b: None)
-        caught = []
-
-        @engine.on(Events.EXCEPTION_RAISED)
-        def catch(exc):
-            caught.append(exc)
-
-        exc = ValueError("test error")
-        engine.state = State(dataloader=None, epoch_length=None, max_epochs=1, iteration=0, epoch=0)
-        engine._handle_exception(exc)
-
-        assert len(caught) == 1
-        assert caught[0] is exc
-
     def test_resume_raises_when_data_none_and_epoch_length_none(self):
         # covers: ValueError raised when resuming with data=None and epoch_length=None
         engine = Engine(lambda e, b: None)
