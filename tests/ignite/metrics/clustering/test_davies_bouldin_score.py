@@ -33,6 +33,13 @@ def test_wrong_output_shape():
         metric = DaviesBouldinScore()
         metric.update((correct_features, wrong_labels))
 
+def test_davies_bouldin_single_cluster():
+    metric = DaviesBouldinScore()
+    features = torch.randn(10, 5)
+    labels = torch.zeros(10, dtype=torch.long) 
+    metric.update((features, labels))
+    with pytest.raises(ValueError, match="at least 2 unique clusters"):
+        metric.compute()
 
 def test_wrong_output_dtype():
     wrong_features = torch.zeros(4, 3, dtype=torch.long)
