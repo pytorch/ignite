@@ -11,7 +11,13 @@ __all__ = ["DaviesBouldinScore"]
 
 def _davies_bouldin_score(features: Tensor, labels: Tensor) -> float:
     from sklearn.metrics import davies_bouldin_score
-
+    
+    unique_labels = torch.unique(labels)
+    if len(unique_labels) < 2:
+        raise ValueError(
+            f"DaviesBouldinScore requires at least 2 unique clusters, "
+            f"but got {len(unique_labels)}."
+        )
     np_features = features.cpu().numpy()
     np_labels = labels.cpu().numpy()
     score = davies_bouldin_score(np_features, np_labels)
