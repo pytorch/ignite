@@ -788,10 +788,23 @@ class Metric(Serializable, metaclass=ABCMeta):
         return MetricsLambda(lambda x, y: x // y, self, other)
 
     def __getattr__(self, attr: str) -> Callable:
+        import warnings
+
         from ignite.metrics.metrics_lambda import MetricsLambda
 
         if attr.startswith("__") and attr.endswith("__"):
             return object.__getattribute__(self, attr)
+
+        if attr.startswith("_"):
+            raise AttributeError(f"'{type(self).__name__}' object has no attribute '{attr}'")
+
+        warnings.warn(
+            f"Metric '{type(self).__name__}' does not have attribute '{attr}'. "
+            f"This will be wrapped into a MetricsLambda that calls '{attr}' on the "
+            f"computed value at engine runtime. If this is a typo, fix it now — "
+            f"errors will only surface later inside engine.run().",
+            stacklevel=2,
+        )
 
         def fn(x: Metric, *args: Any, **kwargs: Any) -> Any:
             return getattr(x, attr)(*args, **kwargs)
