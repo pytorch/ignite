@@ -27,7 +27,7 @@ class Recall(_BasePrecisionRecall):
         average: available options are
 
             False
-              default option. For multicalss and multilabel inputs, per class and per label
+              default option. For multiclass and multilabel inputs, per class and per label
               metric is returned respectively.
 
             None
@@ -41,7 +41,7 @@ class Recall(_BasePrecisionRecall):
                   \text{Micro Recall} = \frac{\sum_{k=1}^C TP_k}{\sum_{k=1}^C TP_k+FN_k}
 
               where :math:`C` is the number of classes/labels (2 in binary case). :math:`k` in
-              :math:`TP_k` and :math:`FN_k`means that the measures are computed for class/label :math:`k` (in
+              :math:`TP_k` and :math:`FN_k` means that the measures are computed for class/label :math:`k` (in
               a one-vs-rest sense in multiclass case).
 
               For binary and multiclass inputs, this is equivalent with accuracy,
@@ -234,7 +234,7 @@ class Recall(_BasePrecisionRecall):
         elif self._average == "micro":
             self._denominator += y.sum()
             self._numerator += correct.sum()
-        else:  # _average in [False, 'macro', 'weighted']
+        else:  # _average in [False, None, 'macro', 'weighted']
             self._denominator += y.sum(dim=0)
             self._numerator += correct.sum(dim=0)
 
