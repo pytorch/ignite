@@ -50,6 +50,13 @@ def test_wrong_output_dtype():
         metric.update((correct_features, correct_labels))
         metric.update((correct_features, wrong_labels))
 
+def test_single_cluster():
+    with pytest.raises(NotComputableError, match="at least 2 clusters"):
+        metric = SilhouetteScore(check_compute_fn=False)
+        features = torch.tensor([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])
+        labels = torch.tensor([0, 0, 0], dtype=torch.long)
+        metric.update((features, labels))
+        metric.compute()
 
 @pytest.fixture(params=list(range(2)))
 def test_case(request):

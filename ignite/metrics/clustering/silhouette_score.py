@@ -4,6 +4,7 @@ from typing import Any
 import torch
 from torch import Tensor
 
+from ignite.exceptions import NotComputableError
 from ignite.metrics.clustering._base import _ClusteringMetricBase
 
 __all__ = ["SilhouetteScore"]
@@ -114,5 +115,13 @@ class SilhouetteScore(_ClusteringMetricBase):
 
         np_features = features.cpu().numpy()
         np_labels = labels.cpu().numpy()
+
+        n_unique = len(set(np_labels.tolist()))
+        if n_unique < 2:
+            raise NotComputableError(
+                f"SilhouetteScore requires at least 2 clusters, "
+                f"but found only {n_unique} unique label(s)."
+            )
+
         score = silhouette_score(np_features, np_labels, **self._silhouette_kwargs)
         return score
