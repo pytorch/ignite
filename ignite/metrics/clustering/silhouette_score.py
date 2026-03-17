@@ -1,3 +1,4 @@
+import math
 from collections.abc import Callable
 from typing import Any
 
@@ -114,5 +115,15 @@ class SilhouetteScore(_ClusteringMetricBase):
 
         np_features = features.cpu().numpy()
         np_labels = labels.cpu().numpy()
+
+        n_samples = len(np_labels)
+        n_unique_labels = len(set(np_labels))
+
+        # The silhouette score is undefined when there is only 1 cluster
+        # or when every sample is its own cluster. Return NaN in these cases
+        # instead of crashing with a ValueError from sklearn.
+        if n_unique_labels < 2 or n_unique_labels >= n_samples:
+            return math.nan
+
         score = silhouette_score(np_features, np_labels, **self._silhouette_kwargs)
         return score
