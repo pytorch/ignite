@@ -4,7 +4,6 @@ from typing import Any
 import torch
 from torch import Tensor
 
-from ignite.exceptions import NotComputableError
 from ignite.metrics.clustering._base import _ClusteringMetricBase
 
 __all__ = ["SilhouetteScore"]
@@ -91,6 +90,11 @@ class SilhouetteScore(_ClusteringMetricBase):
             0.1260736584663391
 
     .. versionadded:: 0.5.2
+
+    .. note::
+        Returns ``float("nan")`` if the number of unique labels is less than 2
+        or if each sample belongs to its own cluster (``n_unique >= n_samples``),
+        as the silhouette score is undefined in these cases.
     """
 
     def __init__(
@@ -111,17 +115,17 @@ class SilhouetteScore(_ClusteringMetricBase):
         super().__init__(self._silhouette_score, output_transform, check_compute_fn, device, skip_unrolling)
 
     def _silhouette_score(self, features: Tensor, labels: Tensor) -> float:
+        import numpy as np
         from sklearn.metrics import silhouette_score
 
         np_features = features.cpu().numpy()
         np_labels = labels.cpu().numpy()
 
-        n_unique = len(set(np_labels.tolist()))
-        if n_unique < 2:
-            raise NotComputableError(
-                f"SilhouetteScore requires at least 2 clusters, "
-                f"but found only {n_unique} unique label(s)."
-            )
+        n_unique = len(np.unique(np_labels))
+        n_samples = len(np_labels)
+
+        if n_unique < 2 or n_unique >= n_samples:
+            return float("nan")
 
         score = silhouette_score(np_features, np_labels, **self._silhouette_kwargs)
         return score
