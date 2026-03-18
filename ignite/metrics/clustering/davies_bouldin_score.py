@@ -10,10 +10,18 @@ __all__ = ["DaviesBouldinScore"]
 
 
 def _davies_bouldin_score(features: Tensor, labels: Tensor) -> float:
+    import numpy as np
     from sklearn.metrics import davies_bouldin_score
 
     np_features = features.cpu().numpy()
     np_labels = labels.cpu().numpy()
+
+    n_unique = len(np.unique(np_labels))
+    n_samples = len(np_labels)
+
+    if n_unique < 2 or n_unique >= n_samples:
+        return float("nan")
+
     score = davies_bouldin_score(np_features, np_labels)
     return score
 
@@ -90,6 +98,11 @@ class DaviesBouldinScore(_ClusteringMetricBase):
             1.3838673743829881
 
     .. versionadded:: 0.5.2
+
+    .. note::
+        Returns ``float("nan")`` if the number of unique labels is less than 2
+        or if each sample belongs to its own cluster (``n_unique >= n_samples``),
+        as the Davies-Bouldin score is undefined in these cases.
     """
 
     def __init__(
