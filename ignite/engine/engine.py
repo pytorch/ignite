@@ -956,7 +956,12 @@ class Engine(Serializable):
 
     def _setup_dataloader_iter(self) -> None:
         if self.state.dataloader is None:
-            self._dataloader_iter = _get_none_data_iter(self.state.epoch_length)  # pyrefly: ignore[bad-argument-type]
+            if self.state.epoch_length is None:
+                raise RuntimeError(
+                    "Internal error, self.state.epoch_length is None. "
+                    "Please, file an issue if you encounter this error."
+                )
+            self._dataloader_iter = _get_none_data_iter(self.state.epoch_length)
         else:
             self._dataloader_iter = iter(self.state.dataloader)
 
@@ -1074,6 +1079,12 @@ class Engine(Serializable):
         self._init_iter = None
         should_exit = False
         try:
+            if self._dataloader_iter is None:
+                raise RuntimeError(
+                    "Internal error, self._dataloader_iter is None. "
+                    "Please, file an issue if you encounter this error."
+                )
+
             while True:
                 self.state.batch = None
 
@@ -1085,7 +1096,8 @@ class Engine(Serializable):
                         if self.state.dataloader is not None:
                             self._fire_event(Events.GET_BATCH_STARTED)
                             yield from self._maybe_terminate_or_interrupt()
-                    self.state.batch = next(self._dataloader_iter)  # pyrefly: ignore[no-matching-overload]
+
+                    self.state.batch = next(self._dataloader_iter)
                     # We on purpose reset state.output here as for iterable dataloaders
                     # we accidentally can remove it when one epoch is completed.
                     self.state.output = None
@@ -1255,6 +1267,12 @@ class Engine(Serializable):
         self._init_iter = None
         should_exit = False
         try:
+            if self._dataloader_iter is None:
+                raise RuntimeError(
+                    "Internal error, self._dataloader_iter is None. "
+                    "Please, file an issue if you encounter this error."
+                )
+
             while True:
                 self.state.batch = None
                 try:
@@ -1265,7 +1283,8 @@ class Engine(Serializable):
                         if self.state.dataloader is not None:
                             self._fire_event(Events.GET_BATCH_STARTED)
                             self._maybe_terminate_legacy()
-                    self.state.batch = next(self._dataloader_iter)  # pyrefly: ignore[no-matching-overload]
+
+                    self.state.batch = next(self._dataloader_iter)
                     # We on purpose reset state.output here as for iterable dataloaders
                     # we accidentally can remove it when one epoch is completed.
                     self.state.output = None
