@@ -385,6 +385,8 @@ class Checkpoint(Serializable):
         self.score_name = score_name
         if self.score_name is not None and self.score_function is None:
             self.score_function = self.get_default_score_fn(self.score_name)
+        if n_saved is not None and n_saved < 1:
+            raise ValueError(f"n_saved must be a positive integer or None, got {n_saved}")
         self.n_saved = n_saved
         self.ext = "pt"
         self.global_step_transform = global_step_transform
