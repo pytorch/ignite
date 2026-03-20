@@ -115,17 +115,16 @@ class SilhouetteScore(_ClusteringMetricBase):
         super().__init__(self._silhouette_score, output_transform, check_compute_fn, device, skip_unrolling)
 
     def _silhouette_score(self, features: Tensor, labels: Tensor) -> float:
-        import numpy as np
         from sklearn.metrics import silhouette_score
 
-        np_features = features.cpu().numpy()
-        np_labels = labels.cpu().numpy()
-
-        n_unique = len(np.unique(np_labels))
-        n_samples = len(np_labels)
+        n_unique = len(torch.unique(labels))
+        n_samples = labels.shape[0]
 
         if n_unique < 2 or n_unique >= n_samples:
             return float("nan")
+
+        np_features = features.detach().cpu().numpy()
+        np_labels = labels.detach().cpu().numpy()
 
         score = silhouette_score(np_features, np_labels, **self._silhouette_kwargs)
         return score
