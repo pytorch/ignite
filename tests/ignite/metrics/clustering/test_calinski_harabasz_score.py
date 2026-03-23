@@ -11,7 +11,6 @@ from ignite.exceptions import NotComputableError
 from ignite.metrics.clustering import CalinskiHarabaszScore
 
 
-
 @pytest.mark.parametrize(
     "features, labels, desc",
     [
