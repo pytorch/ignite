@@ -37,9 +37,9 @@ def test_subgroup_accuracy_difference_binary_labels(available_device) -> None:
     # y_pred and y are (B,)
     # Group 0: 2/2 correct (1.0)
     # Group 1: 0/2 correct (0.0)
-    y_pred = torch.tensor([1, 0, 1, 0])
-    y = torch.tensor([1, 0, 0, 1])
-    groups = torch.tensor([0, 0, 1, 1])
+    y_pred = torch.tensor([1, 0, 1, 0], device=available_device)
+    y = torch.tensor([1, 0, 0, 1], device=available_device)
+    groups = torch.tensor([0, 0, 1, 1], device=available_device)
 
     metric.update((y_pred, y, groups))
     assert_close(metric.compute(), 1.0)
@@ -52,9 +52,9 @@ def test_subgroup_accuracy_difference_binary_probs(available_device) -> None:
     # y_pred is (B, 1), y is (B,)
     # Group 0: 2/2 correct (1.0)
     # Group 1: 1/2 correct (0.5)
-    y_pred = torch.tensor([[1], [0], [1], [1]])
-    y = torch.tensor([1, 0, 1, 0])
-    groups = torch.tensor([0, 0, 1, 1])
+    y_pred = torch.tensor([[1], [0], [1], [1]], device=available_device)
+    y = torch.tensor([1, 0, 1, 0], device=available_device)
+    groups = torch.tensor([0, 0, 1, 1], device=available_device)
 
     metric.update((y_pred, y, groups))
     assert_close(metric.compute(), 0.5)
@@ -67,9 +67,9 @@ def test_subgroup_accuracy_difference_multiclass(available_device) -> None:
     # y_pred is (B, C), y is (B,)
     # Group 0: 1/1 correct (1.0)
     # Group 1: 0/1 correct (0.0)
-    y_pred = torch.tensor([[0.1, 0.8, 0.1], [0.8, 0.1, 0.1]])
-    y = torch.tensor([1, 1])
-    groups = torch.tensor([0, 1])
+    y_pred = torch.tensor([[0.1, 0.8, 0.1], [0.8, 0.1, 0.1]], device=available_device)
+    y = torch.tensor([1, 1], device=available_device)
+    groups = torch.tensor([0, 1], device=available_device)
 
     metric.update((y_pred, y, groups))
     assert_close(metric.compute(), 1.0)
@@ -83,9 +83,9 @@ def test_subgroup_accuracy_difference_multilabel(available_device) -> None:
     # Accuracy uses sample-wise correctness: all labels must match per sample.
     # Group 0 (sample 0): y_pred=[1,0], y=[1,0] -> all match -> correct. Accuracy = 1/1 = 1.0
     # Group 1 (sample 1): y_pred=[1,1], y=[1,0] -> not all match -> incorrect. Accuracy = 0/1 = 0.0
-    y_pred = torch.tensor([[1, 0], [1, 1]])
-    y = torch.tensor([[1, 0], [1, 0]])
-    groups = torch.tensor([0, 1])
+    y_pred = torch.tensor([[1, 0], [1, 1]], device=available_device)
+    y = torch.tensor([[1, 0], [1, 0]], device=available_device)
+    groups = torch.tensor([0, 1], device=available_device)
 
     metric.update((y_pred, y, groups))
     assert_close(metric.compute(), 1.0)
@@ -100,19 +100,19 @@ def test_subgroup_accuracy_difference_spatial(available_device) -> None:
     # Group 0: spatial targets (4 pixels) all correct (1.0)
     # Group 1: spatial targets (4 pixels) all incorrect (0.0)
 
-    y_pred = torch.zeros(2, 2, 2, 2)
+    y_pred = torch.zeros(2, 2, 2, 2, device=available_device)
     # Group 0 (index 0): predict class 0 for all
     y_pred[0, 0, :, :] = 1.0
     # Group 1 (index 1): predict class 0 for all
     y_pred[1, 0, :, :] = 1.0
 
-    y = torch.zeros(2, 2, 2, dtype=torch.long)
+    y = torch.zeros(2, 2, 2, dtype=torch.long, device=available_device)
     # Group 0: all class 0 (1.0 acc)
     y[0, :, :] = 0
     # Group 1: all class 1 (0.0 acc)
     y[1, :, :] = 1
 
-    groups = torch.tensor([0, 1])
+    groups = torch.tensor([0, 1], device=available_device)
 
     metric.update((y_pred, y, groups))
     assert_close(metric.compute(), 1.0)
@@ -124,10 +124,12 @@ def test_compare_accuracy_difference_with_fairlearn(available_device) -> None:
     ignite_metric = SubgroupAccuracyDifference(groups=groups_list, device=available_device)
 
     # Random binary data
-    y_pred_probs = torch.tensor([[0.1, 0.9], [0.8, 0.2], [0.3, 0.7], [0.6, 0.4], [0.2, 0.8], [0.7, 0.3]])
+    y_pred_probs = torch.tensor(
+        [[0.1, 0.9], [0.8, 0.2], [0.3, 0.7], [0.6, 0.4], [0.2, 0.8], [0.7, 0.3]], device=available_device
+    )
     y_pred = torch.argmax(y_pred_probs, dim=1)
-    y_true = torch.tensor([1, 0, 1, 1, 0, 0])
-    group_labels = torch.tensor([0, 0, 0, 1, 1, 1])
+    y_true = torch.tensor([1, 0, 1, 1, 0, 0], device=available_device)
+    group_labels = torch.tensor([0, 0, 0, 1, 1, 1], device=available_device)
 
     # Ignite update and compute
     ignite_metric.update((y_pred_probs, y_true, group_labels))

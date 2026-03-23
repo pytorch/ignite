@@ -32,9 +32,9 @@ def test_demographic_parity_difference_binary_probs_shape_B(available_device) ->
     # y_pred is (B,) already thresholded
     # Group 0: 1 pos / 2 total = 0.5
     # Group 1: 0 pos / 2 total = 0.0
-    y_pred = torch.tensor([1, 0, 0, 0])
-    y = torch.tensor([0, 0, 0, 0])  # ignored
-    groups = torch.tensor([0, 0, 1, 1])
+    y_pred = torch.tensor([1, 0, 0, 0], device=available_device)
+    y = torch.tensor([0, 0, 0, 0], device=available_device)  # ignored
+    groups = torch.tensor([0, 0, 1, 1], device=available_device)
 
     metric.update((y_pred, y, groups))
     assert_close(metric.compute(), 0.5)
@@ -44,9 +44,9 @@ def test_demographic_parity_difference_binary_probs_shape_B_1(available_device) 
     """Tests DemographicParityDifference with shape (B, 1) thresholded inputs."""
     metric = DemographicParityDifference(groups=[0, 1], device=available_device)
     # y_pred is (B, 1) already thresholded
-    y_pred = torch.tensor([[1], [0], [1], [0]])
-    y = torch.tensor([0, 0, 0, 0])
-    groups = torch.tensor([0, 0, 1, 1])
+    y_pred = torch.tensor([[1], [0], [1], [0]], device=available_device)
+    y = torch.tensor([0, 0, 0, 0], device=available_device)
+    groups = torch.tensor([0, 0, 1, 1], device=available_device)
     metric.update((y_pred, y, groups))
     # G0 selection rate: 0.5, G1 selection rate: 0.5 -> Diff 0.0
     assert_close(metric.compute(), 0.0)
@@ -64,10 +64,11 @@ def test_demographic_parity_difference_multiclass(available_device) -> None:
             [0.1, 0.8, 0.1],  # pred class 1
             [0.8, 0.1, 0.1],  # pred class 0
             [0.1, 0.1, 0.8],  # pred class 2
-        ]
+        ],
+        device=available_device,
     )
-    y = torch.tensor([0, 0, 0, 0])
-    groups = torch.tensor([0, 0, 1, 1])
+    y = torch.tensor([0, 0, 0, 0], device=available_device)
+    groups = torch.tensor([0, 0, 1, 1], device=available_device)
 
     metric.update((y_pred, y, groups))
     # Disparities: Class 0: 0.0, Class 1: 0.5, Class 2: 0.5
@@ -80,9 +81,9 @@ def test_demographic_parity_difference_multilabel(available_device) -> None:
     # y_pred is (B, C) indicators
     # G0: [1, 1, 0], [0, 0, 0] -> rates: [0.5, 0.5, 0.0]
     # G1: [1, 1, 1], [0, 1, 0] -> rates: [0.5, 1.0, 0.5]
-    y_pred = torch.tensor([[1, 1, 0], [0, 0, 0], [1, 1, 1], [0, 1, 0]])
-    y = torch.tensor([[0, 0, 0]] * 4)
-    groups = torch.tensor([0, 0, 1, 1])
+    y_pred = torch.tensor([[1, 1, 0], [0, 0, 0], [1, 1, 1], [0, 1, 0]], device=available_device)
+    y = torch.tensor([[0, 0, 0]] * 4, device=available_device)
+    groups = torch.tensor([0, 0, 1, 1], device=available_device)
 
     metric.update((y_pred, y, groups))
     # Disparities: C0: 0.0, C1: 0.5, C2: 0.5
@@ -103,10 +104,11 @@ def test_compare_demographic_parity_with_fairlearn(available_device) -> None:
             [0.1, 0.8, 0.1],
             [0.1, 0.8, 0.1],
             [0.1, 0.8, 0.1],
-        ]
+        ],
+        device=available_device,
     )
-    y_true = torch.zeros(6)  # ignored by SelectionRate
-    group_labels = torch.tensor([0, 0, 0, 1, 1, 1])
+    y_true = torch.zeros(6, device=available_device)  # ignored by SelectionRate
+    group_labels = torch.tensor([0, 0, 0, 1, 1, 1], device=available_device)
 
     ignite_metric.update((y_pred_probs, y_true, group_labels))
     ignite_result = ignite_metric.compute()
@@ -126,8 +128,8 @@ def test_compare_demographic_parity_with_fairlearn(available_device) -> None:
     assert_close(ignite_result, float(fairlearn_max_diff))
 
     # Simple binary case
-    y_pred_binary = torch.tensor([1, 0, 1, 0, 0, 0])
-    group_labels_binary = torch.tensor([0, 0, 0, 1, 1, 1])
+    y_pred_binary = torch.tensor([1, 0, 1, 0, 0, 0], device=available_device)
+    group_labels_binary = torch.tensor([0, 0, 0, 1, 1, 1], device=available_device)
 
     ignite_metric.reset()
     ignite_metric.update((y_pred_binary, y_true, group_labels_binary))
@@ -144,23 +146,23 @@ def test_selection_rate_binary(available_device) -> None:
     """Tests SelectionRate for basic binary predictions."""
     metric = SelectionRate(device=available_device)
     # 2 positives out of 4
-    y_pred = torch.tensor([1, 0, 1, 0])
-    y = torch.tensor([0, 0, 0, 0])
+    y_pred = torch.tensor([1, 0, 1, 0], device=available_device)
+    y = torch.tensor([0, 0, 0, 0], device=available_device)
     metric.update((y_pred, y))
     res = metric.compute()
-    assert_close(res, torch.tensor([0.5, 0.5]))
+    assert_close(res, torch.tensor([0.5, 0.5], device=available_device))
 
 
 def test_selection_rate_multiclass(available_device) -> None:
     """Tests SelectionRate for multiclass predictions."""
     metric = SelectionRate(device=available_device)
     # 0: 2 picks, 1: 1 pick, 2: 1 pick. Total 4.
-    y_pred = torch.tensor([[0.8, 0.1, 0.1], [0.8, 0.1, 0.1], [0.1, 0.8, 0.1], [0.1, 0.1, 0.8]])
-    y = torch.tensor([0, 0, 0, 0])
+    y_pred = torch.tensor([[0.8, 0.1, 0.1], [0.8, 0.1, 0.1], [0.1, 0.8, 0.1], [0.1, 0.1, 0.8]], device=available_device)
+    y = torch.tensor([0, 0, 0, 0], device=available_device)
     metric.update((y_pred, y))
     res = metric.compute()
     # proportions: [0.5, 0.25, 0.25]
-    assert_close(res, torch.tensor([0.5, 0.25, 0.25]))
+    assert_close(res, torch.tensor([0.5, 0.25, 0.25], device=available_device))
 
 
 @pytest.mark.usefixtures("distributed")
