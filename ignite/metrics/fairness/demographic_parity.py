@@ -20,6 +20,26 @@ class SelectionRate(_BaseClassification):
         is_multilabel: if True, multilabel selection rate is calculated. By default, False.
         device: specifies the computation device.
         skip_unrolling: specifies whether output should be unrolled before being fed to update method.
+
+    Examples:
+
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
+        .. testcode::
+
+            metric = SelectionRate()
+            metric.attach(default_evaluator, 'selection_rate')
+            y_pred = torch.tensor([[0.1, 0.9], [0.2, 0.8], [0.9, 0.1], [0.9, 0.1]])
+            y_true = torch.tensor([1, 1, 0, 0])  # ignored
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics['selection_rate'])
+
+        .. testoutput::
+
+            tensor([0.5000, 0.5000])
+
+    .. versionadded:: 0.6.0
     """
 
     def __init__(

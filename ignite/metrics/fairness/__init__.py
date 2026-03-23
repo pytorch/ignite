@@ -1,11 +1,3 @@
 from ignite.metrics.fairness.accuracy_difference import SubgroupAccuracyDifference
 from ignite.metrics.fairness.base import SubgroupDifference, SubgroupMetric
 from ignite.metrics.fairness.demographic_parity import DemographicParityDifference, SelectionRate
-
-__all__ = [
-    "SubgroupAccuracyDifference",
-    "DemographicParityDifference",
-    "SubgroupMetric",
-    "SubgroupDifference",
-    "SelectionRate",
-]
