@@ -799,12 +799,12 @@ class Metric(Serializable, metaclass=ABCMeta):
         # to where they wrote it instead of erroring deep inside compute().
         definition_trace = "".join(traceback.format_stack()[:-1])
 
-        def fn(x: "Metric", *args: Any, **kwargs: Any) -> Any:
+        def fn(x: Metric, *args: Any, **kwargs: Any) -> Any:
             try:
                 return getattr(x, attr)(*args, **kwargs)
             except AttributeError:
                 raise AttributeError(
-                    f"Metric result has no attribute '{attr}'. "
+                    f"Metric result of type '{type(x)}' has no attribute '{attr}'. "
                     f"Note: '{attr}' was accessed on the metric at:\n{definition_trace}"
                 ) from None
 
