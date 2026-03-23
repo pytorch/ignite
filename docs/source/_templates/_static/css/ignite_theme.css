@@ -18,7 +18,12 @@ div.container a.header-logo {
   left: 0;
   width: inherit;
   color: #fcfcfc;
-  font-family: FreightSans, Helvetica Neue, Helvetica, Arial, sans-serif;
+  font-family:
+    FreightSans,
+    Helvetica Neue,
+    Helvetica,
+    Arial,
+    sans-serif;
   background: #d1d2d5;
   z-index: 400;
 }
@@ -197,8 +202,9 @@ article.pytorch-article .class dt > span span.pre,
 article.pytorch-article .function dt > span span.pre {
   color: inherit;
   font-size: 87.5%;
-  font-family: IBMPlexMono, SFMono-Regular, Menlo, Monaco, Consolas,
-    "Liberation Mono", "Courier New", monospace;
+  font-family:
+    IBMPlexMono, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
 }
 
 /* Sphinx >=3.5: Fix annotations */
@@ -206,4 +212,65 @@ article.pytorch-article .class dt span.pre,
 article.pytorch-article .function dt span.pre {
   color: inherit;
   padding: 2px 0.2px;
+}
+
+#search-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+}
+
+#search-overlay .search-overlay-content {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  width: 80%;
+  max-width: 600px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+#close-search {
+  position: absolute;
+  right: 15px;
+  top: 10px;
+  cursor: pointer;
+  font-size: 24px;
+}
+
+#search-overlay .search-overlay-title {
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+#overlay-rtd-search-form {
+  display: flex;
+}
+
+#overlay-search-input {
+  flex: 1;
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+#overlay-rtd-search-form button[type="submit"] {
+  margin-left: 10px;
+  padding: 10px 20px;
+  background: #ee4c2c;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
 }
