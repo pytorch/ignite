@@ -16,6 +16,7 @@ class _BaseAveragePrecision:
         self,
         rec_thresholds: Sequence[float] | torch.Tensor | None = None,
         class_mean: Literal["micro", "macro", "weighted"] | None = "macro",
+        device: str | torch.device = torch.device("cpu"),
     ) -> None:
         r"""Base class for Average Precision metric.
 
@@ -54,7 +55,10 @@ class _BaseAveragePrecision:
 
                 'macro'
                   computes macro precision which is unweighted mean of AP computed across classes/labels. Default.
+            device: specifies which device updates are accumulated on.
         """
+        self._device = torch.device(device)
+        self._fp_precision = torch.float32 if self._device.type == "mps" else torch.float64
         if rec_thresholds is not None:
             self.rec_thresholds: torch.Tensor | None = self._setup_thresholds(rec_thresholds, "rec_thresholds")
         else:
@@ -66,7 +70,7 @@ class _BaseAveragePrecision:
 
     def _setup_thresholds(self, thresholds: Sequence[float] | torch.Tensor, threshold_type: str) -> torch.Tensor:
         if isinstance(thresholds, Sequence):
-            thresholds = torch.tensor(thresholds, dtype=torch.double)
+            thresholds = torch.tensor(thresholds)
 
         if isinstance(thresholds, torch.Tensor):
             if thresholds.ndim != 1:
@@ -81,7 +85,7 @@ class _BaseAveragePrecision:
         if min(thresholds) < 0 or max(thresholds) > 1:
             raise ValueError(f"{threshold_type} values should be between 0 and 1, given {thresholds}")
 
-        return thresholds
+        return thresholds.to(self._device, dtype=self._fp_precision)
 
     def _compute_average_precision(self, recall: torch.Tensor, precision: torch.Tensor) -> torch.Tensor:
         """Measuring average precision.
@@ -102,7 +106,7 @@ class _BaseAveragePrecision:
             ).where(rec_thresh_indices != recall.size(-1), 0)
             recall = rec_thresholds
         recall_differential = recall.diff(
-            dim=-1, prepend=torch.zeros((*recall.shape[:-1], 1), device=recall.device, dtype=recall.dtype)
+            dim=-1, prepend=torch.zeros((*recall.shape[:-1], 1), device=recall.device, dtype=self._fp_precision)
         )
         return torch.sum(recall_differential * precision, dim=-1)
 
@@ -226,7 +230,7 @@ class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
             device=device,
             skip_unrolling=skip_unrolling,
         )
-        super(Metric, self).__init__(rec_thresholds=rec_thresholds, class_mean=class_mean)
+        super(Metric, self).__init__(rec_thresholds=rec_thresholds, class_mean=class_mean, device=device)
 
     @reinit__is_reduced
     def reset(self) -> None:
@@ -310,7 +314,7 @@ class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
         self._check_shape(output)
         self._check_type(output)
         yp, yt = self._prepare_output(output)
-        self._y_pred.append(yp.to(self._device))
+        self._y_pred.append(yp.to(self._device, dtype=self._fp_precision))
         self._y_true.append(yt.to(self._device, dtype=torch.uint8 if self._type != "multiclass" else torch.long))
 
     def _compute_recall_and_precision(
@@ -336,9 +340,7 @@ class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
             `(recall, precision)`
         """
         indices = torch.argsort(y_pred, stable=True, descending=True)
-        tp_summation = y_true[indices].cumsum(dim=0)
-        if tp_summation.device != torch.device("mps"):
-            tp_summation = tp_summation.double()
+        tp_summation = y_true[indices].cumsum(dim=0).to(self._fp_precision)
 
         # Adopted from Scikit-learn's implementation
         unique_scores_indices = torch.nonzero(
@@ -371,7 +373,7 @@ class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
             torch.long if self._type == "multiclass" else torch.uint8,
             self._device,
         )
-        fp_precision = torch.double if self._device != torch.device("mps") else torch.float32
+        fp_precision = self._fp_precision
         y_pred = _cat_and_agg_tensors(self._y_pred, (num_classes,), fp_precision, self._device)
 
         if self._type == "multiclass":

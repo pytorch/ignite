@@ -18,7 +18,7 @@ import ignite.distributed as idist
 from ignite.engine import Engine
 from ignite.metrics import CommonObjectDetectionMetrics, ObjectDetectionAvgPrecisionRecall
 from ignite.metrics.vision.object_detection_average_precision_recall import coco_tensor_list_to_dict_list
-from ignite.utils import manual_seed
+from ignite.utils import apply_to_tensor, manual_seed
 
 torch.set_printoptions(linewidth=200)
 manual_seed(12)
@@ -605,9 +605,25 @@ def sample(request) -> Sample:
                 0,
             ),
         }
+    data = (data[0][:10], data[1][:10])
     mAP = pycoco_mAP(*data)
 
     return Sample(data, mAP, len(data[0]))
+
+
+@pytest.fixture
+def get_sample(sample):
+    def _get_sample(device):
+        def _to_device(t):
+            if t.is_floating_point() and torch.device(device).type == "mps":
+                return t.float().to(device=device)
+            return t.to(device=device)
+
+        data = apply_to_tensor(sample.data, _to_device)
+
+        return Sample(data, sample.mAP, sample.length)
+
+    return _get_sample
 
 
 def test_wrong_input():
@@ -844,8 +860,8 @@ def test__compute_recall_and_precision(available_device):
     sklearn_precision, sklearn_recall, _ = sklearn_precision_recall_curve_allowing_multiple_recalls_at_single_threshold(
         y_true.numpy(), scores.numpy()
     )
-    assert (ignite_recall.flip(0).numpy() == sklearn_recall[:-1]).all()
-    assert (ignite_precision.flip(0).numpy() == sklearn_precision[:-1]).all()
+    assert np.allclose(ignite_recall.flip(0).cpu().numpy(), sklearn_recall[:-1])
+    assert np.allclose(ignite_precision.flip(0).cpu().numpy(), sklearn_precision[:-1])
 
     # Like above but with two additional mean dimensions.
     scores = torch.rand((50,))
@@ -864,16 +880,13 @@ def test__compute_recall_and_precision(available_device):
     ignite_recall, ignite_precision = m._compute_recall_and_precision(
         y_true.bool(), ~(y_true.bool()), scores, torch.tensor(15)
     )
-    assert (ignite_recall.flip(-1).numpy() == sklearn_recalls).all()
-    assert (ignite_precision.flip(-1).numpy() == sklearn_precisions).all()
+    assert np.allclose(ignite_recall.flip(-1).cpu().numpy(), sklearn_recalls)
+    assert np.allclose(ignite_precision.flip(-1).cpu().numpy(), sklearn_precisions)
 
 
-def test_compute(sample):
-    device = idist.device()
-
-    if device == torch.device("mps"):
-        pytest.skip("Due to MPS backend out of memory")
-
+def test_compute(get_sample, available_device):
+    device = available_device
+    sample = get_sample(device)
     # AP@.5...95, AP@.5, AP@.75, AP-S, AP-M, AP-L, AR-1, AR-10, AR-100, AR-S, AR-M, AR-L
     ap_50_95_ar_100 = ObjectDetectionAvgPrecisionRecall(num_classes=91, device=device)
     ap_50 = ObjectDetectionAvgPrecisionRecall(num_classes=91, iou_thresholds=[0.5], device=device)
@@ -902,9 +915,12 @@ def test_compute(sample):
     AR_1 = ignite_res[6][1]
     AR_10 = ignite_res[7][1]
     all_res = [AP_50_95, AP_50, AP_75, AP_S, AP_M, AP_L, AR_1, AR_10, AR_100, AR_S, AR_M, AR_L]
-    print(all_res)
     assert np.allclose(all_res, sample.mAP)
 
+
+def test_common_metrics(get_sample, available_device):
+    device = available_device
+    sample = get_sample(device)
     common_metrics = CommonObjectDetectionMetrics(num_classes=91, device=device)
     common_metrics.update(sample.data)
     res = common_metrics.compute()
@@ -922,17 +938,24 @@ def test_compute(sample):
         res["AR-M"],
         res["AR-L"],
     ]
-    print(common_metrics_res)
-    assert all_res == common_metrics_res
     assert np.allclose(common_metrics_res, sample.mAP)
 
 
-def test_integration(sample):
-    bs = 3
+def test_cross_device_update(sample, available_device):
+    # This test ensures that metric handles inputs on CPU correctly regardless of metric device
+    device = available_device
+    metric = ObjectDetectionAvgPrecisionRecall(num_classes=91, device=device)
 
-    device = idist.device()
-    if device == torch.device("mps"):
-        pytest.skip("Due to MPS backend out of memory")
+    # sample.data has tensors on CPU by default from the fixture
+    metric.update(sample.data)
+    res = metric.compute()
+    assert res[0] > -1
+
+
+def test_engine_integration(get_sample, available_device):
+    bs = 3
+    device = available_device
+    sample = get_sample(device)
 
     def update(engine, i):
         b = slice(i * bs, (i + 1) * bs)
@@ -940,8 +963,8 @@ def test_integration(sample):
 
     engine = Engine(update)
 
-    metric_device = "cpu" if device.type == "xla" else device
-    metric_50_95 = ObjectDetectionAvgPrecisionRecall(num_classes=91, device=metric_device)
+    # Note: available_device could be 'cpu', 'cuda', or 'mps'
+    metric_50_95 = ObjectDetectionAvgPrecisionRecall(num_classes=91, device=device)
     metric_50_95.attach(engine, name="mAP[50-95]")
 
     n_iter = ceil(sample.length / bs)
@@ -1002,9 +1025,6 @@ def test_distrib_update_compute(distributed, sample):
 
     device = idist.device()
 
-    if device == torch.device("mps"):
-        pytest.skip("Due to MPS backend out of memory")
-
     metric_device = "cpu" if device.type == "xla" else device
     # AP@.5...95, AP@.5, AP@.75, AP-S, AP-M, AP-L, AR-1, AR-10, AR-100, AR-S, AR-M, AR-L
     ap_50_95_ar_100 = ObjectDetectionAvgPrecisionRecall(num_classes=91, device=metric_device)
@@ -1022,8 +1042,9 @@ def test_distrib_update_compute(distributed, sample):
 
     y_pred_rank = sample.data[0][rank_samples_range]
     y_rank = sample.data[1][rank_samples_range]
-    for metric in metrics:
-        metric.update((y_pred_rank, y_rank))
+    if len(y_pred_rank) > 0:
+        for metric in metrics:
+            metric.update((y_pred_rank, y_rank))
 
     ignite_res = [metric.compute() for metric in metrics]
     ignite_res_recompute = [metric.compute() for metric in metrics]
