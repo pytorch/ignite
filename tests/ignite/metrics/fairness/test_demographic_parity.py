@@ -26,9 +26,9 @@ def test_demographic_parity_difference_single_group() -> None:
         metric.compute()
 
 
-def test_demographic_parity_difference_binary_probs_shape_B() -> None:
+def test_demographic_parity_difference_binary_probs_shape_B(available_device) -> None:
     """Tests DemographicParityDifference with shape (B,) thresholded inputs."""
-    metric = DemographicParityDifference(groups=[0, 1])
+    metric = DemographicParityDifference(groups=[0, 1], device=available_device)
     # y_pred is (B,) already thresholded
     # Group 0: 1 pos / 2 total = 0.5
     # Group 1: 0 pos / 2 total = 0.0
@@ -40,9 +40,9 @@ def test_demographic_parity_difference_binary_probs_shape_B() -> None:
     assert_close(metric.compute(), 0.5)
 
 
-def test_demographic_parity_difference_binary_probs_shape_B_1() -> None:
+def test_demographic_parity_difference_binary_probs_shape_B_1(available_device) -> None:
     """Tests DemographicParityDifference with shape (B, 1) thresholded inputs."""
-    metric = DemographicParityDifference(groups=[0, 1])
+    metric = DemographicParityDifference(groups=[0, 1], device=available_device)
     # y_pred is (B, 1) already thresholded
     y_pred = torch.tensor([[1], [0], [1], [0]])
     y = torch.tensor([0, 0, 0, 0])
@@ -52,9 +52,9 @@ def test_demographic_parity_difference_binary_probs_shape_B_1() -> None:
     assert_close(metric.compute(), 0.0)
 
 
-def test_demographic_parity_difference_multiclass() -> None:
+def test_demographic_parity_difference_multiclass(available_device) -> None:
     """Tests DemographicParityDifference with multiclass logits."""
-    metric = DemographicParityDifference(groups=[0, 1])
+    metric = DemographicParityDifference(groups=[0, 1], device=available_device)
     # y_pred is (B, C)
     # G0 selection rates: [0.5, 0.5, 0.0]
     # G1 selection rates: [0.5, 0.0, 0.5]
@@ -74,9 +74,9 @@ def test_demographic_parity_difference_multiclass() -> None:
     assert_close(metric.compute(), 0.5)
 
 
-def test_demographic_parity_difference_multilabel() -> None:
+def test_demographic_parity_difference_multilabel(available_device) -> None:
     """Tests DemographicParityDifference with multilabel data."""
-    metric = DemographicParityDifference(groups=[0, 1], is_multilabel=True)
+    metric = DemographicParityDifference(groups=[0, 1], is_multilabel=True, device=available_device)
     # y_pred is (B, C) indicators
     # G0: [1, 1, 0], [0, 0, 0] -> rates: [0.5, 0.5, 0.0]
     # G1: [1, 1, 1], [0, 1, 0] -> rates: [0.5, 1.0, 0.5]
@@ -89,9 +89,9 @@ def test_demographic_parity_difference_multilabel() -> None:
     assert_close(metric.compute(), 0.5)
 
 
-def test_compare_demographic_parity_with_fairlearn() -> None:
+def test_compare_demographic_parity_with_fairlearn(available_device) -> None:
     """Verifies DemographicParityDifference matches Fairlearn's demographic_parity_difference"""
-    ignite_metric = DemographicParityDifference(groups=[0, 1])
+    ignite_metric = DemographicParityDifference(groups=[0, 1], device=available_device)
 
     # Multi-class case
     # G0: [0, 1, 0], G1: [1, 1, 1]
@@ -140,9 +140,9 @@ def test_compare_demographic_parity_with_fairlearn() -> None:
     assert_close(ignite_res_bin, float(fairlearn_res_bin))
 
 
-def test_selection_rate_binary() -> None:
+def test_selection_rate_binary(available_device) -> None:
     """Tests SelectionRate for basic binary predictions."""
-    metric = SelectionRate()
+    metric = SelectionRate(device=available_device)
     # 2 positives out of 4
     y_pred = torch.tensor([1, 0, 1, 0])
     y = torch.tensor([0, 0, 0, 0])
@@ -151,9 +151,9 @@ def test_selection_rate_binary() -> None:
     assert_close(res, torch.tensor([0.5, 0.5]))
 
 
-def test_selection_rate_multiclass() -> None:
+def test_selection_rate_multiclass(available_device) -> None:
     """Tests SelectionRate for multiclass predictions."""
-    metric = SelectionRate()
+    metric = SelectionRate(device=available_device)
     # 0: 2 picks, 1: 1 pick, 2: 1 pick. Total 4.
     y_pred = torch.tensor([[0.8, 0.1, 0.1], [0.8, 0.1, 0.1], [0.1, 0.8, 0.1], [0.1, 0.1, 0.8]])
     y = torch.tensor([0, 0, 0, 0])

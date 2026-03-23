@@ -30,9 +30,9 @@ def test_subgroup_accuracy_difference_single_group() -> None:
         metric.compute()
 
 
-def test_subgroup_accuracy_difference_binary_labels() -> None:
+def test_subgroup_accuracy_difference_binary_labels(available_device) -> None:
     """Tests SubgroupAccuracyDifference with binary 0/1 labels."""
-    metric = SubgroupAccuracyDifference(groups=[0, 1])
+    metric = SubgroupAccuracyDifference(groups=[0, 1], device=available_device)
 
     # y_pred and y are (B,)
     # Group 0: 2/2 correct (1.0)
@@ -45,9 +45,9 @@ def test_subgroup_accuracy_difference_binary_labels() -> None:
     assert_close(metric.compute(), 1.0)
 
 
-def test_subgroup_accuracy_difference_binary_probs() -> None:
+def test_subgroup_accuracy_difference_binary_probs(available_device) -> None:
     """Tests SubgroupAccuracyDifference with (B, 1) thresholded labels."""
-    metric = SubgroupAccuracyDifference(groups=[0, 1])
+    metric = SubgroupAccuracyDifference(groups=[0, 1], device=available_device)
 
     # y_pred is (B, 1), y is (B,)
     # Group 0: 2/2 correct (1.0)
@@ -60,9 +60,9 @@ def test_subgroup_accuracy_difference_binary_probs() -> None:
     assert_close(metric.compute(), 0.5)
 
 
-def test_subgroup_accuracy_difference_multiclass() -> None:
+def test_subgroup_accuracy_difference_multiclass(available_device) -> None:
     """Tests SubgroupAccuracyDifference with multiclass logits."""
-    metric = SubgroupAccuracyDifference(groups=[0, 1])
+    metric = SubgroupAccuracyDifference(groups=[0, 1], device=available_device)
 
     # y_pred is (B, C), y is (B,)
     # Group 0: 1/1 correct (1.0)
@@ -75,9 +75,9 @@ def test_subgroup_accuracy_difference_multiclass() -> None:
     assert_close(metric.compute(), 1.0)
 
 
-def test_subgroup_accuracy_difference_multilabel() -> None:
+def test_subgroup_accuracy_difference_multilabel(available_device) -> None:
     """Tests SubgroupAccuracyDifference with multilabel data."""
-    metric = SubgroupAccuracyDifference(groups=[0, 1], is_multilabel=True)
+    metric = SubgroupAccuracyDifference(groups=[0, 1], is_multilabel=True, device=available_device)
 
     # y_pred and y are (B, C)
     # Accuracy uses sample-wise correctness: all labels must match per sample.
@@ -91,9 +91,9 @@ def test_subgroup_accuracy_difference_multilabel() -> None:
     assert_close(metric.compute(), 1.0)
 
 
-def test_subgroup_accuracy_difference_spatial() -> None:
+def test_subgroup_accuracy_difference_spatial(available_device) -> None:
     """Tests SubgroupAccuracyDifference with spatial (image) data."""
-    metric = SubgroupAccuracyDifference(groups=[0, 1])
+    metric = SubgroupAccuracyDifference(groups=[0, 1], device=available_device)
 
     # y_pred is (B, C, H, W), y is (B, H, W)
     # B=2, C=2, H=2, W=2
@@ -118,10 +118,10 @@ def test_subgroup_accuracy_difference_spatial() -> None:
     assert_close(metric.compute(), 1.0)
 
 
-def test_compare_accuracy_difference_with_fairlearn() -> None:
+def test_compare_accuracy_difference_with_fairlearn(available_device) -> None:
     """Verifies SubgroupAccuracyDifference matches Fairlearn's MetricFrame(accuracy_score).difference()"""
     groups_list = [0, 1]
-    ignite_metric = SubgroupAccuracyDifference(groups=groups_list)
+    ignite_metric = SubgroupAccuracyDifference(groups=groups_list, device=available_device)
 
     # Random binary data
     y_pred_probs = torch.tensor([[0.1, 0.9], [0.8, 0.2], [0.3, 0.7], [0.6, 0.4], [0.2, 0.8], [0.7, 0.3]])
