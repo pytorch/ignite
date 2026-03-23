@@ -3,6 +3,7 @@ from collections.abc import Callable, Sequence
 
 from ignite.exceptions import NotComputableError
 from ignite.metrics.accuracy import _BaseClassification
+from ignite.metrics.metric import sync_all_reduce
 from ignite.metrics.fairness.base import SubgroupDifference
 
 __all__ = ["DemographicParityDifference", "SelectionRate"]
@@ -41,6 +42,8 @@ class SelectionRate(_BaseClassification):
 
     .. versionadded:: 0.6.0
     """
+
+    _state_dict_all_req_keys = ("_num_positives", "_num_examples")
 
     def __init__(
         self,
@@ -88,6 +91,7 @@ class SelectionRate(_BaseClassification):
             self._num_positives = self._num_positives + positives.to(self._device)
         self._num_examples += total
 
+    @sync_all_reduce("_num_examples", "_num_positives")
     def compute(self) -> torch.Tensor:
         """Computes the selection rate.
 

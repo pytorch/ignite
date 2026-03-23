@@ -116,12 +116,12 @@ def test_compare_demographic_parity_with_fairlearn(available_device) -> None:
     # Fairlearn verification for multiclass
     # We calculate demographic parity difference for each class independently (one-vs-rest)
     # and take the max, which is how Ignite's SubgroupDifference handles vector outputs.
-    y_pred_classes = torch.argmax(y_pred_probs, dim=1).numpy()
+    y_pred_classes = torch.argmax(y_pred_probs, dim=1).cpu().numpy()
     fairlearn_max_diff = 0.0
     for c in range(3):
         y_pred_bin = (y_pred_classes == c).astype(int)
         diff = demographic_parity_difference(
-            y_true=y_true.numpy(), y_pred=y_pred_bin, sensitive_features=group_labels.numpy()
+            y_true=y_true.cpu().numpy(), y_pred=y_pred_bin, sensitive_features=group_labels.cpu().numpy()
         )
         fairlearn_max_diff = max(fairlearn_max_diff, diff)
 
@@ -136,7 +136,9 @@ def test_compare_demographic_parity_with_fairlearn(available_device) -> None:
     ignite_res_bin = ignite_metric.compute()
 
     fairlearn_res_bin = demographic_parity_difference(
-        y_true=y_true.numpy(), y_pred=y_pred_binary.numpy(), sensitive_features=group_labels_binary.numpy()
+        y_true=y_true.cpu().numpy(),
+        y_pred=y_pred_binary.cpu().numpy(),
+        sensitive_features=group_labels_binary.cpu().numpy(),
     )
 
     assert_close(ignite_res_bin, float(fairlearn_res_bin))
@@ -299,3 +301,33 @@ def test_demographic_parity_type_switch_validation() -> None:
     metric.update((torch.randn(4, 3), torch.randint(0, 3, (4,)), torch.zeros(4)))
     with pytest.raises(ValueError, match="Input data number of classes has changed"):
         metric.update((torch.randn(4, 5), torch.randint(0, 5, (4,)), torch.zeros(4)))
+
+
+def test_demographic_parity_difference_checkpointing() -> None:
+    """Verifies that the state of SubgroupDifference is correctly preserved across state_dict calls."""
+    metric = DemographicParityDifference(groups=[0, 1])
+
+    # 1. Update with some data for Group 0
+    y_pred_0 = torch.tensor([[0.1, 0.9], [0.1, 0.9]])
+    y_true_0 = torch.tensor([1, 1])
+    groups_0 = torch.tensor([0, 0])
+    metric.update((y_pred_0, y_true_0, groups_0))
+
+    # 2. Save the state
+    state = metric.state_dict()
+
+    # 3. Create a NEW metric instance and load the state
+    new_metric = DemographicParityDifference(groups=[0, 1])
+    new_metric.load_state_dict(state)
+
+    # 4. Update the NEW metric with data for Group 1 only
+    y_pred_1 = torch.tensor([[0.9, 0.1], [0.9, 0.1]])
+    y_true_1 = torch.tensor([1, 1])
+    groups_1 = torch.tensor([1, 1])
+    new_metric.update((y_pred_1, y_true_1, groups_1))
+
+    # 5. Compute the result on the new metric
+    # The new metric should have 1.0 selection rate for Group 0 (from state)
+    # and 0.0 selection rate for Group 1 (from new update).
+    # Result: 1.0 - 0.0 = 1.0
+    assert new_metric.compute() == 1.0

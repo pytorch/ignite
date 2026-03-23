@@ -138,7 +138,10 @@ def test_compare_accuracy_difference_with_fairlearn(available_device) -> None:
     # Fairlearn computation
     # Fairlearn's MetricFrame takes numpy arrays
     mf = MetricFrame(
-        metrics=accuracy_score, y_true=y_true.numpy(), y_pred=y_pred.numpy(), sensitive_features=group_labels.numpy()
+        metrics=accuracy_score,
+        y_true=y_true.cpu().numpy(),
+        y_pred=y_pred.cpu().numpy(),
+        sensitive_features=group_labels.cpu().numpy(),
     )
     fairlearn_result = mf.difference()
 

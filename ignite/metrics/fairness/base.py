@@ -1,5 +1,6 @@
 import copy
-from collections.abc import Callable, Sequence
+from collections import OrderedDict
+from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
 import torch
@@ -51,6 +52,24 @@ class _SubgroupBase(Metric):
             except NotComputableError:
                 continue
         return results
+
+    def state_dict(self) -> OrderedDict:
+        state_dict = super().state_dict()
+        state_dict["_metrics"] = {str(g): m.state_dict() for g, m in self._metrics.items()}
+        return state_dict
+
+    def load_state_dict(self, state_dict: Mapping) -> None:
+        state_dict_dict = dict(state_dict)
+        metrics_state = state_dict_dict.pop("_metrics")
+        super().load_state_dict(state_dict_dict)
+        for g, m_state in metrics_state.items():
+            found_g = None
+            for original_g in self._metrics.keys():
+                if str(original_g) == g:
+                    found_g = original_g
+                    break
+            if found_g is not None:
+                self._metrics[found_g].load_state_dict(m_state)
 
 
 class SubgroupMetric(_SubgroupBase):
