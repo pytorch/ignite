@@ -113,7 +113,7 @@ class _BaseAveragePrecision:
 
 def _cat_and_agg_tensors(
     tensors: list[torch.Tensor],
-    tensor_shape_except_last_dim: tuple[int],
+    tensor_shape_except_last_dim: tuple[int, ...],
     dtype: torch.dtype,
     device: str | torch.device,
 ) -> torch.Tensor:

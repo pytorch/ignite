@@ -1,5 +1,5 @@
 import sys
-from collections import namedtuple
+from typing import NamedTuple
 from math import ceil
 from unittest.mock import patch
 
@@ -543,7 +543,10 @@ def pycoco_mAP(predictions: list[dict[str, torch.Tensor]], targets: list[dict[st
     return eval.stats
 
 
-Sample = namedtuple("Sample", ["data", "mAP", "length"])
+class Sample(NamedTuple):
+    data: tuple[list[dict[str, torch.Tensor]], list[dict[str, torch.Tensor]]]
+    mAP: np.ndarray
+    length: int
 
 
 @pytest.fixture(

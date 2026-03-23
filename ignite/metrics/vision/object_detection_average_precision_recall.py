@@ -1,8 +1,7 @@
 from collections.abc import Callable, Sequence
-from typing import cast
+from typing import cast, Literal
 
 import torch
-from typing_extensions import Literal
 
 from ignite.metrics import MetricGroup
 from ignite.metrics.mean_average_precision import _BaseAveragePrecision, _cat_and_agg_tensors
@@ -21,7 +20,7 @@ def coco_tensor_list_to_dict_list(
     Input format is a `(N, 6)` or (`N, 5)` tensor which `N` is the number of predicted/target bounding boxes for the
     image and the second dimension contains `(x1, y1, x2, y2, confidence, class)`/`(x1, y1, x2, y2, class[, iscrowd])`.
     Output format is a str-to-tensor dictionary containing 'bbox' and `class` keys, plus `confidence` key for `y_pred`
-    and possibly `iscrowd` for `y`.
+    and possibly `iscrowd` (dtype: `torch.bool`) for `y`.
 
     Args:
         output: `(y_pred,y)` tuple whose members are either list of tensors or list of dicts.
@@ -101,7 +100,7 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
         try:
             from torchvision.ops.boxes import _box_inter_union, box_area
 
-            def box_iou(pred_boxes: torch.Tensor, gt_boxes: torch.Tensor, iscrowd: torch.BoolTensor) -> torch.Tensor:
+            def box_iou(pred_boxes: torch.Tensor, gt_boxes: torch.Tensor, iscrowd: torch.Tensor) -> torch.Tensor:
                 inter, union = _box_inter_union(pred_boxes, gt_boxes)
                 union[:, iscrowd] = box_area(pred_boxes).reshape(-1, 1)
                 iou = inter / union
@@ -245,7 +244,7 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
         rec_thresh_indices = (
             torch.searchsorted(recall, rec_thresholds)
             if recall.size(-1) != 0
-            else torch.LongTensor([], device=self._device)
+            else torch.tensor([], dtype=torch.long, device=self._device)
         )
         precision_integrand = precision_integrand.take_along_dim(
             rec_thresh_indices.where(rec_thresh_indices != recall.size(-1), 0), dim=-1
@@ -283,8 +282,8 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
                                             containing top left and bottom right coordinates.
                 'labels'  (N\ :sub:`gt`,)   Category number of ground truths in `torch.long`
                                             dtype.
-                'iscrowd' (N\ :sub:`gt`,)   Whether ground truth boxes are crowd ones or not.
-                                            This key is optional.
+                'iscrowd' (N\ :sub:`gt`,)   Whether ground truth boxes are crowd ones or not,
+                                            in `torch.bool` dtype. This key is optional.
                 ========= ================= =================================================
         """
         self._check_matching_input(output)
@@ -331,7 +330,7 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
                     self._tps.append(tp.to(self._device))
                     self._fps.append((~tp & self._match_area_range(pred_boxes)).to(self._device))
                 else:
-                    ious = self.box_iou(pred_boxes, gt_boxes, cast(torch.BoolTensor, gt_is_crowd))
+                    ious = self.box_iou(pred_boxes, gt_boxes, gt_is_crowd)
                     category_no_match = labels.expand(len(pred_labels), -1) != pred_labels.view(-1, 1)
                     NO_MATCH = -3
                     ious[category_no_match] = NO_MATCH

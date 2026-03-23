@@ -637,7 +637,7 @@ class Checkpoint(Serializable):
 
                     to_load = to_save
                     checkpoint_fp = Path(tmpdirname) / 'myprefix_checkpoint_40.pt'
-                    checkpoint = torch.load(checkpoint_fp)
+                    checkpoint = torch.load(checkpoint_fp, weights_only=True)
                     Checkpoint.load_objects(to_load=to_load, checkpoint=checkpoint)
 
                     # or using a string for checkpoint filepath
@@ -660,7 +660,7 @@ class Checkpoint(Serializable):
         Checkpoint._check_objects(to_load, "load_state_dict")
 
         if isinstance(checkpoint, (str, Path)):
-            checkpoint_obj = torch.load(checkpoint)
+            checkpoint_obj = torch.load(checkpoint, weights_only=True)
         else:
             checkpoint_obj = checkpoint
 
