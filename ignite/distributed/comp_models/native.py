@@ -381,13 +381,12 @@ if has_native_dist_support:
                     default_start_method = "spawn"
                 spawn_kwargs["start_method"] = kwargs.get("start_method", default_start_method)
                 start_processes = mp.start_processes
-            # TODO: `spawn` wrongfully does not adopt address and port from environment if `init_method` is "env://"
             if init_method in [None, "env://"]:
                 init_method = "env://"
                 if master_port is None:
-                    master_port = 2222
+                    master_port = int(os.getenv("MASTER_PORT", 2222))
                 if master_addr is None:
-                    master_addr = "127.0.0.1"
+                    master_addr = os.getenv("MASTER_ADDR", "127.0.0.1")
             elif master_addr is not None:
                 raise ValueError("master_addr should be None if init_method is provided other then 'env://'")
             elif master_port is not None:
