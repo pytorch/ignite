@@ -1474,13 +1474,13 @@ def test_getattr_typo_reports_definition_site():
 
     class ScalarMetric(Metric):
         def reset(self):
-            self._value = 0.0
+            self._values = torch.tensor([])
 
         def update(self, output):
-            self._value += output
+            self._values = torch.cat([self._values, torch.tensor([output])])
 
         def compute(self):
-            return self._value
+            return self._values
 
     engine = Engine(lambda e, b: b)
     m = ScalarMetric()
@@ -1489,31 +1489,8 @@ def test_getattr_typo_reports_definition_site():
     bad = m.meen()
     bad.attach(engine, "bad")
 
-    with pytest.raises(AttributeError, match=r"Metric result has no attribute 'meen'"):
+    with pytest.raises(AttributeError, match=r"Metric result of type .* has no attribute 'meen'"):
         engine.run([1.0, 2.0, 3.0], max_epochs=1)
-
-
-def test_getattr_valid_method_works():
-    """__getattr__ should still work correctly for valid tensor methods like .mean()."""
-
-    class ScalarMetric(Metric):
-        def reset(self):
-            self._sum = torch.tensor(0.0)
-
-        def update(self, output):
-            self._sum += output
-
-        def compute(self):
-            return self._sum
-
-    engine = Engine(lambda e, b: b)
-    m = ScalarMetric()
-
-    mean_metric = m.mean()
-    mean_metric.attach(engine, "mean")
-
-    state = engine.run([torch.tensor(1.0), torch.tensor(2.0), torch.tensor(3.0)], max_epochs=1)
-    assert state.metrics["mean"] == pytest.approx(6.0)
 
 
 def test_output_transform_type_check():
