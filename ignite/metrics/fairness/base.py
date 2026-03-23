@@ -1,5 +1,6 @@
 import copy
-from typing import Any, Callable, Dict, Sequence
+from collections.abc import Callable, Sequence
+from typing import Any
 
 import torch
 from ignite.exceptions import NotComputableError
@@ -22,7 +23,7 @@ class _SubgroupBase(Metric):
     ) -> None:
         self._base_metric = base_metric
         self._user_groups = list(groups)
-        self._metrics: Dict[Any, Metric] = {g: copy.deepcopy(base_metric) for g in self._user_groups}
+        self._metrics: dict[Any, Metric] = {g: copy.deepcopy(base_metric) for g in self._user_groups}
         super().__init__(output_transform=output_transform, device=device)
 
     @reinit__is_reduced
@@ -42,7 +43,7 @@ class _SubgroupBase(Metric):
             if mask.any():
                 metric.update((y_pred[mask], y[mask]))
 
-    def _compute_groups(self) -> Dict[Any, Any]:
+    def _compute_groups(self) -> dict[Any, Any]:
         results = {}
         for g, metric in self._metrics.items():
             try:
@@ -70,7 +71,7 @@ class SubgroupMetric(_SubgroupBase):
     .. versionadded:: 0.6.0
     """
 
-    def compute(self) -> Dict[Any, Any]:
+    def compute(self) -> dict[Any, Any]:
         """Computes the metric for each subgroup.
 
         Returns:

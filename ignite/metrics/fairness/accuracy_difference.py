@@ -1,5 +1,5 @@
 import torch
-from typing import Callable, Sequence
+from collections.abc import Callable, Sequence
 from ignite.metrics.accuracy import Accuracy
 from ignite.metrics.fairness.base import SubgroupDifference
 
@@ -81,11 +81,3 @@ class SubgroupAccuracyDifference(SubgroupDifference):
     ) -> None:
         acc = Accuracy(is_multilabel=is_multilabel, device=device)
         super().__init__(base_metric=acc, groups=groups, output_transform=output_transform, device=device)
-
-    def compute(self) -> float:
-        """Computes the maximum accuracy difference between any two subgroups.
-
-        Returns:
-            The maximum difference in accuracy across all subgroups.
-        """
-        return super().compute()

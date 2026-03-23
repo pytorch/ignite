@@ -1,5 +1,5 @@
 import torch
-from typing import Callable, Sequence
+from collections.abc import Callable, Sequence
 
 from ignite.exceptions import NotComputableError
 from ignite.metrics.accuracy import _BaseClassification
@@ -29,13 +29,13 @@ class SelectionRate(_BaseClassification):
         device: str | torch.device = torch.device("cpu"),
         skip_unrolling: bool = False,
     ):
-        self._num_positives: torch.Tensor | None = None
+        self._num_positives: torch.Tensor = torch.tensor(0.0, device=device)
         super().__init__(
             output_transform=output_transform, is_multilabel=is_multilabel, device=device, skip_unrolling=skip_unrolling
         )
 
     def reset(self) -> None:
-        self._num_positives: torch.Tensor | None = None
+        self._num_positives = torch.tensor(0.0, device=self._device)
         self._num_examples = 0
         super().reset()
 
@@ -62,10 +62,10 @@ class SelectionRate(_BaseClassification):
         else:
             raise ValueError(f"Unexpected type: {self._type}")
 
-        if self._num_positives is None:
+        if self._num_positives.ndim == 0:
             self._num_positives = positives.to(self._device)
         else:
-            self._num_positives += positives.to(self._device)
+            self._num_positives = self._num_positives + positives.to(self._device)
         self._num_examples += total
 
     def compute(self) -> torch.Tensor:
@@ -74,7 +74,7 @@ class SelectionRate(_BaseClassification):
         Returns:
             The selection rate for each category/label.
         """
-        if self._num_examples == 0 or self._num_positives is None:
+        if self._num_examples == 0 or self._num_positives.ndim == 0:
             raise NotComputableError("SelectionRate must have at least one example before it can be computed.")
         return self._num_positives / self._num_examples
 
@@ -156,11 +156,3 @@ class DemographicParityDifference(SubgroupDifference):
     ) -> None:
         sr = SelectionRate(is_multilabel=is_multilabel, device=device)
         super().__init__(base_metric=sr, groups=groups, output_transform=output_transform, device=device)
-
-    def compute(self) -> float:
-        """Computes the maximum demographic parity difference between any two subgroups.
-
-        Returns:
-            The maximum difference in selection rates across all subgroups.
-        """
-        return super().compute()
