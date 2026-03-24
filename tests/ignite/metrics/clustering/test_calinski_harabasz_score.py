@@ -11,6 +11,7 @@ from ignite.exceptions import NotComputableError
 from ignite.metrics.clustering import CalinskiHarabaszScore
 
 
+@pytest.mark.parametrize("check_compute_fn", [True, False])
 @pytest.mark.parametrize(
     "features, labels, desc",
     [
@@ -18,11 +19,11 @@ from ignite.metrics.clustering import CalinskiHarabaszScore
         (torch.randn(5, 3), torch.arange(5, dtype=torch.long), "each sample own cluster"),
     ],
 )
-def test_invalid_cluster_count_returns_nan(features, labels, desc):
+def test_invalid_cluster_count_returns_nan(features, labels, desc, check_compute_fn):
     """CalinskiHarabaszScore should return NaN for invalid cluster counts ({desc})."""
     import math
 
-    metric = CalinskiHarabaszScore()
+    metric = CalinskiHarabaszScore(check_compute_fn=check_compute_fn)
     metric.update((features, labels))
     result = metric.compute()
     assert math.isnan(result)
