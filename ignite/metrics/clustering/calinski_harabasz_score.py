@@ -12,6 +12,11 @@ __all__ = ["CalinskiHarabaszScore"]
 def _calinski_harabasz_score(features: Tensor, labels: Tensor) -> float:
     from sklearn.metrics import calinski_harabasz_score
 
+    n_unique_labels = len(torch.unique(labels.detach()))
+    n_samples = len(labels)
+    if n_unique_labels < 2 or n_unique_labels >= n_samples:
+        return float("nan")
+
     np_features = features.cpu().numpy()
     np_labels = labels.cpu().numpy()
     score = calinski_harabasz_score(np_features, np_labels)
@@ -29,6 +34,9 @@ class CalinskiHarabaszScore(_ClusteringMetricBase):
 
     A higher Calinski-Harabasz score indicates that
     the clustering result is good (i.e., clusters are well-separated).
+
+    When the number of unique labels is less than 2, or equals the number of samples
+    (i.e., the index is undefined), ``float('nan')`` is returned.
 
     The computation of this metric is implemented with
     `sklearn.metrics.calinski_harabasz_score

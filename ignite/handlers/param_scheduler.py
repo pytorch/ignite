@@ -857,7 +857,7 @@ class ConcatScheduler(ParamScheduler):
                     values = values + params
                 output.append(values)
 
-            objs = torch.load(cache_filepath.as_posix())
+            objs = torch.load(cache_filepath.as_posix(), weights_only=True)
             for i, s in enumerate(schedulers):
                 s.load_state_dict(objs[f"lr_scheduler_{i}"])
             optimizer.load_state_dict(objs["optimizer"])
@@ -1050,7 +1050,7 @@ class LRScheduler(ParamScheduler):
                 params = [p[scheduler.param_name] for p in scheduler.optimizer_param_groups]
                 values.append([i] + params)
 
-            obj = torch.load(cache_filepath.as_posix())
+            obj = torch.load(cache_filepath.as_posix(), weights_only=True)
             lr_scheduler.load_state_dict(obj["lr_scheduler"])
             lr_scheduler.optimizer.load_state_dict(obj["optimizer"])
 
@@ -1551,7 +1551,7 @@ class ParamGroupScheduler:
                 values.append([i] + params)
                 scheduler(engine=None)
 
-            objs = torch.load(cache_filepath.as_posix())
+            objs = torch.load(cache_filepath.as_posix(), weights_only=True)
             for i, s in enumerate(schedulers):
                 s.load_state_dict(objs[f"lr_scheduler_{i}"])
                 s.optimizer.load_state_dict(objs["optimizer"])

@@ -1,4 +1,4 @@
-from typing import Callable
+from collections.abc import Callable
 
 import torch
 
@@ -67,7 +67,7 @@ class Frequency(Metric):
         self._acc = 0
         self._n = 0
         self._elapsed = 0.0
-        super(Frequency, self).reset()  # type: ignore
+        super().reset()  # type: ignore
 
     @reinit__is_reduced
     def update(self, output: int) -> None:

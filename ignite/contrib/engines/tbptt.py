@@ -1,6 +1,5 @@
-# coding: utf-8
 import collections.abc as collections
-from typing import Callable
+from collections.abc import Callable
 
 
 import torch

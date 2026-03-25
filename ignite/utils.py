@@ -9,7 +9,8 @@ import random
 import shutil
 import warnings
 from pathlib import Path
-from typing import Any, Callable, cast, TextIO, TypeVar
+from collections.abc import Callable
+from typing import Any, cast, TextIO, TypeVar
 
 import torch
 
