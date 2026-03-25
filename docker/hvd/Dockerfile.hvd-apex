@@ -40,6 +40,10 @@ RUN apt-get update && apt-get install -y git && \
 # Build runtime image
 FROM pytorch/pytorch:${PTH_VERSION}-runtime
 
+# Set env vars to allow pip install
+ENV PIP_BREAK_SYSTEM_PACKAGES=1  # equiv to --break-system-packages
+ENV PIP_ROOT_USER_ACTION=ignore  # equiv to --root-user-action
+
 # Apex
 COPY --from=apex-hvd-builder /tmp/apex/apex-*.whl /tmp/apex/
 RUN pip install --no-cache-dir /tmp/apex/apex-*.whl && \

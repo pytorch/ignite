@@ -12,6 +12,10 @@ ENV CUDA_HOME=/usr/local/cuda
 RUN apt-get update && apt-get install -y --no-install-recommends git && \
      rm -rf /var/lib/apt/lists/*
 
+# Set env vars to allow pip install
+ENV PIP_BREAK_SYSTEM_PACKAGES=1  # equiv to --break-system-packages
+ENV PIP_ROOT_USER_ACTION=ignore  # equiv to --root-user-action
+
 # Build apex
 RUN echo "Setup NVIDIA Apex" && \
     tmp_apex_path="/tmp/apex" && \
@@ -23,6 +27,10 @@ RUN echo "Setup NVIDIA Apex" && \
 
 # 2/ Build the runtime image
 FROM pytorch/pytorch:${PTH_VERSION}-runtime
+
+# Set env vars to allow pip install
+ENV PIP_BREAK_SYSTEM_PACKAGES=1  # equiv to --break-system-packages
+ENV PIP_ROOT_USER_ACTION=ignore  # equiv to --root-user-action
 
 COPY --from=apex-builder /tmp/apex/apex-*.whl /tmp/apex/
 RUN pip install --no-cache-dir /tmp/apex/apex-*.whl && \
