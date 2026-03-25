@@ -13,8 +13,8 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Set env vars to allow pip install
-ENV PIP_BREAK_SYSTEM_PACKAGES=1  # equiv to --break-system-packages
-ENV PIP_ROOT_USER_ACTION=ignore  # equiv to --root-user-action
+ENV PIP_BREAK_SYSTEM_PACKAGES=1
+ENV PIP_ROOT_USER_ACTION=ignore
 
 # Ignite main dependencies
 RUN pip install --upgrade --no-cache-dir pytorch-ignite \
