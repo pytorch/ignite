@@ -3,7 +3,6 @@ from collections import OrderedDict
 from collections.abc import Callable, Mapping, Sequence
 from functools import wraps
 from numbers import Number
-import traceback
 from typing import TYPE_CHECKING, Any, Literal, cast
 
 import torch
@@ -786,24 +785,23 @@ class Metric(Serializable, metaclass=ABCMeta):
         return MetricsLambda(lambda x, y: x // y, self, other)
 
     def __getattr__(self, attr: str) -> Callable:
+    # Prevent silent wrapping of invalid attributes
+    if attr.startswith("__"):
+        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{attr}'")
+
+    try:
+        return super().__getattr__(attr)
+    except AttributeError:
+        raise AttributeError(
+            f"Metric '{self.__class__.__name__}' has no attribute '{attr}'"
+        )
         from ignite.metrics.metrics_lambda import MetricsLambda
 
         if attr.startswith("__") and attr.endswith("__"):
             return object.__getattribute__(self, attr)
 
-        # Capture the call stack at definition time so that if the attribute
-        # turns out to be invalid (e.g. a typo), we can point the user back
-        # to where they wrote it instead of erroring deep inside compute().
-        definition_trace = "".join(traceback.format_stack()[:-1])
-
         def fn(x: Metric, *args: Any, **kwargs: Any) -> Any:
-            try:
-                return getattr(x, attr)(*args, **kwargs)
-            except AttributeError:
-                raise AttributeError(
-                    f"Metric result of type '{type(x)}' has no attribute '{attr}'. "
-                    f"Note: '{attr}' was accessed on the metric at:\n{definition_trace}"
-                ) from None
+            return getattr(x, attr)(*args, **kwargs)
 
         def wrapper(*args: Any, **kwargs: Any) -> "MetricsLambda":
             return MetricsLambda(fn, self, *args, **kwargs)
