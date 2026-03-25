@@ -261,8 +261,8 @@ class Metric(Serializable, metaclass=ABCMeta):
                             self.cb = cb
 
                         def forward(self,
-                                    y_pred: Tuple[torch.Tensor, torch.Tensor],
-                                    y_true: Tuple[torch.Tensor, torch.Tensor]) -> torch.Tensor:
+                                    y_pred: tuple[torch.Tensor, torch.Tensor],
+                                    y_true: tuple[torch.Tensor, torch.Tensor]) -> torch.Tensor:
                             a_true, b_true = y_true
                             a_pred, b_pred = y_pred
                             return self.ca * F.mse_loss(a_pred, a_true) + self.cb * F.cross_entropy(b_pred, b_true)
