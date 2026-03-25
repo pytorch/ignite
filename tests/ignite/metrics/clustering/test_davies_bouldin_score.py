@@ -1,5 +1,7 @@
 import numpy as np
 import pytest
+import math
+
 
 import torch
 from sklearn.metrics import davies_bouldin_score
@@ -33,13 +35,25 @@ def test_wrong_output_shape():
         metric = DaviesBouldinScore()
         metric.update((correct_features, wrong_labels))
 
-def test_davies_bouldin_single_cluster():
+@pytest.mark.parametrize(
+    "labels",
+    [
+        torch.zeros(10, dtype=torch.long),   # 1 unique label
+        torch.arange(10, dtype=torch.long),  # n_labels == n_samples
+    ],
+)
+def test_davies_bouldin_invalid_cluster_config(labels):
     metric = DaviesBouldinScore()
     features = torch.randn(10, 5)
-    labels = torch.zeros(10, dtype=torch.long)
+
     metric.update((features, labels))
-    with pytest.warns(UserWarning, match="at least 2 unique clusters"):
+
+    with pytest.warns(
+        UserWarning,
+        match="between 2 and n_samples - 1",
+    ):
         result = metric.compute()
+
     assert math.isnan(result)
 
 def test_wrong_output_dtype():
