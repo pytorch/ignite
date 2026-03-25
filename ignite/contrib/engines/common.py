@@ -1,7 +1,8 @@
 import numbers
 import warnings
 from functools import partial
-from typing import Any, Callable, cast, Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
+from typing import Any, cast
 
 import torch
 import torch.nn as nn

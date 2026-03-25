@@ -224,7 +224,7 @@ class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
         .. versionadded:: 0.5.2
         """
 
-        super(MeanAveragePrecision, self).__init__(
+        super().__init__(
             output_transform=output_transform,
             is_multilabel=is_multilabel,
             device=device,

@@ -81,7 +81,7 @@ class EpochWise(MetricUsage):
     usage_name: str = "epoch_wise"
 
     def __init__(self) -> None:
-        super(EpochWise, self).__init__(
+        super().__init__(
             started=Events.EPOCH_STARTED,
             completed=Events.EPOCH_COMPLETED,
             iteration_completed=Events.ITERATION_COMPLETED,
@@ -133,7 +133,7 @@ class BatchWise(MetricUsage):
     usage_name: str = "batch_wise"
 
     def __init__(self) -> None:
-        super(BatchWise, self).__init__(
+        super().__init__(
             started=Events.ITERATION_STARTED,
             completed=Events.ITERATION_COMPLETED,
             iteration_completed=Events.ITERATION_COMPLETED,
@@ -212,7 +212,7 @@ class BatchFiltered(MetricUsage):
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super(BatchFiltered, self).__init__(
+        super().__init__(
             started=Events.EPOCH_STARTED,
             completed=Events.EPOCH_COMPLETED,
             iteration_completed=Events.ITERATION_COMPLETED(*args, **kwargs),
@@ -398,7 +398,6 @@ class Metric(Serializable, metaclass=ABCMeta):
 
         By default, this is called at the start of each epoch.
         """
-        pass
 
     @abstractmethod
     def update(self, output: Any) -> None:
@@ -410,7 +409,6 @@ class Metric(Serializable, metaclass=ABCMeta):
         Args:
             output: the is the output from the engine's process function.
         """
-        pass
 
     @abstractmethod
     def compute(self) -> Any:
@@ -427,7 +425,6 @@ class Metric(Serializable, metaclass=ABCMeta):
         Raises:
             NotComputableError: raised when the metric cannot be computed.
         """
-        pass
 
     def started(self, engine: Engine) -> None:
         """Helper method to start data gathering for metric's computation. It is automatically attached to the
