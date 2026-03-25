@@ -114,5 +114,11 @@ class SilhouetteScore(_ClusteringMetricBase):
 
         np_features = features.cpu().numpy()
         np_labels = labels.cpu().numpy()
+        unique_labels = set(np_labels)
+n_clusters = len(unique_labels)
+n_samples = len(np_labels)
+
+if n_clusters < 2 or n_clusters == n_samples:
+    raise ValueError("Invalid number of clusters for Silhouette Score")
         score = silhouette_score(np_features, np_labels, **self._silhouette_kwargs)
         return score
