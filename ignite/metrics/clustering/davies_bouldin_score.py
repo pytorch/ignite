@@ -11,9 +11,15 @@ __all__ = ["DaviesBouldinScore"]
 
 def _davies_bouldin_score(features: Tensor, labels: Tensor) -> float:
     from sklearn.metrics import davies_bouldin_score
+    import numpy as np
 
     np_features = features.cpu().numpy()
     np_labels = labels.cpu().numpy()
+
+    # FIX: handle case when clusters < 2
+    if len(np.unique(np_labels)) < 2:
+        return float("nan")
+
     score = davies_bouldin_score(np_features, np_labels)
     return score
 
