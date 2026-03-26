@@ -1,15 +1,15 @@
 """
- MNIST example with training and validation monitoring using Neptune.
+MNIST example with training and validation monitoring using Neptune.
 
- Requirements:
-    Neptune: `pip install neptune`
+Requirements:
+   Neptune: `pip install neptune`
 
- Usage:
+Usage:
 
-    Run the example:
-    ```bash
-    python mnist_with_neptune_logger.py
-    ```
+   Run the example:
+   ```bash
+   python mnist_with_neptune_logger.py
+   ```
 
 """
 

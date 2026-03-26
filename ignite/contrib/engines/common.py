@@ -1,7 +1,8 @@
 import numbers
 import warnings
 from functools import partial
-from typing import Any, Callable, cast, Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
+from typing import Any, cast
 
 import torch
 import torch.nn as nn
@@ -191,7 +192,9 @@ def _setup_common_training_handlers(
 
     if with_gpu_stats:
         GpuInfo().attach(
-            trainer, name="gpu", event_name=Events.ITERATION_COMPLETED(every=log_every_iters)  # type: ignore[arg-type]
+            trainer,
+            name="gpu",
+            event_name=Events.ITERATION_COMPLETED(every=log_every_iters),  # type: ignore[arg-type]
         )
 
     if output_names is not None:

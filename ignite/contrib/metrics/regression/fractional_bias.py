@@ -1,4 +1,4 @@
-""" ``ignite.contrib.metrics.regression.fractional_bias`` was moved to ``ignite.metrics.regression.fractional_bias``. # noqa
+"""``ignite.contrib.metrics.regression.fractional_bias`` was moved to ``ignite.metrics.regression.fractional_bias``. # noqa
 Note:
     ``ignite.contrib.metrics.regression.fractional_bias`` was moved to ``ignite.metrics.regression.fractional_bias``. # noqa
     Please refer to :mod:`~ignite.metrics.regression.fractional_bias`.

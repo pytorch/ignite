@@ -382,14 +382,14 @@ def _test_distrib_accumulator_device(device):
     for metric_device in metric_devices:
         m = VariableAccumulation(lambda a, x: x, device=metric_device)
         assert m._device == metric_device
-        assert (
-            m.accumulator.device == metric_device
-        ), f"{type(m.accumulator.device)}:{m.accumulator.device} vs {type(metric_device)}:{metric_device}"
+        assert m.accumulator.device == metric_device, (
+            f"{type(m.accumulator.device)}:{m.accumulator.device} vs {type(metric_device)}:{metric_device}"
+        )
 
         m.update(torch.tensor(1, device=device))
-        assert (
-            m.accumulator.device == metric_device
-        ), f"{type(m.accumulator.device)}:{m.accumulator.device} vs {type(metric_device)}:{metric_device}"
+        assert m.accumulator.device == metric_device, (
+            f"{type(m.accumulator.device)}:{m.accumulator.device} vs {type(metric_device)}:{metric_device}"
+        )
 
 
 def _test_apex_average(device, amp_mode, opt_level):

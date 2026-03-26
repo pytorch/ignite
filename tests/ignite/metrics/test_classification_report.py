@@ -170,9 +170,9 @@ def test_metrics_result_mode(metrics_result_mode):
     metric = ClassificationReport(output_dict=True, metrics_result_mode=metrics_result_mode)
 
     assert isinstance(metric, MetricsLambda), "ClassificationReport should be an instance of MetricsLambda"
-    assert (
-        metric._metrics_result_mode == metrics_result_mode
-    ), f"Expected metrics_result_mode to be {metrics_result_mode}"
+    assert metric._metrics_result_mode == metrics_result_mode, (
+        f"Expected metrics_result_mode to be {metrics_result_mode}"
+    )
 
 
 def _test_integration_multilabel(device, output_dict):

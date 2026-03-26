@@ -172,13 +172,13 @@ class MetricsLambda(Metric):
     def detach(self, engine: Engine, usage: str | MetricUsage = EpochWise()) -> None:
         usage = self._check_usage(usage)
         # remove from engine
-        super(MetricsLambda, self).detach(engine, usage)
+        super().detach(engine, usage)
         self.engine = None
 
     def is_attached(self, engine: Engine, usage: str | MetricUsage = EpochWise()) -> bool:
         usage = self._check_usage(usage)
         # check recursively the dependencies
-        return super(MetricsLambda, self).is_attached(engine, usage) and self._internal_is_attached(engine, usage)
+        return super().is_attached(engine, usage) and self._internal_is_attached(engine, usage)
 
     def _internal_is_attached(self, engine: Engine, usage: MetricUsage) -> bool:
         # if no engine, metrics is not attached

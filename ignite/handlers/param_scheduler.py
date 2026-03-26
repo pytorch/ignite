@@ -687,7 +687,7 @@ class ConcatScheduler(ParamScheduler):
 
         if len(schedulers) != len(durations) + 1:
             raise ValueError(
-                "Incorrect number schedulers or duration values, " f"given {len(schedulers)} and {len(durations)}"
+                f"Incorrect number schedulers or duration values, given {len(schedulers)} and {len(durations)}"
             )
 
         for i, scheduler in enumerate(schedulers):
@@ -859,7 +859,7 @@ class ConcatScheduler(ParamScheduler):
                     values = values + params
                 output.append(values)
 
-            objs = torch.load(cache_filepath.as_posix())
+            objs = torch.load(cache_filepath.as_posix(), weights_only=True)
             for i, s in enumerate(schedulers):
                 s.load_state_dict(objs[f"lr_scheduler_{i}"])
             optimizer.load_state_dict(objs["optimizer"])
@@ -1052,7 +1052,7 @@ class LRScheduler(ParamScheduler):
                 params = [p[scheduler.param_name] for p in scheduler.optimizer_param_groups]
                 values.append([i] + params)
 
-            obj = torch.load(cache_filepath.as_posix())
+            obj = torch.load(cache_filepath.as_posix(), weights_only=True)
             lr_scheduler.load_state_dict(obj["lr_scheduler"])
             lr_scheduler.optimizer.load_state_dict(obj["optimizer"])
 
@@ -1553,7 +1553,7 @@ class ParamGroupScheduler:
                 values.append([i] + params)
                 scheduler(engine=None)
 
-            objs = torch.load(cache_filepath.as_posix())
+            objs = torch.load(cache_filepath.as_posix(), weights_only=True)
             for i, s in enumerate(schedulers):
                 s.load_state_dict(objs[f"lr_scheduler_{i}"])
                 s.optimizer.load_state_dict(objs["optimizer"])
@@ -1729,8 +1729,7 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
         """
         if len(metric_values) != num_events:
             raise ValueError(
-                "Length of argument metric_values should be equal to num_events. "
-                f"{len(metric_values)} != {num_events}"
+                f"Length of argument metric_values should be equal to num_events. {len(metric_values)} != {num_events}"
             )
 
         keys_to_remove = ["optimizer", "metric_name", "save_history"]

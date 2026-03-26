@@ -228,7 +228,8 @@ class DeterministicEngine(Engine):
                 batch_sampler = self.state.dataloader.batch_sampler
                 if not (batch_sampler is None or isinstance(batch_sampler, ReproducibleBatchSampler)):
                     self.state.dataloader = update_dataloader(
-                        self.state.dataloader, ReproducibleBatchSampler(batch_sampler)  # type: ignore[arg-type]
+                        self.state.dataloader,
+                        ReproducibleBatchSampler(batch_sampler),  # type: ignore[arg-type]
                     )
 
         iteration = self.state.iteration
@@ -269,7 +270,7 @@ class DeterministicEngine(Engine):
         self.logger.info("Resuming from iteration for provided data will fetch data until required iteration ...")
         if hasattr(data, "__len__"):
             iteration %= len(data)  # type: ignore[arg-type]
-        # Synchronize dataflow from the begining
+        # Synchronize dataflow from the beginning
         self._setup_seed(iteration=0)
         data_iter = iter(data)
         counter = 0

@@ -122,7 +122,7 @@ class _BasePrecisionRecall(_BaseClassification):
         self._weight: int | torch.Tensor = 0
         self._updated = False
 
-        super(_BasePrecisionRecall, self).reset()
+        super().reset()
 
     @sync_all_reduce("_numerator", "_denominator")
     def compute(self) -> torch.Tensor | float:
@@ -179,7 +179,7 @@ class Precision(_BasePrecisionRecall):
         average: available options are
 
             False
-              default option. For multicalss and multilabel inputs, per class and per label
+              default option. For multiclass and multilabel inputs, per class and per label
               metric is returned respectively.
 
             None
@@ -212,7 +212,7 @@ class Precision(_BasePrecisionRecall):
               Incompatible with binary and multiclass inputs.
 
             'weighted'
-              like macro precision but considers class/label imbalance. for binary and multiclass
+              like macro precision but considers class/label imbalance. For binary and multiclass
               input, it computes metric for each class then returns average of them weighted by
               support of classes (number of actual samples in each class). For multilabel input,
               it computes precision for each label then returns average of them weighted by support
