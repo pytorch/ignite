@@ -1781,7 +1781,7 @@ class BatchSizeScheduler(BaseParamScheduler):
 
             default_trainer.add_event_handler(Events.EPOCH_STARTED, scheduler)
 
-    .. versionadded:: 0.5.1
+    .. versionadded:: 0.5.4
     """
 
     def __init__(
