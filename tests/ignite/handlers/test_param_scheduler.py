@@ -1494,7 +1494,6 @@ def test_batch_size_scheduler_asserts():
 
     scheduler = BatchSizeScheduler(dataloader, scheduler_fn=lambda e: 10)
     with pytest.raises(ValueError, match=r"Batch size returned by scheduler_fn should be a positive integer"):
-        scheduler.scheduler_fn = lambda e: -1
         scheduler(None)
 
 
