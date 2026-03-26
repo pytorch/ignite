@@ -126,10 +126,10 @@ class EarlyStopping(Serializable, ResettableHandler):
             cumulative = cumulative_delta
 
         if threshold < 0.0:
-            raise ValueError("Argument min_delta should not be a negative number.")
+            raise ValueError("Argument threshold should not be a negative number.")
 
         if threshold_mode not in ("abs", "rel"):
-            raise ValueError("Argument min_delta_mode should be either 'abs' or 'rel'.")
+            raise ValueError("Argument threshold_mode should be either 'abs' or 'rel'.")
 
         if mode not in ("min", "max"):
             raise ValueError("Argument mode should be either 'min' or 'max'.")
