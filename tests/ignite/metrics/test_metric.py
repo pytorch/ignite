@@ -1433,7 +1433,7 @@ class DummyMetric5(Metric):
 
 
 def test_skip_unrolling():
-    # y_pred and y are ouputs recieved from a multi_output model
+    # y_pred and y are outputs received from a multi_output model
     a_pred = torch.rand(8, 1)
     b_pred = torch.rand(8, 1)
     y_pred = [a_pred, b_pred]

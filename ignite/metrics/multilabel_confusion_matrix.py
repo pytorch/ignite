@@ -38,7 +38,7 @@ class MultiLabelConfusionMatrix(Metric):
             default, CPU.
         normalized: whether to normalize confusion matrix by its sum or not.
         skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
-            true for multi-output model, for example, if ``y_pred`` contains multi-ouput as ``(y_pred_a, y_pred_b)``
+            true for multi-output model, for example, if ``y_pred`` contains multi-output as ``(y_pred_a, y_pred_b)``
             Alternatively, ``output_transform`` can be used to handle this.
 
     Example:
