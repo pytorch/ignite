@@ -1,12 +1,11 @@
 from abc import abstractmethod
-from typing import Tuple
 
 import torch
 
 from ignite.metrics.metric import Metric, reinit__is_reduced
 
 
-def _check_output_shapes(output: Tuple[torch.Tensor, torch.Tensor]) -> None:
+def _check_output_shapes(output: tuple[torch.Tensor, torch.Tensor]) -> None:
     y_pred, y = output
     c1 = y_pred.ndimension() == 2 and y_pred.shape[1] == 1
     if not (y_pred.ndimension() == 1 or c1):
@@ -20,7 +19,7 @@ def _check_output_shapes(output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         raise ValueError(f"Input data shapes should be the same, but given {y_pred.shape} and {y.shape}")
 
 
-def _check_output_types(output: Tuple[torch.Tensor, torch.Tensor]) -> None:
+def _check_output_types(output: tuple[torch.Tensor, torch.Tensor]) -> None:
     y_pred, y = output
     if y_pred.dtype not in (torch.float16, torch.float32, torch.float64):
         raise TypeError(f"Input y_pred dtype should be float 16, 32 or 64, but given {y_pred.dtype}")
@@ -49,7 +48,7 @@ class _BaseRegression(Metric):
     # method `_update`.
 
     @reinit__is_reduced
-    def update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
+    def update(self, output: tuple[torch.Tensor, torch.Tensor]) -> None:
         _check_output_shapes(output)
         _check_output_types(output)
         y_pred, y = output[0].detach(), output[1].detach()
@@ -63,5 +62,5 @@ class _BaseRegression(Metric):
         self._update((y_pred, y))
 
     @abstractmethod
-    def _update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
+    def _update(self, output: tuple[torch.Tensor, torch.Tensor]) -> None:
         pass

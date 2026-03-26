@@ -145,9 +145,9 @@ def _test_auto_model(model, ws, device, sync_bn=False, **kwargs):
     else:
         assert isinstance(model, nn.Module)
 
-    assert all(
-        [p.device.type == torch.device(device).type for p in model.parameters()]
-    ), f"{[p.device.type for p in model.parameters()]} vs {torch.device(device).type}"
+    assert all([p.device.type == torch.device(device).type for p in model.parameters()]), (
+        f"{[p.device.type for p in model.parameters()]} vs {torch.device(device).type}"
+    )
 
 
 def _test_auto_model_optimizer(ws, device):
@@ -303,9 +303,9 @@ def test_dist_proxy_sampler():
 
         set_indices_per_rank = set(indices_per_rank)
         set_true_indices = set(true_indices)
-        assert (
-            set_indices_per_rank == set_true_indices
-        ), f"{set_true_indices - set_indices_per_rank} | {set_indices_per_rank - set_true_indices}"
+        assert set_indices_per_rank == set_true_indices, (
+            f"{set_true_indices - set_indices_per_rank} | {set_indices_per_rank - set_true_indices}"
+        )
 
     with pytest.raises(TypeError, match=r"Argument sampler should be instance of torch Sampler"):
         DistributedProxySampler(None)

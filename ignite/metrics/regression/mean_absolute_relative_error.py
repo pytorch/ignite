@@ -1,5 +1,3 @@
-from typing import Tuple
-
 import torch
 
 from ignite.exceptions import NotComputableError
@@ -67,7 +65,7 @@ class MeanAbsoluteRelativeError(_BaseRegression):
         self._sum_of_absolute_relative_errors = torch.tensor(0.0, device=self._device)
         self._num_samples = 0
 
-    def _update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
+    def _update(self, output: tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output[0].detach(), output[1].detach()
         if (y == 0).any():
             raise NotComputableError("The ground truth has 0.")

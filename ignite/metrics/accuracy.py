@@ -1,4 +1,4 @@
-from typing import Callable, Sequence
+from collections.abc import Callable, Sequence
 
 import torch
 
@@ -232,7 +232,7 @@ class Accuracy(_BaseClassification):
     def reset(self) -> None:
         self._num_correct = torch.tensor(0, device=self._device)
         self._num_examples = 0
-        super(Accuracy, self).reset()
+        super().reset()
 
     @reinit__is_reduced
     def update(self, output: Sequence[torch.Tensor]) -> None:

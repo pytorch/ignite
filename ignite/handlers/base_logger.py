@@ -1,11 +1,11 @@
 """Base logger and its helper handlers."""
 
-import collections.abc as collections
 import numbers
 import warnings
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
-from typing import Any, Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
+from typing import Any
 
 import torch
 import torch.nn as nn
@@ -178,7 +178,7 @@ class BaseOutputHandler(BaseHandler):
 
 
 def _flatten_dict(
-    in_dict: collections.Mapping,
+    in_dict: Mapping,
     key_fn: Callable,
     value_fn: Callable,
     parent_key: str | tuple[str, ...] | None = None,
@@ -186,12 +186,12 @@ def _flatten_dict(
     items = {}
     for key, value in in_dict.items():
         new_key = key_fn(parent_key, key)
-        if isinstance(value, collections.Mapping):
+        if isinstance(value, Mapping):
             items.update(_flatten_dict(value, key_fn, value_fn, new_key))
         elif any(
             [
                 isinstance(value, tuple) and hasattr(value, "_fields"),  # namedtuple
-                not isinstance(value, str) and isinstance(value, collections.Sequence),
+                not isinstance(value, str) and isinstance(value, Sequence),
             ]
         ):
             for i, item in enumerate(value):

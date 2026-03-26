@@ -1,6 +1,7 @@
 """TensorBoard logger and its helper handlers."""
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from torch.optim import Optimizer
 

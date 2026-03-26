@@ -5,7 +5,8 @@ import tempfile
 import warnings
 from math import ceil
 from pathlib import Path
-from typing import Any, Callable, Mapping
+from collections.abc import Callable, Mapping
+from typing import Any
 
 import torch
 from torch.optim import Optimizer
@@ -512,7 +513,7 @@ class FastaiLRFinder:
             yield trainer
             self._detach(trainer)
             # restore to_save and reset trainer's state
-            obj = torch.load(cache_filepath.as_posix())
+            obj = torch.load(cache_filepath.as_posix(), weights_only=True)
             trainer.load_state_dict(obj["trainer"])
             for k, o in obj.items():
                 if k in to_save:

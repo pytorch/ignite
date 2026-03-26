@@ -1,6 +1,3 @@
-from collections.abc import Callable
-from typing import Any
-
 from ignite.engine import Engine
 from ignite.engine.events import Events
 from ignite.handlers.checkpoint import Checkpoint, DiskSaver, ModelCheckpoint
@@ -13,6 +10,7 @@ from ignite.handlers.mlflow_logger import MLflowLogger
 from ignite.handlers.neptune_logger import NeptuneLogger
 from ignite.handlers.param_scheduler import (
     BaseParamScheduler,
+    BatchSizeScheduler,
     ConcatScheduler,
     CosineAnnealingScheduler,
     create_lr_scheduler_with_warmup,
@@ -71,6 +69,7 @@ __all__ = [
     "BasicTimeProfiler",
     "HandlersTimeProfiler",
     "BaseParamScheduler",
+    "BatchSizeScheduler",
     "StateParamScheduler",
     "LambdaStateScheduler",
     "PiecewiseLinearStateScheduler",

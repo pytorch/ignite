@@ -12,6 +12,11 @@ __all__ = ["DaviesBouldinScore"]
 def _davies_bouldin_score(features: Tensor, labels: Tensor) -> float:
     from sklearn.metrics import davies_bouldin_score
 
+    n_unique_labels = len(torch.unique(labels.detach()))
+    n_samples = len(labels)
+    if n_unique_labels < 2 or n_unique_labels >= n_samples:
+        return float("nan")
+
     np_features = features.cpu().numpy()
     np_labels = labels.cpu().numpy()
     score = davies_bouldin_score(np_features, np_labels)
@@ -29,6 +34,9 @@ class DaviesBouldinScore(_ClusteringMetricBase):
 
     The Davies-Bouldin score is non-negative,
     where values closer to zero indicate that the clustering result is good (i.e., clusters are well-separated).
+
+    When the number of unique labels is less than 2, or equals the number of samples
+    (i.e., the index is undefined), ``float('nan')`` is returned.
 
     The computation of this metric is implemented with
     `sklearn.metrics.davies_bouldin_score

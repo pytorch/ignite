@@ -1,4 +1,5 @@
 import ignite.metrics.clustering
+import ignite.metrics.fairness
 import ignite.metrics.regression
 
 from ignite.metrics.accumulation import Average, GeometricAverage, VariableAccumulation
@@ -93,6 +94,7 @@ __all__ = [
     "RougeL",
     "regression",
     "clustering",
+    "fairness",
     "AveragePrecision",
     "CohenKappa",
     "GpuInfo",

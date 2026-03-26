@@ -1,4 +1,4 @@
-""" ``ignite.contrib.handlers.time_profilers.py`` was moved to ``ignite.handlers.time_profilers``.
+"""``ignite.contrib.handlers.time_profilers.py`` was moved to ``ignite.handlers.time_profilers``.
 Note:
     ``ignite.contrib.handlers.time_profilers`` was moved to ``ignite.handlers.time_profilers``.
     Please refer to :mod:`~ignite.handlers.time_profilers`.

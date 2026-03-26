@@ -1,4 +1,7 @@
-from typing import Any, Callable
+from __future__ import annotations
+
+from collections.abc import Callable
+from typing import Any
 
 from ignite.distributed import utils as idist
 from ignite.utils import setup_logger

@@ -1,5 +1,3 @@
-from typing import Tuple
-
 import torch
 
 from ignite.exceptions import NotComputableError
@@ -64,7 +62,7 @@ class MeanError(_BaseRegression):
         self._sum_of_errors = torch.tensor(0.0, device=self._device)
         self._num_examples = 0
 
-    def _update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
+    def _update(self, output: tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output[0].detach(), output[1].detach()
         errors = y.view_as(y_pred) - y_pred
         self._sum_of_errors += torch.sum(errors).item()

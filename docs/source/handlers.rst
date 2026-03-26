@@ -98,6 +98,7 @@ Parameter scheduler
     :toctree: generated
 
     BaseParamScheduler
+    BatchSizeScheduler
     ConcatScheduler
     CosineAnnealingScheduler
     CyclicalScheduler

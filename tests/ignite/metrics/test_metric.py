@@ -1469,6 +1469,30 @@ def test_access_to_metric_dunder_attributes():
     assert "value" in inspect.signature(metric).parameters.keys()
 
 
+def test_getattr_typo_reports_definition_site():
+    """__getattr__ should report where the bad attribute was accessed, not deep inside compute()."""
+
+    class ScalarMetric(Metric):
+        def reset(self):
+            self._values = torch.tensor([])
+
+        def update(self, output):
+            self._values = torch.cat([self._values, torch.tensor([output])])
+
+        def compute(self):
+            return self._values
+
+    engine = Engine(lambda e, b: b)
+    m = ScalarMetric()
+
+    # Typo: .meen() instead of .mean()
+    bad = m.meen()
+    bad.attach(engine, "bad")
+
+    with pytest.raises(AttributeError, match=r"Metric result of type .* has no attribute 'meen'"):
+        engine.run([1.0, 2.0, 3.0], max_epochs=1)
+
+
 def test_output_transform_type_check():
     y_pred = torch.tensor([[2.0], [-2.0]])
     y = torch.zeros(2)

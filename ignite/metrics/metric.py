@@ -1,9 +1,10 @@
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping, Sequence
 from functools import wraps
 from numbers import Number
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Optional, Sequence, Tuple, Union, cast
+import traceback
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import torch
 
@@ -81,7 +82,7 @@ class EpochWise(MetricUsage):
     usage_name: str = "epoch_wise"
 
     def __init__(self) -> None:
-        super(EpochWise, self).__init__(
+        super().__init__(
             started=Events.EPOCH_STARTED,
             completed=Events.EPOCH_COMPLETED,
             iteration_completed=Events.ITERATION_COMPLETED,
@@ -133,7 +134,7 @@ class BatchWise(MetricUsage):
     usage_name: str = "batch_wise"
 
     def __init__(self) -> None:
-        super(BatchWise, self).__init__(
+        super().__init__(
             started=Events.ITERATION_STARTED,
             completed=Events.ITERATION_COMPLETED,
             iteration_completed=Events.ITERATION_COMPLETED,
@@ -212,7 +213,7 @@ class BatchFiltered(MetricUsage):
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super(BatchFiltered, self).__init__(
+        super().__init__(
             started=Events.EPOCH_STARTED,
             completed=Events.EPOCH_COMPLETED,
             iteration_completed=Events.ITERATION_COMPLETED(*args, **kwargs),
@@ -261,8 +262,8 @@ class Metric(Serializable, metaclass=ABCMeta):
                             self.cb = cb
 
                         def forward(self,
-                                    y_pred: Tuple[torch.Tensor, torch.Tensor],
-                                    y_true: Tuple[torch.Tensor, torch.Tensor]) -> torch.Tensor:
+                                    y_pred: tuple[torch.Tensor, torch.Tensor],
+                                    y_true: tuple[torch.Tensor, torch.Tensor]) -> torch.Tensor:
                             a_true, b_true = y_true
                             a_pred, b_pred = y_pred
                             return self.ca * F.mse_loss(a_pred, a_true) + self.cb * F.cross_entropy(b_pred, b_true)
@@ -356,14 +357,14 @@ class Metric(Serializable, metaclass=ABCMeta):
     """
 
     # public class attribute
-    required_output_keys: Optional[Tuple] = ("y_pred", "y")
+    required_output_keys: tuple | None = ("y_pred", "y")
     # for backward compatibility
     _required_output_keys = required_output_keys
 
     def __init__(
         self,
         output_transform: Callable = lambda x: x,
-        device: Union[str, torch.device] = torch.device("cpu"),
+        device: str | torch.device = torch.device("cpu"),
         skip_unrolling: bool = False,
         metrics_result_mode: Literal["flatten", "named", "both"] = "both",
     ):
@@ -398,7 +399,6 @@ class Metric(Serializable, metaclass=ABCMeta):
 
         By default, this is called at the start of each epoch.
         """
-        pass
 
     @abstractmethod
     def update(self, output: Any) -> None:
@@ -410,7 +410,6 @@ class Metric(Serializable, metaclass=ABCMeta):
         Args:
             output: the is the output from the engine's process function.
         """
-        pass
 
     @abstractmethod
     def compute(self) -> Any:
@@ -427,7 +426,6 @@ class Metric(Serializable, metaclass=ABCMeta):
         Raises:
             NotComputableError: raised when the metric cannot be computed.
         """
-        pass
 
     def started(self, engine: Engine) -> None:
         """Helper method to start data gathering for metric's computation. It is automatically attached to the
@@ -525,7 +523,7 @@ class Metric(Serializable, metaclass=ABCMeta):
 
             engine.state.metrics[name] = result
 
-    def _check_usage(self, usage: Union[str, MetricUsage]) -> MetricUsage:
+    def _check_usage(self, usage: str | MetricUsage) -> MetricUsage:
         if isinstance(usage, str):
             usages = [EpochWise, RunningEpochWise, BatchWise, RunningBatchWise, SingleEpochRunningBatchWise]
             for usage_cls in usages:
@@ -541,7 +539,7 @@ class Metric(Serializable, metaclass=ABCMeta):
             raise TypeError(f"Unhandled usage type {type(usage)}")
         return usage
 
-    def attach(self, engine: Engine, name: str, usage: Union[str, MetricUsage] = EpochWise()) -> None:
+    def attach(self, engine: Engine, name: str, usage: str | MetricUsage = EpochWise()) -> None:
         """
         Attaches current metric to provided engine. On the end of engine's run, `engine.state.metrics` dictionary will
         contain computed metric's value under provided name.
@@ -582,7 +580,7 @@ class Metric(Serializable, metaclass=ABCMeta):
             engine.add_event_handler(usage.ITERATION_COMPLETED, self.iteration_completed)
         engine.add_event_handler(usage.COMPLETED, self.completed, name)
 
-    def detach(self, engine: Engine, usage: Union[str, MetricUsage] = EpochWise()) -> None:
+    def detach(self, engine: Engine, usage: str | MetricUsage = EpochWise()) -> None:
         """
         Detaches current metric from the engine and no metric's computation is done during the run.
         This method in conjunction with :meth:`~ignite.metrics.metric.Metric.attach` can be useful if several
@@ -625,7 +623,7 @@ class Metric(Serializable, metaclass=ABCMeta):
         if engine.has_event_handler(self.iteration_completed, usage.ITERATION_COMPLETED):
             engine.remove_event_handler(self.iteration_completed, usage.ITERATION_COMPLETED)
 
-    def is_attached(self, engine: Engine, usage: Union[str, MetricUsage] = EpochWise()) -> bool:
+    def is_attached(self, engine: Engine, usage: str | MetricUsage = EpochWise()) -> bool:
         """
         Checks if current metric is attached to provided engine. If attached, metric's computed
         value is written to `engine.state.metrics` dictionary.
@@ -639,9 +637,7 @@ class Metric(Serializable, metaclass=ABCMeta):
         return engine.has_event_handler(self.completed, usage.COMPLETED)
 
     def _state_dict_per_rank(self) -> OrderedDict:
-        def func(
-            x: Union[torch.Tensor, Metric, None, float], **kwargs: Any
-        ) -> Union[torch.Tensor, float, OrderedDict, None]:
+        def func(x: torch.Tensor | Metric | None | float, **kwargs: Any) -> torch.Tensor | float | OrderedDict | None:
             if isinstance(x, Metric):
                 return x._state_dict_per_rank()
             if x is None or isinstance(x, (int, float, torch.Tensor)):
@@ -652,7 +648,7 @@ class Metric(Serializable, metaclass=ABCMeta):
                     " numeric types, tensor, Metric or sequence/mapping of metrics."
                 )
 
-        state: OrderedDict[str, Union[torch.Tensor, List, Dict, None]] = OrderedDict()
+        state: OrderedDict[str, torch.Tensor | list | dict | None] = OrderedDict()
         for attr_name in self._state_dict_all_req_keys:
             if attr_name not in self.__dict__:
                 raise ValueError(
@@ -795,8 +791,19 @@ class Metric(Serializable, metaclass=ABCMeta):
         if attr.startswith("__") and attr.endswith("__"):
             return object.__getattribute__(self, attr)
 
+        # Capture the call stack at definition time so that if the attribute
+        # turns out to be invalid (e.g. a typo), we can point the user back
+        # to where they wrote it instead of erroring deep inside compute().
+        definition_trace = "".join(traceback.format_stack()[:-1])
+
         def fn(x: Metric, *args: Any, **kwargs: Any) -> Any:
-            return getattr(x, attr)(*args, **kwargs)
+            try:
+                return getattr(x, attr)(*args, **kwargs)
+            except AttributeError:
+                raise AttributeError(
+                    f"Metric result of type '{type(x)}' has no attribute '{attr}'. "
+                    f"Note: '{attr}' was accessed on the metric at:\n{definition_trace}"
+                ) from None
 
         def wrapper(*args: Any, **kwargs: Any) -> "MetricsLambda":
             return MetricsLambda(fn, self, *args, **kwargs)
@@ -808,10 +815,10 @@ class Metric(Serializable, metaclass=ABCMeta):
 
         return MetricsLambda(lambda x: x[index], self)
 
-    def __getstate__(self) -> Dict:
+    def __getstate__(self) -> dict:
         return self.__dict__
 
-    def __setstate__(self, d: Dict) -> None:
+    def __setstate__(self, d: dict) -> None:
         self.__dict__.update(d)
 
 
@@ -893,11 +900,11 @@ def reinit__is_reduced(func: Callable) -> Callable:
     return wrapper
 
 
-def _is_list_of_tensors_or_numbers(x: Sequence[Union[torch.Tensor, float]]) -> bool:
+def _is_list_of_tensors_or_numbers(x: Sequence[torch.Tensor | float]) -> bool:
     return isinstance(x, Sequence) and all([isinstance(t, (torch.Tensor, Number)) for t in x])
 
 
-def _to_batched_tensor(x: Union[torch.Tensor, Number], device: Optional[torch.device] = None) -> torch.Tensor:
+def _to_batched_tensor(x: torch.Tensor | Number, device: torch.device | None = None) -> torch.Tensor:
     if isinstance(x, torch.Tensor):
         return x.unsqueeze(dim=0)
     return torch.tensor([x], device=device)

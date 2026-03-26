@@ -1,10 +1,10 @@
 import numbers
 import warnings
 import weakref
-from collections.abc import Sequence
+from collections.abc import Callable, Iterable, Iterator, Sequence
 from enum import Enum
 from types import DynamicClassAttribute
-from typing import Any, Callable, Iterable, Iterator, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 from torch.utils.data import DataLoader
 

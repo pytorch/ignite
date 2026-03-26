@@ -184,3 +184,8 @@ jobs:
           else
             echo "Caltech101 dataset failed to download. Skipping SR example test."
           fi
+      - name: Run CIFAR10 with Ray Tune and Ignite
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: |
+          uv pip install -r examples/cifar10_raytune/requirements.txt
+          python examples/cifar10_raytune/main.py --num_epochs 1 --num_trials 1 --cpus_per_trial 1 --gpus_per_trial 0

@@ -40,8 +40,6 @@
   <meta property="og:image:alt" content="PyTorch-Ignite logo">
   <meta property="og:description" content="High-level library to help with training and evaluating neural networks in PyTorch flexibly and transparently.">
 
-  <link rel="preconnect" href="https://BH4D9OD16A-dsn.algolia.net" crossorigin />
-
   {% block htmltitle %}
   <title>{{ title|striptags|e }}{{ titlesuffix }}</title>
   {% endblock %}
@@ -67,8 +65,10 @@
 
   {% endif %}
 
+  {%- if style is defined %}
   <link rel="preload" href="{{ pathto('_static/' + style, 1) }}" as="style" />
   <link rel="stylesheet" href="{{ pathto('_static/' + style, 1) }}" type="text/css" />
+  {%- endif %}
   <!-- <link rel="stylesheet" href="{{ pathto('_static/pygments.css', 1) }}" type="text/css" /> -->
   {%- for css in css_files %}
     {%- if css|attr("rel") %}
@@ -157,6 +157,7 @@
           </li>
 
 
+
         </ul>
       </div>
 
@@ -196,7 +197,13 @@
               {% endif %}
             {% endif %}
 
-            <div id="docsearch"></div>
+            <div role="search" id="search-icon-btn">
+              <form id="rtd-search-form" class="wy-form" action="{{ pathto('search') }}" method="get">
+                <input type="text" name="q" placeholder="{{ _('Search docs') }}" readonly/>
+                <input type="hidden" name="check_keywords" value="yes" />
+                <input type="hidden" name="area" value="default" />
+              </form>
+            </div>
 
             {% endblock %}
           </div>
@@ -500,6 +507,63 @@
 
   <script type="text/javascript" src="{{ pathto('_static/js/vendor/anchor.min.js', 1) }}"></script>
 
+  <div id="search-overlay">
+    <div class="search-overlay-content">
+      <span id="close-search">&times;</span>
+      <h3 class="search-overlay-title">Search Docs</h3>
+      <form id="overlay-rtd-search-form" class="wy-form" action="{{ pathto('search') }}" method="get">
+        <input type="text" name="q" placeholder="{{ _('Search docs') }}" id="overlay-search-input" />
+        <input type="hidden" name="check_keywords" value="yes" />
+        <input type="hidden" name="area" value="default" />
+        <button type="submit">Search</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var searchBtn = document.getElementById("search-icon-btn");
+      var searchOverlay = document.getElementById("search-overlay");
+      var closeSearch = document.getElementById("close-search");
+      var searchInput = document.getElementById("overlay-search-input");
+
+      if (searchBtn && searchOverlay) {
+        searchBtn.addEventListener("click", function(e) {
+          e.preventDefault();
+          searchOverlay.style.display = "flex";
+          setTimeout(function() { searchInput.focus(); }, 100);
+        });
+
+        closeSearch.addEventListener("click", function() {
+          searchOverlay.style.display = "none";
+        });
+
+        searchOverlay.addEventListener("click", function(e) {
+          if (e.target === searchOverlay) {
+            searchOverlay.style.display = "none";
+          }
+        });
+
+        document.addEventListener("keydown", function(e) {
+          if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+            e.preventDefault();
+            searchOverlay.style.display = "flex";
+            setTimeout(function() { searchInput.focus(); }, 100);
+          } else if (e.key === "Escape" && searchOverlay.style.display === "flex") {
+            e.preventDefault();
+            searchOverlay.style.display = "none";
+          }
+          else if (e.key === "Enter" && searchOverlay.style.display === "flex") {
+            var activeElement = document.activeElement;
+            if (activeElement === searchInput) {
+              e.preventDefault();
+              activeElement.form.submit();
+            }
+          }
+        });
+      }
+    });
+  </script>
   <script type="text/javascript">
     var collapsedSections = []
     $(document).ready(function() {
@@ -515,25 +579,6 @@
         $(this).closest("a").addClass("has-code");
       });
     })
-  </script>
-  <script src="https://cdn.jsdelivr.net/npm/@docsearch/js@3"></script>
-  <script type="text/javascript">
-  let VERSION
-  if ('{{ version }}'.startsWith('v')) {
-    VERSION = '{{ version }}'
-  } else {
-    VERSION = 'master'
-  }
-  docsearch({
-    container: '#docsearch',
-    appId: '7EWYE1JCT3',
-    apiKey: '841e93e60c16975ba1bd8c7c716eed82',
-    indexName: 'pytorch-ignite',
-    placeholder: 'Search PyTorch-Ignite docs',
-    searchParameters: {
-      facetFilters: [`version:${VERSION}`, 'tags:API-reference'],
-    }
-  });
   </script>
 </body>
 </html>

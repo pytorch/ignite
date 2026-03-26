@@ -124,8 +124,7 @@ class RunningAverage(Metric):
         else:
             if output_transform is None:
                 raise ValueError(
-                    "Argument output_transform should not be None if src corresponds "
-                    "to the output of process function."
+                    "Argument output_transform should not be None if src corresponds to the output of process function."
                 )
             self.src = None
             if device is None:

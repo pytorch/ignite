@@ -6,7 +6,8 @@ import warnings
 from collections import defaultdict
 from datetime import datetime
 from enum import Enum
-from typing import Any, Callable, DefaultDict, Mapping, Type
+from collections.abc import Callable, Mapping
+from typing import Any
 
 from torch.optim import Optimizer
 
@@ -848,7 +849,7 @@ class ClearMLSaver(DiskSaver):
         if "atomic" not in kwargs:
             kwargs["atomic"] = False
 
-        self._checkpoint_slots: DefaultDict[str | tuple[str, str], list[Any]] = defaultdict(list)
+        self._checkpoint_slots: defaultdict[str | tuple[str, str], list[Any]] = defaultdict(list)
 
         super().__init__(dirname=dirname, *args, **kwargs)  # type: ignore[misc]
 
@@ -882,7 +883,7 @@ class ClearMLSaver(DiskSaver):
     class _CallbacksContext:
         def __init__(
             self,
-            callback_type: Type[Enum],
+            callback_type: type[Enum],
             slots: list,
             checkpoint_key: str,
             filename: str,
