@@ -1478,7 +1478,6 @@ def test_create_lr_scheduler_with_warmup_cosine(warmup_end_value, T_0, T_mult):
 
 
 def test_batch_size_scheduler_asserts():
-
     dataset = TensorDataset(torch.arange(100))
     dataloader = DataLoader(dataset, batch_size=10)
 
@@ -1495,7 +1494,6 @@ def test_batch_size_scheduler_asserts():
 
 @pytest.mark.parametrize("save_history", [False, True])
 def test_batch_size_scheduler(save_history):
-
     dataset = TensorDataset(torch.arange(100))
     dataloader = DataLoader(dataset, batch_size=10)
 
@@ -1511,13 +1509,11 @@ def test_batch_size_scheduler(save_history):
 
 
 def test_batch_size_scheduler_simulate_values():
-
     values = BatchSizeScheduler.simulate_values(5, scheduler_fn=lambda e: 10 + e * 5)
     assert values == [[0, 10], [1, 15], [2, 20], [3, 25], [4, 30]]
 
 
 def test_batch_size_scheduler_state_dict():
-
     dataset = TensorDataset(torch.arange(100))
     dataloader = DataLoader(dataset, batch_size=10)
 
