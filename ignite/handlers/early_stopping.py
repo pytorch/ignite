@@ -144,9 +144,6 @@ class EarlyStopping(Serializable, ResettableHandler):
         self.counter = 0
         self.best_score: float | None = None
         self.logger = setup_logger(__name__ + "." + self.__class__.__name__)
-        self.min_delta = threshold
-        self.min_delta_mode = threshold_mode
-        self.cumulative_delta = cumulative
         self.mode = mode
 
     def __call__(self, engine: Engine) -> None:
