@@ -97,7 +97,7 @@ class HitRate(Metric):
 
             [0.0, 0.5, 0.5, 0.5]
 
-    .. versionadded:: 0.6.0
+    .. versionadded:: 0.5.4
     """
 
     required_output_keys = ("y_pred", "y")

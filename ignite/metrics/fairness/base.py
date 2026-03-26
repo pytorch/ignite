@@ -87,7 +87,7 @@ class SubgroupMetric(_SubgroupBase):
             form expected by the metric. Default is ``(y_pred, y, group_labels)``.
         device: specifies which device updates are accumulated on.
 
-    .. versionadded:: 0.6.0
+    .. versionadded:: 0.5.4
     """
 
     def compute(self) -> dict[Any, Any]:
@@ -110,7 +110,7 @@ class SubgroupDifference(_SubgroupBase):
         output_transform: a callable that is used to transform the engine output.
         device: specifies the computation device.
 
-    .. versionadded:: 0.6.0
+    .. versionadded:: 0.5.4
     """
 
     def compute(self) -> float:

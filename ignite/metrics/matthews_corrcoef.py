@@ -72,7 +72,7 @@ class MatthewsCorrCoef(EpochMetric):
 
                 -0.33...
 
-        .. versionadded:: 0.6.0
+        .. versionadded:: 0.5.4
 
     """
 
