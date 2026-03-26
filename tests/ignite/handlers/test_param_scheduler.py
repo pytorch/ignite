@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 import torch
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, ExponentialLR, StepLR
-
+from torch.utils.data import DataLoader, TensorDataset
 from ignite.engine import Engine, Events
 from ignite.handlers.param_scheduler import (
     ConcatScheduler,
@@ -1477,57 +1477,38 @@ def test_create_lr_scheduler_with_warmup_cosine(warmup_end_value, T_0, T_mult):
 
 
 def test_batch_size_scheduler_asserts():
-    from torch.utils.data import DataLoader, TensorDataset
+    from ignite.handlers.param_scheduler import BatchSizeScheduler
 
     dataset = TensorDataset(torch.arange(100))
     dataloader = DataLoader(dataset, batch_size=10)
 
     with pytest.raises(TypeError, match=r"Argument dataloader should be torch.utils.data.DataLoader"):
-        from ignite.handlers.param_scheduler import BatchSizeScheduler
-
         BatchSizeScheduler("not_a_dataloader", scheduler_fn=lambda e: 10)
 
     with pytest.raises(TypeError, match=r"Argument scheduler_fn should be callable"):
-        from ignite.handlers.param_scheduler import BatchSizeScheduler
-
         BatchSizeScheduler(dataloader, scheduler_fn="not_callable")
 
-    scheduler = BatchSizeScheduler(dataloader, scheduler_fn=lambda e: 10)
+    scheduler = BatchSizeScheduler(dataloader, scheduler_fn=lambda e: -1)
     with pytest.raises(ValueError, match=r"Batch size returned by scheduler_fn should be a positive integer"):
         scheduler(None)
 
 
-def test_batch_size_scheduler():
-    from torch.utils.data import DataLoader, TensorDataset
+@pytest.mark.parametrize("save_history", [False, True])
+def test_batch_size_scheduler(save_history):
     from ignite.handlers.param_scheduler import BatchSizeScheduler
 
     dataset = TensorDataset(torch.arange(100))
     dataloader = DataLoader(dataset, batch_size=10)
 
-    scheduler = BatchSizeScheduler(dataloader, scheduler_fn=lambda e: 10 + e * 10)
+    scheduler = BatchSizeScheduler(dataloader, scheduler_fn=lambda e: 10 + e * 10, save_history=save_history)
 
     trainer = Engine(lambda engine, batch: None)
     trainer.add_event_handler(Events.EPOCH_STARTED, scheduler)
     trainer.run([0] * 20, max_epochs=3)
 
-    # After 3 epochs, event_index=3, batch_size should be 10 + 2*10 = 30
     assert dataloader.batch_sampler.batch_size == 30
-
-
-def test_batch_size_scheduler_save_history():
-    from torch.utils.data import DataLoader, TensorDataset
-    from ignite.handlers.param_scheduler import BatchSizeScheduler
-
-    dataset = TensorDataset(torch.arange(100))
-    dataloader = DataLoader(dataset, batch_size=10)
-
-    scheduler = BatchSizeScheduler(dataloader, scheduler_fn=lambda e: 10 + e * 10, save_history=True)
-
-    trainer = Engine(lambda engine, batch: None)
-    trainer.add_event_handler(Events.EPOCH_STARTED, scheduler)
-    trainer.run([0] * 20, max_epochs=3)
-
-    assert trainer.state.param_history["batch_size"] == [10, 20, 30]
+    if save_history:
+        assert trainer.state.param_history["batch_size"] == [10, 20, 30]
 
 
 def test_batch_size_scheduler_simulate_values():
@@ -1538,7 +1519,6 @@ def test_batch_size_scheduler_simulate_values():
 
 
 def test_batch_size_scheduler_state_dict():
-    from torch.utils.data import DataLoader, TensorDataset
     from ignite.handlers.param_scheduler import BatchSizeScheduler
 
     dataset = TensorDataset(torch.arange(100))
