@@ -37,6 +37,9 @@ class EarlyStopping(Serializable, ResettableHandler):
 
             Possible values are "abs" and "rel". Default value is "abs".
         mode: Whether to maximize ('max') or minimize ('min') the score. Default is 'max'.
+        min_evals: Minimum number of evaluations before early stopping can trigger. The handler will
+            not stop training until it has been called at least ``min_evals`` times, regardless of
+            the score. Default value is 0 (no warmup period).
 
     Examples:
         .. code-block:: python
@@ -52,15 +55,26 @@ class EarlyStopping(Serializable, ResettableHandler):
             # Note: the handler is attached to an *Evaluator* (runs one epoch on validation dataset).
             evaluator.add_event_handler(Events.COMPLETED, handler)
 
+            # With min_evals: don't allow early stopping for the first 5 evaluations
+            handler = EarlyStopping(
+                patience=10,
+                score_function=score_function,
+                trainer=trainer,
+                min_evals=5,
+            )
+            evaluator.add_event_handler(Events.COMPLETED, handler)
+
     .. versionchanged:: 0.6.0
         Added `mode` parameter to support minimization in addition to maximization.
         Added `min_delta_mode` parameter to support both absolute and relative improvements.
+        Added `min_evals` parameter to support a warmup period before early stopping.
 
     """
 
     _state_dict_all_req_keys = (
         "counter",
         "best_score",
+        "_eval_counter",
     )
 
     def __init__(
@@ -72,6 +86,7 @@ class EarlyStopping(Serializable, ResettableHandler):
         cumulative_delta: bool = False,
         min_delta_mode: Literal["abs", "rel"] = "abs",
         mode: Literal["min", "max"] = "max",
+        min_evals: int = 0,
     ):
         if not callable(score_function):
             raise TypeError("Argument score_function should be a function.")
@@ -91,6 +106,9 @@ class EarlyStopping(Serializable, ResettableHandler):
         if mode not in ("min", "max"):
             raise ValueError("Argument mode should be either 'min' or 'max'.")
 
+        if not isinstance(min_evals, int) or min_evals < 0:
+            raise ValueError("Argument min_evals should be a non-negative integer.")
+
         self.score_function = score_function
         self.patience = patience
         self.min_delta = min_delta
@@ -101,12 +119,22 @@ class EarlyStopping(Serializable, ResettableHandler):
         self.logger = setup_logger(__name__ + "." + self.__class__.__name__)
         self.min_delta_mode = min_delta_mode
         self.mode = mode
+        self.min_evals = min_evals
+        self._eval_counter = 0
 
     def __call__(self, engine: Engine) -> None:
+        self._eval_counter += 1
         score = self.score_function(engine)
 
         if self.best_score is None:
             self.best_score = score
+
+        if self._eval_counter <= self.min_evals:
+            # Warmup period: track best score but don't enforce patience
+            if self.mode == "max":
+                self.best_score = max(score, self.best_score)
+            else:
+                self.best_score = min(score, self.best_score)
             return
 
         min_delta = -self.min_delta if self.mode == "min" else self.min_delta
@@ -130,12 +158,13 @@ class EarlyStopping(Serializable, ResettableHandler):
             self.counter = 0
 
     def reset(self) -> None:
-        """Reset the early stopping state, including the counter and best score.
+        """Reset the early stopping state, including the counter, eval counter and best score.
 
         .. versionadded:: 0.6.0
         """
         self.counter = 0
         self.best_score = None
+        self._eval_counter = 0
 
     def attach(  # type: ignore[override]
         self,
@@ -169,17 +198,24 @@ class EarlyStopping(Serializable, ResettableHandler):
         target_reset_engine.add_event_handler(reset_event, self.reset)
 
     def state_dict(self) -> "OrderedDict[str, float]":
-        """Method returns state dict with ``counter`` and ``best_score``.
+        """Method returns state dict with ``counter``, ``best_score`` and ``_eval_counter``.
         Can be used to save internal state of the class.
         """
-        return OrderedDict([("counter", self.counter), ("best_score", cast(float, self.best_score))])
+        return OrderedDict(
+            [
+                ("counter", self.counter),
+                ("best_score", cast(float, self.best_score)),
+                ("_eval_counter", self._eval_counter),
+            ]
+        )
 
     def load_state_dict(self, state_dict: Mapping) -> None:
         """Method replace internal state of the class with provided state dict data.
 
         Args:
-            state_dict: a dict with "counter" and "best_score" keys/values.
+            state_dict: a dict with "counter", "best_score" and "_eval_counter" keys/values.
         """
         super().load_state_dict(state_dict)
         self.counter = state_dict["counter"]
         self.best_score = state_dict["best_score"]
+        self._eval_counter = state_dict.get("_eval_counter", 0)

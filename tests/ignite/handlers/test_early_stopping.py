@@ -582,3 +582,168 @@ def test_early_stopping_attach_cross_engine():
 
     assert trainer.has_event_handler(handler.reset, Events.STARTED)
     assert not evaluator.has_event_handler(handler.reset, Events.STARTED)
+
+
+def test_args_validation_min_evals():
+    trainer = Engine(do_nothing_update_fn)
+
+    with pytest.raises(ValueError, match=r"Argument min_evals should be a non-negative integer."):
+        EarlyStopping(patience=2, score_function=lambda engine: 0, trainer=trainer, min_evals=-1)
+
+    with pytest.raises(ValueError, match=r"Argument min_evals should be a non-negative integer."):
+        EarlyStopping(patience=2, score_function=lambda engine: 0, trainer=trainer, min_evals=1.5)
+
+
+def test_min_evals_no_early_stopping_during_warmup():
+    """Handler must not terminate training during the min_evals warmup period."""
+    # Scores that would normally trigger early stopping after 2 calls
+    scores = iter([1.0, 0.5, 0.4])
+
+    trainer = Engine(do_nothing_update_fn)
+    h = EarlyStopping(patience=2, score_function=lambda _: next(scores), trainer=trainer, min_evals=3)
+
+    assert not trainer.should_terminate
+    h(None)  # eval 1 of 3 warmup — no patience check
+    assert not trainer.should_terminate
+    h(None)  # eval 2 of 3 warmup — no patience check
+    assert not trainer.should_terminate
+    h(None)  # eval 3 of 3 warmup — no patience check (still in warmup)
+    assert not trainer.should_terminate
+
+
+def test_min_evals_early_stopping_after_warmup():
+    """Handler should enforce patience only after min_evals warmup period."""
+    # scores: warmup evals first, then declining scores that trigger stopping
+    scores = iter([1.0, 1.1, 1.2, 0.5, 0.4])
+
+    trainer = Engine(do_nothing_update_fn)
+    h = EarlyStopping(patience=2, score_function=lambda _: next(scores), trainer=trainer, min_evals=3)
+
+    h(None)  # warmup 1
+    h(None)  # warmup 2
+    h(None)  # warmup 3 — end of warmup, best_score=1.2
+    assert not trainer.should_terminate
+
+    h(None)  # score=0.5, no improvement, counter=1
+    assert not trainer.should_terminate
+    h(None)  # score=0.4, no improvement, counter=2 → terminate
+    assert trainer.should_terminate
+
+
+def test_min_evals_zero_is_default_behaviour():
+    """min_evals=0 (default) should behave identically to not specifying min_evals."""
+    scores_a = iter([1.0, 0.8, 0.7])
+    scores_b = iter([1.0, 0.8, 0.7])
+
+    trainer_a = Engine(do_nothing_update_fn)
+    trainer_b = Engine(do_nothing_update_fn)
+
+    h_default = EarlyStopping(patience=2, score_function=lambda _: next(scores_a), trainer=trainer_a)
+    h_zero = EarlyStopping(patience=2, score_function=lambda _: next(scores_b), trainer=trainer_b, min_evals=0)
+
+    for _ in range(3):
+        h_default(None)
+        h_zero(None)
+
+    assert trainer_a.should_terminate == trainer_b.should_terminate
+
+
+def test_min_evals_tracks_best_score_during_warmup():
+    """During warmup, handler should still track the best score."""
+    scores = iter([0.5, 1.5, 1.0, 0.9, 0.8])
+
+    trainer = Engine(do_nothing_update_fn)
+    h = EarlyStopping(patience=2, score_function=lambda _: next(scores), trainer=trainer, min_evals=2)
+
+    h(None)  # warmup 1, best_score=0.5
+    h(None)  # warmup 2, best_score=1.5 (updated to max)
+    assert h.best_score == 1.5
+
+    h(None)  # score=1.0, no improvement vs 1.5, counter=1
+    assert not trainer.should_terminate
+    h(None)  # score=0.9, counter=2 → terminate
+    assert trainer.should_terminate
+
+
+def test_min_evals_reset_clears_eval_counter():
+    """reset() should clear _eval_counter so warmup restarts."""
+    scores = iter([1.0, 0.5, 0.4, 1.0, 0.3, 0.2])
+
+    trainer = Engine(do_nothing_update_fn)
+    h = EarlyStopping(patience=2, score_function=lambda _: next(scores), trainer=trainer, min_evals=2)
+
+    h(None)  # warmup 1
+    h(None)  # warmup 2 — end of warmup
+    assert h._eval_counter == 2
+
+    h.reset()
+    assert h._eval_counter == 0
+    assert h.best_score is None
+    assert h.counter == 0
+
+    # After reset, warmup should restart
+    h(None)  # warmup 1 again
+    assert not trainer.should_terminate
+    h(None)  # warmup 2 again — still in warmup
+    assert not trainer.should_terminate
+
+
+def test_min_evals_state_dict():
+    """state_dict and load_state_dict should preserve _eval_counter."""
+    scores = iter([1.0, 0.8, 0.6, 0.4, 0.2])
+
+    trainer = Engine(do_nothing_update_fn)
+    h = EarlyStopping(patience=3, score_function=lambda _: next(scores), trainer=trainer, min_evals=2)
+
+    h(None)  # warmup 1
+    h(None)  # warmup 2
+
+    state = h.state_dict()
+    assert "_eval_counter" in state
+    assert state["_eval_counter"] == 2
+
+    # Restore to a new handler
+    h2 = EarlyStopping(patience=3, score_function=lambda _: next(scores), trainer=trainer, min_evals=2)
+    h2.load_state_dict(state)
+    assert h2._eval_counter == 2
+    assert h2.best_score == h.best_score
+
+    # Should now enforce patience (warmup is over)
+    h2(None)  # score=0.6, no improvement, counter=1
+    assert not trainer.should_terminate
+    h2(None)  # score=0.4, counter=2
+    assert not trainer.should_terminate
+    h2(None)  # score=0.2, counter=3 → terminate
+    assert trainer.should_terminate
+
+
+def test_with_engine_min_evals():
+    """Integration test: min_evals delays early stopping inside a full engine run."""
+    # 10 epochs: warmup for 3, then declining scores trigger stop at epoch 7
+    scores = iter([1.0, 1.1, 1.2, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3])
+
+    trainer = Engine(do_nothing_update_fn)
+    evaluator = Engine(do_nothing_update_fn)
+
+    early_stopping = EarlyStopping(
+        patience=2,
+        score_function=lambda _: next(scores),
+        trainer=trainer,
+        min_evals=3,
+    )
+
+    epoch_count = [0]
+
+    @trainer.on(Events.EPOCH_COMPLETED)
+    def evaluation(engine):
+        evaluator.run([0])
+        epoch_count[0] += 1
+
+    evaluator.add_event_handler(Events.COMPLETED, early_stopping)
+    trainer.run([0], max_epochs=10)
+
+    # Warmup: epochs 1-3 (no patience enforced)
+    # Epoch 4: score=0.9 < best=1.2, counter=1
+    # Epoch 5: score=0.8, counter=2 → stop
+    assert epoch_count[0] == 5
+    assert trainer.state.epoch == 5
