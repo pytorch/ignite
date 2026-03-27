@@ -582,3 +582,52 @@ def test_early_stopping_attach_cross_engine():
 
     assert trainer.has_event_handler(handler.reset, Events.STARTED)
     assert not evaluator.has_event_handler(handler.reset, Events.STARTED)
+
+
+def test_legacy_api_support():
+    def score_function(engine):
+        return 1.0
+
+    trainer = Engine(lambda e, b: None)
+
+    # Initialize using deprecated args
+    with pytest.warns(DeprecationWarning):
+        h = EarlyStopping(
+            patience=2,
+            score_function=score_function,
+            trainer=trainer,
+            min_delta=0.1,
+            min_delta_mode="rel",
+            cumulative_delta=True,
+        )
+
+    # Access deprecated properties
+    with pytest.warns(DeprecationWarning):
+        assert h.min_delta == 0.1
+
+    with pytest.warns(DeprecationWarning):
+        assert h.min_delta_mode == "rel"
+
+    with pytest.warns(DeprecationWarning):
+        assert h.cumulative_delta is True
+
+
+def test_deprecated_setters():
+    def score_function(engine):
+        return 1.0
+
+    trainer = Engine(lambda e, b: None)
+
+    h = EarlyStopping(patience=2, score_function=score_function, trainer=trainer)
+
+    with pytest.warns(DeprecationWarning):
+        h.min_delta = 0.2
+        assert h.threshold == 0.2
+
+    with pytest.warns(DeprecationWarning):
+        h.min_delta_mode = "abs"
+        assert h.threshold_mode == "abs"
+
+    with pytest.warns(DeprecationWarning):
+        h.cumulative_delta = True
+        assert h.cumulative is True

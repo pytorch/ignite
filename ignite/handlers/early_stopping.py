@@ -146,31 +146,58 @@ class EarlyStopping(Serializable, ResettableHandler):
         self.mode = mode
 
     @property
-    def min_delta(self):
+    def min_delta(self) -> float:
         warnings.warn(
-            "min_delta is deprecated, use threshold instead",
+            "min_delta is deprecated and will be removed in a future version. Please use 'threshold' instead.",
             DeprecationWarning,
             stacklevel=2,
         )
         return self.threshold
 
-    @property
-    def min_delta_mode(self):
+    @min_delta.setter
+    def min_delta(self, value: float) -> None:
         warnings.warn(
-            "min_delta_mode is deprecated, use threshold_mode instead",
+            "min_delta is deprecated and will be removed in a future version. Please use 'threshold' instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        self.threshold = value
+
+    @property
+    def min_delta_mode(self) -> str:
+        warnings.warn(
+            "min_delta_mode is deprecated and will be removed in a future version. Please use 'threshold_mode' instead.",
             DeprecationWarning,
             stacklevel=2,
         )
         return self.threshold_mode
 
-    @property
-    def cumulative_delta(self):
+    @min_delta_mode.setter
+    def min_delta_mode(self, value: str) -> None:
         warnings.warn(
-            "cumulative_delta is deprecated, use cumulative instead",
+            "min_delta_mode is deprecated and will be removed in a future version. Please use 'threshold_mode' instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        self.threshold_mode = value
+
+    @property
+    def cumulative_delta(self) -> bool:
+        warnings.warn(
+            "cumulative_delta is deprecated and will be removed in a future version. Please use 'cumulative' instead.",
             DeprecationWarning,
             stacklevel=2,
         )
         return self.cumulative
+
+    @cumulative_delta.setter
+    def cumulative_delta(self, value: bool) -> None:
+        warnings.warn(
+            "cumulative_delta is deprecated and will be removed in a future version. Please use 'cumulative' instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        self.cumulative = value
 
     def __call__(self, engine: Engine) -> None:
         score = self.score_function(engine)
