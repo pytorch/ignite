@@ -146,17 +146,17 @@ class EarlyStopping(Serializable, ResettableHandler):
         self.logger = setup_logger(__name__ + "." + self.__class__.__name__)
         self.mode = mode
 
-        @property
-        def min_delta(self):
-            return self.threshold
+    @property
+    def min_delta(self):
+        return self.threshold
 
-        @property
-        def min_delta_mode(self):
-            return self.threshold_mode
+    @property
+    def min_delta_mode(self):
+        return self.threshold_mode
 
-        @property
-        def cumulative_delta(self):
-            return self.cumulative
+    @property
+    def cumulative_delta(self):
+        return self.cumulative
 
     def __call__(self, engine: Engine) -> None:
         score = self.score_function(engine)
