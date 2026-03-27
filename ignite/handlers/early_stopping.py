@@ -67,7 +67,6 @@ class EarlyStopping(Serializable, ResettableHandler):
         Added ``mode`` parameter to support minimization in addition to maximization.
         Added ``threshold_mode`` parameter to support both absolute and relative improvements.
         Renamed ``min_delta`` to ``threshold``.
-        Renamed ``min_delta_mode`` to ``threshold_mode``.
         Renamed ``cumulative_delta`` to ``cumulative``.
     """
 
@@ -148,14 +147,29 @@ class EarlyStopping(Serializable, ResettableHandler):
 
     @property
     def min_delta(self):
+        warnings.warn(
+            "min_delta is deprecated, use threshold instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self.threshold
 
     @property
     def min_delta_mode(self):
+        warnings.warn(
+            "min_delta_mode is deprecated, use threshold_mode instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self.threshold_mode
 
     @property
     def cumulative_delta(self):
+        warnings.warn(
+            "cumulative_delta is deprecated, use cumulative instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self.cumulative
 
     def __call__(self, engine: Engine) -> None:
