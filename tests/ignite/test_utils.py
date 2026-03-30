@@ -300,3 +300,5 @@ def test_hash_checkpoint(tmp_path):
     # test non-existent checkpoint_path
     with pytest.raises(FileNotFoundError, match=r"not_found.pt does not exist in *"):
         hash_checkpoint(f"{tmp_path}/not_found.pt", tmp_path)
+    def test_basic_check():
+    assert 1 + 1 == 2
