@@ -135,6 +135,7 @@ class Engine(Serializable):
     interrupt_resume_enabled = True
 
     def __init__(self, process_function: Callable[["Engine", Any], Any]):
+        print("DEBUG: Running dataset once")
         self._event_handlers: dict[Any, list] = defaultdict(list)
         self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self._process_function = process_function
