@@ -1570,3 +1570,16 @@ def test_engine_interrupt_restart():
     state = engine.run(data, max_epochs=max_epochs)
     assert state.iteration == max_epochs * len(data) and state.epoch == max_epochs
     assert num_calls_check_iter_epoch == 1
+def test_engine_runs_simple():
+    from ignite.engine import Engine
+
+    def process_function(engine, batch):
+        return batch
+
+    engine = Engine(process_function)
+    data = [1, 2, 3]
+
+    engine.run(data)
+
+    assert engine.state.iteration == 3
+    
