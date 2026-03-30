@@ -16,6 +16,7 @@ from tests.ignite.engine import BatchChecker, EpochCounter, IterationCounter
 
 class RecordedEngine(Engine):
     def __init__(self, *args, **kwargs):
+        print("DEBUG: Engine started running")
         super().__init__(*args, **kwargs)
         self.called_events = []
 
