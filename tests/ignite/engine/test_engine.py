@@ -1570,3 +1570,4 @@ def test_engine_interrupt_restart():
     state = engine.run(data, max_epochs=max_epochs)
     assert state.iteration == max_epochs * len(data) and state.epoch == max_epochs
     assert num_calls_check_iter_epoch == 1
+Add tests for Events enum to improve code coverage
