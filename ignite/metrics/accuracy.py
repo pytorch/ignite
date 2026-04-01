@@ -101,10 +101,9 @@ class _BaseClassification(Metric):
 
         It flattens the sequences and filters out the padding (``ignore_index``).
 
-        Supported input shapes are:
-        - ``y_pred``: ``(N, L, C)``, ``y``: ``(N, L)``
-        - ``y_pred``: ``(N, C, L)``, ``y``: ``(N, L)``
-        - ``y_pred``: ``(N, L)``, ``y``: ``(N, L)``
+        Expected input shapes:
+        - ``y_pred``: ``(N, S, C)`` where N is batch size, S is sequence length, C is number of classes
+        - ``y``: ``(N, S)`` containing class indices
 
         Args:
             ignore_index: An integer or an iterable of integers representing padding or
@@ -112,29 +111,28 @@ class _BaseClassification(Metric):
             output_transform: A callable to transform the output into ``(y_pred, y)``.
 
         Returns:
-            Callable that flattens ``y_pred`` and ``y`` and removes ``ignore_index`` elements.
+            Callable that flattens ``y_pred`` to ``(N*S, C)`` and ``y`` to ``(N*S,)``,
+            then removes elements where ``y`` equals ``ignore_index``.
         """
 
         def wrapper(output: Sequence[torch.Tensor]) -> tuple[torch.Tensor, torch.Tensor]:
             y_pred, y = output_transform(output)
 
-            ndp, ndy = y_pred.ndimension(), y.ndimension()
-            if not ((ndp == 3 and ndy == 2) or (ndp == ndy == 2)):
-                raise ValueError(f"Expected (3D,2D) or (2D,2D) tensors, but got y_pred={ndp}D and y={ndy}D.")
+            if y_pred.ndimension() != 3 or y.ndimension() != 2:
+                raise ValueError(
+                    f"Expected y_pred to be 3D (N, S, C) and y to be 2D (N, S), "
+                    f"but got y_pred={y_pred.ndimension()}D and y={y.ndimension()}D."
+                )
 
-            incompat = f"y_pred and y have incompatible sequence shapes: y_pred={y_pred.shape} vs y={y.shape}"
-            if ndp == 3 and ndy == 2:
-                if y_pred.shape[:2] == y.shape:  # (N, L, C), y is (N, L)
-                    y_pred = y_pred.reshape(-1, y_pred.size(-1))
-                elif y_pred.shape[0] == y.shape[0] and y_pred.shape[2] == y.shape[1]:  # (N, C, L)
-                    y_pred = y_pred.transpose(1, 2).reshape(-1, y_pred.size(1))
-                else:
-                    raise ValueError(incompat)
-                y = y.reshape(-1)
-            else:  # 2D/2D binary: y_pred (N, L), y (N, L)
-                if y_pred.shape != y.shape:
-                    raise ValueError(incompat)
-                y_pred, y = y_pred.reshape(-1), y.reshape(-1)
+            if y_pred.shape[:2] != y.shape:
+                raise ValueError(
+                    f"y_pred and y have incompatible shapes: "
+                    f"y_pred={y_pred.shape} (expected first two dims to match y={y.shape})."
+                )
+
+            # Flatten: (N, S, C) -> (N*S, C) and (N, S) -> (N*S,)
+            y_pred = y_pred.reshape(-1, y_pred.size(-1))
+            y = y.reshape(-1)
 
             if ignore_index is not None:
                 if isinstance(ignore_index, Iterable):

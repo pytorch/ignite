@@ -501,51 +501,42 @@ def test_skip_unrolling():
 
 
 def test_get_sequence_transform_shapes():
-    # test (N, L, C) with (N, L)
+    # test (N, S, C) with (N, S) - the standard sequence format
     y_pred = torch.tensor(
         [
             [[0.1, 0.9], [0.8, 0.2], [0.3, 0.7], [0.5, 0.5]],
             [[0.9, 0.1], [0.2, 0.8], [0.4, 0.6], [0.5, 0.5]],
         ]
-    )  # shape: (2, 4, 2)
-    y = torch.tensor([[1, 0, 1, 0], [0, 1, 0, 0]])  # shape: (2, 4)
+    )  # shape: (2, 4, 2) = (N, S, C)
+    y = torch.tensor([[1, 0, 1, 0], [0, 1, 0, 0]])  # shape: (2, 4) = (N, S)
 
     transform = Accuracy.get_sequence_transform()
     y_pred_t, y_t = transform((y_pred, y))
 
-    assert y_pred_t.shape == (8, 2)
-    assert y_t.shape == (8,)
+    assert y_pred_t.shape == (8, 2)  # (N*S, C)
+    assert y_t.shape == (8,)  # (N*S,)
 
-    # test (N, C, L) with (N, L)
-    y_pred_ncl = y_pred.transpose(1, 2).contiguous()  # (2, 2, 4)
-    y_pred_t2, y_t2 = transform((y_pred_ncl, y))
-    assert y_pred_t2.shape == (8, 2)
-    assert torch.all(y_pred_t2 == y_pred_t)
-    assert torch.all(y_t2 == y_t)
-
-    # test binary (N, L) with (N, L)
-    y_pred_bin = torch.tensor([[1, 0, 1, 1], [0, 1, 0, 0]])
-    y_bin = torch.tensor([[1, 0, 1, 0], [0, 1, 0, 0]])
-    y_pred_bin_t, y_bin_t = transform((y_pred_bin, y_bin))
-
-    assert y_pred_bin_t.shape == (8,)
-    assert y_bin_t.shape == (8,)
+    # test bad shapes: 2D y_pred (not supported)
+    y_pred_2d = torch.tensor([[1, 0, 1, 1], [0, 1, 0, 0]])
+    y_2d = torch.tensor([[1, 0, 1, 0], [0, 1, 0, 0]])
+    with pytest.raises(ValueError, match="Expected y_pred to be 3D"):
+        transform((y_pred_2d, y_2d))
 
     # test bad shapes: 1D target
     y_bad = torch.tensor([1, 0, 1])
-    with pytest.raises(ValueError, match="Expected \\(3D,2D\\) or \\(2D,2D\\) tensors"):
-        transform((y_pred_bin, y_bad))
+    with pytest.raises(ValueError, match="Expected y_pred to be 3D"):
+        transform((y_pred_2d, y_bad))
 
-    # test bad shapes: unsupported 3D/3D
+    # test bad shapes: 3D/3D
     y_pred_3d = torch.tensor([[[0.1, 0.9], [0.8, 0.2]], [[0.3, 0.7], [0.5, 0.5]]])
     y_3d = torch.tensor([[[0, 1], [1, 0]], [[0, 1], [1, 0]]])
-    with pytest.raises(ValueError, match="Expected \\(3D,2D\\) or \\(2D,2D\\) tensors"):
+    with pytest.raises(ValueError, match="Expected y_pred to be 3D .* and y to be 2D"):
         transform((y_pred_3d, y_3d))
 
-    # test bad shapes: incompatible 3D/2D
-    y_pred_bad = torch.tensor([[[1], [2]], [[3], [4]]])
-    y_bad_2d = torch.tensor([[1, 2, 3], [4, 5, 6]])
-    with pytest.raises(ValueError, match="incompatible sequence shapes"):
+    # test bad shapes: incompatible 3D/2D dimensions
+    y_pred_bad = torch.tensor([[[1], [2]], [[3], [4]]])  # (2, 2, 1)
+    y_bad_2d = torch.tensor([[1, 2, 3], [4, 5, 6]])  # (2, 3) - S doesn't match
+    with pytest.raises(ValueError, match="incompatible shapes"):
         transform((y_pred_bad, y_bad_2d))
 
 
@@ -556,34 +547,22 @@ def test_get_sequence_transform_ignore_index():
             [[0.1, 0.9], [0.8, 0.2], [0.3, 0.7], [0.5, 0.5]],
             [[0.9, 0.1], [0.2, 0.8], [0.4, 0.6], [0.5, 0.5]],
         ]
-    )
-    y = torch.tensor([[1, 0, 1, -1], [0, 1, 0, -1]])
+    )  # shape: (2, 4, 2) = (N, S, C)
+    y = torch.tensor([[1, 0, 1, -1], [0, 1, 0, -1]])  # shape: (2, 4) = (N, S)
 
     transform = Accuracy.get_sequence_transform(ignore_index=-1)
     y_pred_t, y_t = transform((y_pred, y))
 
-    assert y_pred_t.shape == (6, 2)
+    assert y_pred_t.shape == (6, 2)  # 2 positions masked out
     assert y_t.shape == (6,)
     assert y_t.tolist() == [1, 0, 1, 0, 1, 0]
     assert y_pred_t[:, 1].tolist() == pytest.approx([0.9, 0.2, 0.7, 0.1, 0.8, 0.6])
 
-    # test binary with single ignore_index
-    y_pred_bin = torch.tensor([[1, 0, 1, 1], [0, 1, 0, 0]])
-    y_bin = torch.tensor([[1, 0, 1, 2], [0, 1, 0, 2]])
-    transform_bin = Accuracy.get_sequence_transform(ignore_index=2)
-    y_pred_bin_t, y_bin_t = transform_bin((y_pred_bin, y_bin))
-
-    assert y_pred_bin_t.shape == (6,)
-    assert y_bin_t.shape == (6,)
-    assert y_bin_t.tolist() == [1, 0, 1, 0, 1, 0]
-    assert y_pred_bin_t.tolist() == [1, 0, 1, 0, 1, 0]
-
     # test multiple ignore_index values
-    y_pred_bin = torch.tensor([[1, 0, 1, 1], [0, 1, 0, 0]])
-    y_bin = torch.tensor([[1, -1, 1, 2], [0, 1, -1, 2]])
+    y_multi = torch.tensor([[1, -1, 1, 2], [0, 1, -1, 2]])  # -1 and 2 are ignored
     transform_multi = Accuracy.get_sequence_transform(ignore_index=[-1, 2])
-    y_pred_multi_t, y_multi_t = transform_multi((y_pred_bin, y_bin))
+    y_pred_multi_t, y_multi_t = transform_multi((y_pred, y_multi))
 
-    assert y_pred_multi_t.shape == (4,)
+    assert y_pred_multi_t.shape == (4, 2)  # 4 positions masked out
     assert y_multi_t.shape == (4,)
     assert y_multi_t.tolist() == [1, 1, 0, 1]
