@@ -16,7 +16,8 @@ jobs:
         uses: conda-incubator/setup-miniconda@v3
         with:
           miniconda-version: "latest"
-          python-version: "3.13"
+          python-version: "3.10"
+          channels: defaults,pytorch-nightly
 
       - name: Setup nightly version
         run: |
@@ -28,7 +29,7 @@ jobs:
       - name: Install dependencies
         shell: bash -l {0}
         run: |
-          pip install torch torchvision --index-url https://download.pytorch.org/whl/nightly/cpu --pre
+          conda install -y pytorch torchvision cpuonly -c pytorch-nightly
           pip install -r requirements-dev.txt
 
       - name: Build and Publish Conda binaries
