@@ -6,7 +6,7 @@ import torch
 
 import ignite.distributed as idist
 from ignite.distributed.utils import all_gather_tensors_with_shapes
-from ignite.metrics.metric import Metric, reinit__is_reduced
+from ignite.metrics.metric import reinit__is_reduced
 from ignite.metrics.precision import _BaseClassification
 from ignite.utils import to_onehot
 
