@@ -65,7 +65,7 @@ class SubgroupAccuracyDifference(SubgroupDifference):
 
             1.0
 
-    .. versionadded:: 0.6.0
+    .. versionadded:: 0.5.4
 
     References:
         - Verma & Rubin, `Fairness Definitions Explained

@@ -1,4 +1,4 @@
-from typing import Callable
+from collections.abc import Callable
 
 import torch
 
@@ -97,7 +97,7 @@ class HitRate(Metric):
 
             [0.0, 0.5, 0.5, 0.5]
 
-    .. versionadded:: 0.6.0
+    .. versionadded:: 0.5.4
     """
 
     required_output_keys = ("y_pred", "y")
@@ -116,7 +116,7 @@ class HitRate(Metric):
 
         self.top_k = sorted(top_k)
         self.ignore_zero_hits = ignore_zero_hits
-        super(HitRate, self).__init__(output_transform, device=device, skip_unrolling=skip_unrolling)
+        super().__init__(output_transform, device=device, skip_unrolling=skip_unrolling)
 
     @reinit__is_reduced
     def reset(self) -> None:
