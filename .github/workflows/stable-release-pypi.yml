@@ -10,24 +10,23 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v3
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
         with:
-          miniconda-version: "latest"
-          python-version: "3.10"
+          version: "latest"
+          python-version: "3.13"
+          activate-environment: true
 
       - name: Install dependencies
-        shell: bash -l {0}
         run: |
-          conda install -y pytorch torchvision cpuonly -c pytorch
-          pip install -r requirements-dev.txt
+          uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          uv pip install -r requirements-dev.txt
 
       - name: Build and Publish PyPI binaries
-        shell: bash -l {0}
         run: |
           # workaround to fix https://github.com/pytorch/ignite/issues/2373
-          pip uninstall -y twine pkginfo
-          pip install --upgrade --no-cache-dir hatch twine 'pkginfo>=1.8.2'
+          uv pip uninstall -y twine pkginfo
+          uv pip install --upgrade --no-cache-dir hatch twine 'pkginfo>=1.8.2'
           hatch build
           twine --version
           twine check dist/*
