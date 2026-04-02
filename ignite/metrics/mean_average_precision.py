@@ -230,7 +230,7 @@ class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
             device=device,
             skip_unrolling=skip_unrolling,
         )
-        super().__init__(rec_thresholds=rec_thresholds, class_mean=class_mean, device=device)
+        _BaseAveragePrecision.__init__(self, rec_thresholds=rec_thresholds, class_mean=class_mean, device=device)
 
     @reinit__is_reduced
     def reset(self) -> None:
