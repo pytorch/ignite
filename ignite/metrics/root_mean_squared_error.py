@@ -65,5 +65,5 @@ class RootMeanSquaredError(MeanSquaredError):
     """
 
     def compute(self) -> torch.Tensor | float:
-        mse = super(RootMeanSquaredError, self).compute()
+        mse = super().compute()
         return math.sqrt(mse)

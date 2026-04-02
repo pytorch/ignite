@@ -109,7 +109,7 @@ class RunningEpochWise(EpochWise):
     usage_name: str = "running_epoch_wise"
 
     def __init__(self) -> None:
-        super(EpochWise, self).__init__(
+        super().__init__(
             started=Events.STARTED,
             completed=Events.EPOCH_COMPLETED,
             iteration_completed=Events.EPOCH_COMPLETED,
