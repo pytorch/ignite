@@ -154,7 +154,7 @@ class NDCG(Metric):
             raise ValueError(f"top_k must be list of positive integers only, but given {top_k}")
 
         if gain_function not in ["exp_rank", "linear_rank"]:
-            raise ValueError("gain_function must be either 'exp_rank' or 'linear_rank'")
+            raise ValueError(f"gain_function must be either 'exp_rank' or 'linear_rank', but given {gain_function}")
 
         self.top_k = sorted(top_k)
         self.ignore_zero_hits = ignore_zero_hits
