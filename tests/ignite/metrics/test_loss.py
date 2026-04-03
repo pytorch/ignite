@@ -184,16 +184,16 @@ def _test_distrib_accumulator_device(device, y_test_1):
     for metric_device in metric_devices:
         loss = Loss(nll_loss, device=metric_device)
         assert loss._device == metric_device
-        assert (
-            loss._sum.device == metric_device
-        ), f"{type(loss._sum.device)}:{loss._sum.device} vs {type(metric_device)}:{metric_device}"
+        assert loss._sum.device == metric_device, (
+            f"{type(loss._sum.device)}:{loss._sum.device} vs {type(metric_device)}:{metric_device}"
+        )
 
         y_pred, y, _ = y_test_1
         loss.update((y_pred, y))
 
-        assert (
-            loss._sum.device == metric_device
-        ), f"{type(loss._sum.device)}:{loss._sum.device} vs {type(metric_device)}:{metric_device}"
+        assert loss._sum.device == metric_device, (
+            f"{type(loss._sum.device)}:{loss._sum.device} vs {type(metric_device)}:{metric_device}"
+        )
 
 
 def test_sum_detached():

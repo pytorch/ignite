@@ -1,3 +1,4 @@
+import math
 import os
 import time
 from unittest.mock import call, MagicMock, Mock
@@ -1328,6 +1329,71 @@ class TestEngine:
         assert trainer.state.epoch == 2
         assert trainer.state.iteration == 2 * 4
 
+    def test_run_with_data_whose_len_raises_type_error(self):
+        # covers: silent `except TypeError: pass` block triggered when a DataLoader
+        # over an IterableDataset raises TypeError on len(); epoch_length falls back
+        # to the actual iteration count instead of None
+        class BadLenData:
+            def __len__(self):
+                raise TypeError("IterableDataset has no len()")
+
+            def __iter__(self):
+                return iter([1, 2, 3])
+
+        engine = Engine(lambda e, b: None)
+        state = engine.run(BadLenData())
+        assert state.epoch == 1
+        assert state.iteration == 3
+        assert state.epoch_length == 3
+
+    def test_max_epochs_calculated_from_max_iters_unknown_epoch_length(self):
+        # covers: max_epochs auto-calculated as ceil(max_iters / epoch_length)
+        # when data is an iterator of unknown length and max_iters is provided
+
+        def data_iter():
+            for i in range(5):
+                yield i
+
+        engine = Engine(lambda e, b: None)
+
+        @engine.on(Events.DATALOADER_STOP_ITERATION)
+        def restart():
+            engine.state.dataloader = data_iter()
+
+        engine.run(data_iter(), max_iters=7)
+        assert engine.state.max_epochs == math.ceil(7 / engine.state.epoch_length)
+        assert engine.state.iteration == 7
+
+    def test_run_resume_raises_on_epoch_length_mismatch(self):
+        # covers: ValueError raised when resuming with a different epoch_length than the one stored in state
+        engine = Engine(lambda e, b: None)
+        engine.run([1, 2, 3], max_epochs=1)
+
+        with pytest.raises(ValueError, match="Argument epoch_length should be same as in the state"):
+            engine.run([1, 2, 3], max_epochs=2, epoch_length=10)
+
+    def test_resume_after_terminate_resets_init_iter(self):
+        # covers: _init_iter set to 0 when resuming after engine was terminated mid-run
+        engine = Engine(lambda e, b: None)
+
+        @engine.on(Events.ITERATION_COMPLETED(once=5))
+        def stop():
+            engine.terminate()
+
+        engine.run([0] * 10, max_epochs=2)
+        assert engine.should_terminate
+
+        engine.run([0] * 10, max_epochs=2)
+        assert engine._init_iter is None  # consumed after setup
+
+    def test_resume_raises_when_data_none_and_epoch_length_none(self):
+        # covers: ValueError raised when resuming with data=None and epoch_length=None
+        engine = Engine(lambda e, b: None)
+        engine.state = State(dataloader=None, epoch_length=None, max_epochs=5, iteration=0, epoch=0)
+
+        with pytest.raises(ValueError, match="epoch_length should be provided if data is None"):
+            engine.run(None, max_epochs=5)
+
 
 @pytest.mark.parametrize(
     "interrupt_event, e, i",
@@ -1453,15 +1519,11 @@ def test_engine_run_multiple_interrupt_resume():
     assert num_calls_check_iter_epoch == 1
 
 
-def test_engine_should_interrupt_error():
-    Engine.interrupt_resume_enabled = False
-
+def test_engine_should_interrupt_error(monkeypatch):
+    monkeypatch.setattr(Engine, "interrupt_resume_enabled", False)
     engine = Engine(lambda e, b: None)
-
     with pytest.raises(RuntimeError, match="Engine 'interrupt/resume' feature is disabled"):
         engine.interrupt()
-
-    Engine.interrupt_resume_enabled = True
 
 
 def test_engine_interrupt_restart():

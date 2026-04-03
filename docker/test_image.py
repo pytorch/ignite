@@ -24,9 +24,9 @@ def check_package(package_name, expected_version=None):
             old_version = version
             version = version.split("+")[0]
             print(f"Transformed version: {old_version} -> {version}")
-        assert (
-            version == expected_version
-        ), f"Version mismatch for package {package_name}: got {version} but expected {expected_version}"
+        assert version == expected_version, (
+            f"Version mismatch for package {package_name}: got {version} but expected {expected_version}"
+        )
 
 
 if __name__ == "__main__":

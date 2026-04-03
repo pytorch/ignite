@@ -38,10 +38,7 @@ else:
         ),
         (
             "node[4-8,12,16-20,22,24-26]",
-            "node4,node5,node6,node7,node8,"
-            "node12,node16,node17,node18,"
-            "node19,node20,node22,node24,"
-            "node25,node26",
+            "node4,node5,node6,node7,node8,node12,node16,node17,node18,node19,node20,node22,node24,node25,node26",
         ),
         ("machine2-[02-4]vm1", "machine2-02vm1,machine2-03vm1,machine2-04vm1"),
         (
@@ -578,47 +575,78 @@ def test__native_dist_model_init_method_is_not_none(world_size, local_rank, get_
         # fmt: off
         # usual SLURM env
         (
-
             {
-                "SLURM_PROCID": "1", "SLURM_LOCALID": "1", "SLURM_NTASKS": "2", "SLURM_JOB_NUM_NODES": "1",
-                "SLURM_JOB_NODELIST": "c1", "SLURM_JOB_ID": "12345",
+                "SLURM_PROCID": "1",
+                "SLURM_LOCALID": "1",
+                "SLURM_NTASKS": "2",
+                "SLURM_JOB_NUM_NODES": "1",
+                "SLURM_JOB_NODELIST": "c1",
+                "SLURM_JOB_ID": "12345",
             },
-            [1, 1, 2, "c1", 17345]
+            [1, 1, 2, "c1", 17345],
         ),
         # usual SLURM env mnode
         (
             {
-                "SLURM_PROCID": "5", "SLURM_LOCALID": "1", "SLURM_NTASKS": "8", "SLURM_JOB_NUM_NODES": "2",
-                "SLURM_JOB_NODELIST": "c1, c2", "SLURM_JOB_ID": "12345",
+                "SLURM_PROCID": "5",
+                "SLURM_LOCALID": "1",
+                "SLURM_NTASKS": "8",
+                "SLURM_JOB_NUM_NODES": "2",
+                "SLURM_JOB_NODELIST": "c1, c2",
+                "SLURM_JOB_ID": "12345",
             },
-            [5, 1, 8, "c1", 17345]
+            [5, 1, 8, "c1", 17345],
         ),
         # usual SLURM env 1 node, 1 task + torch.distributed.launch
         (
             {
-                "SLURM_PROCID": "0", "SLURM_LOCALID": "0", "SLURM_NTASKS": "1", "SLURM_JOB_NUM_NODES": "1",
-                "SLURM_JOB_NODELIST": "c1", "SLURM_JOB_ID": "12345",
-                "MASTER_ADDR": "127.0.0.1", "MASTER_PORT": "2233", "RANK": "2", "LOCAL_RANK": "2", "WORLD_SIZE": "8",
+                "SLURM_PROCID": "0",
+                "SLURM_LOCALID": "0",
+                "SLURM_NTASKS": "1",
+                "SLURM_JOB_NUM_NODES": "1",
+                "SLURM_JOB_NODELIST": "c1",
+                "SLURM_JOB_ID": "12345",
+                "MASTER_ADDR": "127.0.0.1",
+                "MASTER_PORT": "2233",
+                "RANK": "2",
+                "LOCAL_RANK": "2",
+                "WORLD_SIZE": "8",
             },
-            [2, 2, 8, "127.0.0.1", 2233]
+            [2, 2, 8, "127.0.0.1", 2233],
         ),
         # usual SLURM env + enroot's pytorch hook
         (
             {
-                "SLURM_PROCID": "3", "SLURM_LOCALID": "3", "SLURM_NTASKS": "4", "SLURM_JOB_NUM_NODES": "1",
-                "SLURM_JOB_NODELIST": "c1", "SLURM_JOB_ID": "12345",
-                "MASTER_ADDR": "c1", "MASTER_PORT": "12233", "RANK": "3", "LOCAL_RANK": "3", "WORLD_SIZE": "4",
+                "SLURM_PROCID": "3",
+                "SLURM_LOCALID": "3",
+                "SLURM_NTASKS": "4",
+                "SLURM_JOB_NUM_NODES": "1",
+                "SLURM_JOB_NODELIST": "c1",
+                "SLURM_JOB_ID": "12345",
+                "MASTER_ADDR": "c1",
+                "MASTER_PORT": "12233",
+                "RANK": "3",
+                "LOCAL_RANK": "3",
+                "WORLD_SIZE": "4",
             },
-            [3, 3, 4, "c1", 12233]
+            [3, 3, 4, "c1", 12233],
         ),
         # usual SLURM env mnode + enroot's pytorch hook
         (
             {
-                "SLURM_PROCID": "3", "SLURM_LOCALID": "1", "SLURM_NTASKS": "4", "SLURM_JOB_NUM_NODES": "2",
-                "SLURM_JOB_NODELIST": "c1, c2", "SLURM_JOB_ID": "12345",
-                "MASTER_ADDR": "c1", "MASTER_PORT": "12233", "RANK": "3", "LOCAL_RANK": "1", "WORLD_SIZE": "4"
+                "SLURM_PROCID": "3",
+                "SLURM_LOCALID": "1",
+                "SLURM_NTASKS": "4",
+                "SLURM_JOB_NUM_NODES": "2",
+                "SLURM_JOB_NODELIST": "c1, c2",
+                "SLURM_JOB_ID": "12345",
+                "MASTER_ADDR": "c1",
+                "MASTER_PORT": "12233",
+                "RANK": "3",
+                "LOCAL_RANK": "1",
+                "WORLD_SIZE": "4",
             },
-            [3, 1, 4, "c1", 12233]
+            [3, 1, 4, "c1", 12233],
         ),
         # fmt: on
     ],

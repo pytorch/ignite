@@ -7,10 +7,12 @@ from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from copy import copy
 from pathlib import Path
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
 import torch
+from torch.utils.data import DataLoader
+from torch.utils.data.sampler import BatchSampler
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, ReduceLROnPlateau
 from torch.optim.optimizer import Optimizer
 
@@ -685,7 +687,7 @@ class ConcatScheduler(ParamScheduler):
 
         if len(schedulers) != len(durations) + 1:
             raise ValueError(
-                "Incorrect number schedulers or duration values, " f"given {len(schedulers)} and {len(durations)}"
+                f"Incorrect number schedulers or duration values, given {len(schedulers)} and {len(durations)}"
             )
 
         for i, scheduler in enumerate(schedulers):
@@ -857,7 +859,7 @@ class ConcatScheduler(ParamScheduler):
                     values = values + params
                 output.append(values)
 
-            objs = torch.load(cache_filepath.as_posix())
+            objs = torch.load(cache_filepath.as_posix(), weights_only=True)
             for i, s in enumerate(schedulers):
                 s.load_state_dict(objs[f"lr_scheduler_{i}"])
             optimizer.load_state_dict(objs["optimizer"])
@@ -1050,7 +1052,7 @@ class LRScheduler(ParamScheduler):
                 params = [p[scheduler.param_name] for p in scheduler.optimizer_param_groups]
                 values.append([i] + params)
 
-            obj = torch.load(cache_filepath.as_posix())
+            obj = torch.load(cache_filepath.as_posix(), weights_only=True)
             lr_scheduler.load_state_dict(obj["lr_scheduler"])
             lr_scheduler.optimizer.load_state_dict(obj["optimizer"])
 
@@ -1551,7 +1553,7 @@ class ParamGroupScheduler:
                 values.append([i] + params)
                 scheduler(engine=None)
 
-            objs = torch.load(cache_filepath.as_posix())
+            objs = torch.load(cache_filepath.as_posix(), weights_only=True)
             for i, s in enumerate(schedulers):
                 s.load_state_dict(objs[f"lr_scheduler_{i}"])
                 s.optimizer.load_state_dict(objs["optimizer"])
@@ -1727,8 +1729,7 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
         """
         if len(metric_values) != num_events:
             raise ValueError(
-                "Length of argument metric_values should be equal to num_events. "
-                f"{len(metric_values)} != {num_events}"
+                f"Length of argument metric_values should be equal to num_events. {len(metric_values)} != {num_events}"
             )
 
         keys_to_remove = ["optimizer", "metric_name", "save_history"]
@@ -1747,6 +1748,112 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
             engine.state.metrics["metric"] = metric_values[i]
             scheduler(engine=engine)
             values.append([i, scheduler.optimizer_param_groups[0][scheduler.param_name]])
+        return values
+
+
+class BatchSizeScheduler(BaseParamScheduler):
+    """Scheduler to update the batch size of a DataLoader's BatchSampler during training.
+
+    Args:
+        dataloader: torch DataLoader with a BatchSampler.
+        scheduler_fn: a callable that takes an event index and returns the new batch size (int).
+        save_history: whether to log the batch size values to
+            ``engine.state.param_history``, (default=False).
+
+    Examples:
+
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
+        .. testcode::
+
+            from torch.utils.data import DataLoader, TensorDataset
+            import torch
+
+            default_trainer = get_default_trainer()
+
+            dataset = TensorDataset(torch.arange(100))
+            dataloader = DataLoader(dataset, batch_size=10)
+
+            # Linearly increase batch size from 10 to 50 over 5 epochs
+            scheduler = BatchSizeScheduler(dataloader, scheduler_fn=lambda e: 10 + e * 10)
+
+            default_trainer.add_event_handler(Events.EPOCH_STARTED, scheduler)
+
+    .. versionadded:: 0.5.4
+    """
+
+    def __init__(
+        self,
+        dataloader: DataLoader,
+        scheduler_fn: Callable[[int], int],
+        save_history: bool = False,
+    ):
+        super().__init__(param_name="batch_size", save_history=save_history)
+        if not isinstance(dataloader, DataLoader):
+            raise TypeError(f"Argument dataloader should be torch.utils.data.DataLoader, but given {type(dataloader)}")
+        if not hasattr(dataloader, "batch_sampler") or not isinstance(dataloader.batch_sampler, BatchSampler):
+            raise ValueError(
+                "Argument dataloader should have a BatchSampler, "
+                "i.e. dataloader.batch_sampler should be an instance of torch.utils.data.sampler.BatchSampler"
+            )
+        if not callable(scheduler_fn):
+            raise TypeError(f"Argument scheduler_fn should be callable, but given {type(scheduler_fn)}")
+
+        self.dataloader = dataloader
+        self.scheduler_fn = scheduler_fn
+
+    def __call__(self, engine: Engine | None) -> None:
+        value = self.get_param()
+
+        if not isinstance(value, int) or value < 1:
+            raise ValueError(f"Batch size returned by scheduler_fn should be a positive integer, but given {value}")
+
+        self.dataloader.batch_sampler.batch_size = value  # type: ignore[assignment]
+
+        if self.save_history and engine is not None:
+            if not hasattr(engine.state, "param_history") or engine.state.param_history is None:
+                setattr(engine.state, "param_history", {})
+            engine.state.param_history.setdefault(self.param_name, [])  # type: ignore[attr-defined]
+            engine.state.param_history[self.param_name].append(value)  # type: ignore[attr-defined]
+
+        self.event_index += 1
+
+    def get_param(self) -> int:
+        """Method to get current batch size value."""
+        return self.scheduler_fn(self.event_index)
+
+    def attach(
+        self,
+        engine: Engine,
+        event: str | Events | CallableEventWithFilter | EventsList = Events.EPOCH_STARTED,
+    ) -> None:
+        """Attach the handler to the engine.
+
+        Args:
+            engine: trainer to which the handler will be attached.
+            event: trigger event to update the batch size (default: ``Events.EPOCH_STARTED``).
+        """
+        engine.add_event_handler(event, self)
+
+    @classmethod
+    def simulate_values(cls, num_events: int, **scheduler_kwargs: Any) -> list[list[int]]:
+        """Method to simulate scheduled batch size values during ``num_events`` events.
+
+        Args:
+            num_events: number of events during the simulation.
+            scheduler_kwargs: scheduler configuration kwargs (requires ``scheduler_fn``).
+
+        Returns:
+            list of [event_index, batch_size] pairs.
+        """
+        if "scheduler_fn" not in scheduler_kwargs:
+            raise ValueError("Argument scheduler_kwargs must contain 'scheduler_fn'")
+
+        scheduler_fn = scheduler_kwargs["scheduler_fn"]
+        values = []
+        for i in range(num_events):
+            values.append([i, scheduler_fn(i)])
         return values
 
 

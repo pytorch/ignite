@@ -52,7 +52,7 @@ class EarlyStopping(Serializable, ResettableHandler):
             # Note: the handler is attached to an *Evaluator* (runs one epoch on validation dataset).
             evaluator.add_event_handler(Events.COMPLETED, handler)
 
-    .. versionchanged:: 0.6.0
+    .. versionchanged:: 0.5.4
         Added `mode` parameter to support minimization in addition to maximization.
         Added `min_delta_mode` parameter to support both absolute and relative improvements.
 
@@ -132,7 +132,7 @@ class EarlyStopping(Serializable, ResettableHandler):
     def reset(self) -> None:
         """Reset the early stopping state, including the counter and best score.
 
-        .. versionadded:: 0.6.0
+        .. versionadded:: 0.5.4
         """
         self.counter = 0
         self.best_score = None
@@ -161,7 +161,7 @@ class EarlyStopping(Serializable, ResettableHandler):
             reset_event: The event on ``reset_engine`` that triggers the handler state reset.
                 Default is :attr:`~ignite.engine.events.Events.STARTED`.
 
-        .. versionadded:: 0.6.0
+        .. versionadded:: 0.5.4
         """
         engine.add_event_handler(event, self)
 

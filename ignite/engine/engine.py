@@ -1081,8 +1081,7 @@ class Engine(Serializable):
         try:
             if self._dataloader_iter is None:
                 raise RuntimeError(
-                    "Internal error, self._dataloader_iter is None. "
-                    "Please, file an issue if you encounter this error."
+                    "Internal error, self._dataloader_iter is None. Please, file an issue if you encounter this error."
                 )
 
             while True:
@@ -1269,8 +1268,7 @@ class Engine(Serializable):
         try:
             if self._dataloader_iter is None:
                 raise RuntimeError(
-                    "Internal error, self._dataloader_iter is None. "
-                    "Please, file an issue if you encounter this error."
+                    "Internal error, self._dataloader_iter is None. Please, file an issue if you encounter this error."
                 )
 
             while True:

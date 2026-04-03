@@ -385,6 +385,8 @@ class Checkpoint(Serializable):
         self.score_name = score_name
         if self.score_name is not None and self.score_function is None:
             self.score_function = self.get_default_score_fn(self.score_name)
+        if n_saved is not None and n_saved < 1:
+            raise ValueError(f"n_saved must be a positive integer or None, got {n_saved}")
         self.n_saved = n_saved
         self.ext = "pt"
         self.global_step_transform = global_step_transform
@@ -635,7 +637,7 @@ class Checkpoint(Serializable):
 
                     to_load = to_save
                     checkpoint_fp = Path(tmpdirname) / 'myprefix_checkpoint_40.pt'
-                    checkpoint = torch.load(checkpoint_fp)
+                    checkpoint = torch.load(checkpoint_fp, weights_only=True)
                     Checkpoint.load_objects(to_load=to_load, checkpoint=checkpoint)
 
                     # or using a string for checkpoint filepath
@@ -658,7 +660,7 @@ class Checkpoint(Serializable):
         Checkpoint._check_objects(to_load, "load_state_dict")
 
         if isinstance(checkpoint, (str, Path)):
-            checkpoint_obj = torch.load(checkpoint)
+            checkpoint_obj = torch.load(checkpoint, weights_only=True)
         else:
             checkpoint_obj = checkpoint
 
