@@ -67,7 +67,7 @@ def setup_sampler(sampler_type, num_iters, batch_size):
 
 class MyIterableDataset(IterableDataset):
     def __init__(self, start, end):
-        super(MyIterableDataset).__init__()
+        super().__init__()
         assert end > start, "this example code only works with end >= start"
         self.start = start
         self.end = end
