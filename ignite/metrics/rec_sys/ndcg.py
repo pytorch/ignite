@@ -151,7 +151,7 @@ class NDCG(Metric):
         skip_unrolling: bool = False,
     ):
         if any(k <= 0 for k in top_k):
-            raise ValueError(" top_k must be list of positive integers only.")
+            raise ValueError(f"top_k must be list of positive integers only, but given {top_k}")
 
         if gain_function not in ["exp_rank", "linear_rank"]:
             raise ValueError("gain_function must be either 'exp_rank' or 'linear_rank'")
