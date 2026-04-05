@@ -111,6 +111,8 @@ class HitRate(Metric):
         device: str | torch.device = torch.device("cpu"),
         skip_unrolling: bool = False,
     ):
+        if not top_k:
+            raise ValueError("top_k must not be empty.")
         if any(k <= 0 for k in top_k):
             raise ValueError(" top_k must be list of positive integers only.")
 
