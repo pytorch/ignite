@@ -28,7 +28,9 @@ class HitRate(Metric):
     - returns a list of HitRate ordered by the sorted values of ``top_k``.
 
     Args:
-        top_k: a list of sorted positive integers that specifies `k` for calculating hitrate@top-k.
+        top_k: a single positive integer or a list of positive integers that specifies `k` for
+            calculating hitrate@top-k. If a single int is provided, it will be wrapped in a list.
+            Default is 1.
         ignore_zero_hits: if True, users with no relevant items (ground truth tensor being all zeros)
             are ignored in computation of HitRate. if set False, such users are counted as a miss.
             By default, True.
@@ -96,6 +98,25 @@ class HitRate(Metric):
         .. testoutput:: 2
 
             [0.0, 0.5, 0.5, 0.5]
+
+        int top_k case
+
+        .. testcode:: 3
+
+            metric = HitRate(top_k=2)
+            metric.attach(default_evaluator, "hit_rate")
+            y_pred = torch.Tensor([
+                [4.0, 2.0, 3.0, 1.0],
+            ])
+            y_true = torch.Tensor([
+                [0.0, 0.0, 1.0, 0.0],
+            ])
+            state = default_evaluator.run([(y_pred, y_true)])
+            print(state.metrics["hit_rate"])
+
+        .. testoutput:: 3
+
+            [1.0]
 
     .. versionadded:: 0.5.4
     """
