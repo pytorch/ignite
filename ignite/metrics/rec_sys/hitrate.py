@@ -105,15 +105,21 @@ class HitRate(Metric):
 
     def __init__(
         self,
-        top_k: list[int],
+        top_k: Union[int, list[int]] = 1,
         ignore_zero_hits: bool = True,
         output_transform: Callable = lambda x: x,
-        device: str | torch.device = torch.device("cpu"),
+        device: Union[str, torch.device] = torch.device("cpu"),
         skip_unrolling: bool = False,
     ):
-        if any(k <= 0 for k in top_k):
-            raise ValueError(" top_k must be list of positive integers only.")
-
+        if not isinstance(top_k, (int, list)):
+            raise ValueError(" top_k must be either an integer or a list of integers.")
+        
+        if isinstance(top_k, int):
+            top_k = [top_k]
+            
+        if len(top_k) == 0:
+            raise ValueError("top_k list cannot be empty.")
+        
         self.top_k = sorted(top_k)
         self.ignore_zero_hits = ignore_zero_hits
         super().__init__(output_transform, device=device, skip_unrolling=skip_unrolling)
