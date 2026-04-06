@@ -54,6 +54,27 @@ def test_shape_mismatch():
         metric.update((y_pred, y))
 
 
+def test_empty_top_k():
+    """Test that empty top_k list raises ValueError at construction time."""
+    with pytest.raises(ValueError, match="top_k must not be empty"):
+        HitRate(top_k=[])
+
+
+def test_invalid_top_k_values():
+    """Test that top_k with non-positive values raises ValueError at construction time."""
+    # Test with zero
+    with pytest.raises(ValueError, match="top_k must be list of positive integers only"):
+        HitRate(top_k=[0, 1, 2])
+    
+    # Test with negative
+    with pytest.raises(ValueError, match="top_k must be list of positive integers only"):
+        HitRate(top_k=[-1, 1, 2])
+    
+    # Test with mixed invalid values
+    with pytest.raises(ValueError, match="top_k must be list of positive integers only"):
+        HitRate(top_k=[0, -1, 1, 2])
+
+
 @pytest.mark.parametrize("top_k", [[1], [1, 2, 4]])
 @pytest.mark.parametrize("ignore_zero_hits", [True, False])
 def test_compute(top_k, ignore_zero_hits, available_device):
