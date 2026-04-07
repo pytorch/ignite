@@ -16,7 +16,7 @@ def ranx_ndcg(
     relevance_threshold: float = 1.0,
     gain_function: str = "exp_rank",
 ) -> list[float]:
-    """Reference NDCG implementation using ranx for verification. https://github.com/AmenRa/ranx """
+    """Reference NDCG implementation using ranx for verification. https://github.com/AmenRa/ranx"""
     from ranx import Qrels, Run, evaluate
 
     sorted_top_k = sorted(top_k)
@@ -33,7 +33,7 @@ def ranx_ndcg(
             if ignore_zero_hits and not relevant:
                 continue
 
-            qrels_dict[qid] = relevant if relevant else {f"d0": 0.0}
+            qrels_dict[qid] = relevant if relevant else {"d0": 0.0}
             run_dict[qid] = {f"d{j}": float(s) for j, s in enumerate(scores)}
 
         if not qrels_dict:
@@ -171,16 +171,20 @@ def test_compute_vs_ranx(num_queries, num_items, k, ignore_zero_hits, available_
 @pytest.mark.parametrize("ignore_zero_hits", [True, False])
 def test_compute_vs_ranx_and_catalyst_with_ties(top_k, ignore_zero_hits, available_device):
     """Validate tie handling against ranx and catalyst with non-trivial tie cases."""
-    y_pred = torch.tensor([
-        [0.7, 0.7, 0.7, 0.5, 0.5],
-        [0.9, 0.9, 0.6, 0.6, 0.3],
-        [0.8, 0.8, 0.5, 0.1, 0.1],
-    ])
-    y_true = torch.tensor([
-        [3.0, 2.0, 1.0, 1.0, 0.0],
-        [4.0, 3.0, 2.0, 1.0, 0.0],
-        [1.0, 1.0, 0.0, 0.0, 0.0],
-    ])
+    y_pred = torch.tensor(
+        [
+            [0.7, 0.7, 0.7, 0.5, 0.5],
+            [0.9, 0.9, 0.6, 0.6, 0.3],
+            [0.8, 0.8, 0.5, 0.1, 0.1],
+        ]
+    )
+    y_true = torch.tensor(
+        [
+            [3.0, 2.0, 1.0, 1.0, 0.0],
+            [4.0, 3.0, 2.0, 1.0, 0.0],
+            [1.0, 1.0, 0.0, 0.0, 0.0],
+        ]
+    )
 
     metric = NDCG(
         top_k=top_k,
@@ -213,14 +217,18 @@ def test_compute_vs_ranx_and_catalyst_with_ties(top_k, ignore_zero_hits, availab
 @pytest.mark.parametrize("ignore_zero_hits", [True, False])
 def test_compute_vs_catalyst_linear_gain(top_k, ignore_zero_hits, available_device):
     """Validate linear gain mode against catalyst."""
-    y_pred = torch.tensor([
-        [0.7, 0.7, 0.7, 0.5, 0.5],
-        [0.9, 0.9, 0.6, 0.6, 0.3],
-    ])
-    y_true = torch.tensor([
-        [3.0, 2.0, 1.0, 1.0, 0.0],
-        [4.0, 3.0, 2.0, 1.0, 0.0],
-    ])
+    y_pred = torch.tensor(
+        [
+            [0.7, 0.7, 0.7, 0.5, 0.5],
+            [0.9, 0.9, 0.6, 0.6, 0.3],
+        ]
+    )
+    y_true = torch.tensor(
+        [
+            [3.0, 2.0, 1.0, 1.0, 0.0],
+            [4.0, 3.0, 2.0, 1.0, 0.0],
+        ]
+    )
 
     metric = NDCG(
         top_k=top_k,

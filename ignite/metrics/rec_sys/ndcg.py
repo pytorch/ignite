@@ -16,8 +16,8 @@ def _get_ranked_items(scores: torch.Tensor, items: torch.Tensor, k: int) -> torc
 
 class NDCG(Metric):
     r"""Calculates the Normalized Discounted Cumulative Gain (NDCG) at `k` for Recommendation Systems.
-    
-    For a step-by-step guide on how to use this metric, please refer to the 
+
+    For a step-by-step guide on how to use this metric, please refer to the
     `NDCG Tutorial <https://github.com/pytorch-ignite/examples/tree/main/tutorials/intermediate/ndcg-metric-tutorial.ipynb>`
 
     NDCG measures the quality of ranking by considering both the relevance of items and their
@@ -208,7 +208,7 @@ class NDCG(Metric):
         # This aligns with standard IDCG computation in reference libraries:
         # ranx: https://github.com/AmenRa/ranx/blob/master/ranx/metrics/ndcg.py#L52
         # catalyst: https://github.com/catalyst-team/catalyst/blob/master/catalyst/metrics/functional/_ndcg.py#L197
-        
+
         ideal_relevance = torch.sort(y_for_dcg, dim=-1, descending=True, stable=True)[0][:, :max_k]
 
         for i, k in enumerate(self.top_k):
