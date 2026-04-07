@@ -122,7 +122,7 @@ class PolyaxonLogger(BaseLogger):
     def close(self) -> None:
         try:
             self.experiment.end()
-        except:
+        except Exception:
             pass
 
     def __getattr__(self, attr: Any) -> Any:
