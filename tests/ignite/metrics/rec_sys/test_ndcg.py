@@ -6,6 +6,8 @@ import ignite.distributed as idist
 from ignite.engine import Engine
 from ignite.exceptions import NotComputableError
 from ignite.metrics.rec_sys.ndcg import NDCG
+from ranx import Qrels, Run, evaluate
+from catalyst.metrics.functional import ndcg as catalyst_ndcg_fn
 
 
 def ranx_ndcg(
@@ -17,7 +19,7 @@ def ranx_ndcg(
     gain_function: str = "exp_rank",
 ) -> list[float]:
     """Reference NDCG implementation using ranx for verification. https://github.com/AmenRa/ranx"""
-    from ranx import Qrels, Run, evaluate
+    
 
     sorted_top_k = sorted(top_k)
     results = []
@@ -56,7 +58,7 @@ def catalyst_ndcg(
 ) -> list[float]:
     """Reference NDCG implementation using catalyst for verification."""
     pytest.importorskip("catalyst", reason="catalyst is required for catalyst parity checks")
-    from catalyst.metrics.functional import ndcg as catalyst_ndcg_fn
+    
 
     sorted_top_k = sorted(top_k)
 
