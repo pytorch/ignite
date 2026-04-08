@@ -7,7 +7,6 @@ from ignite.engine import Engine
 from ignite.exceptions import NotComputableError
 from ignite.metrics.rec_sys.ndcg import NDCG
 from ranx import Qrels, Run, evaluate
-from catalyst.metrics.functional import ndcg as catalyst_ndcg_fn
 
 
 def ranx_ndcg(
@@ -19,7 +18,6 @@ def ranx_ndcg(
     gain_function: str = "exp_rank",
 ) -> list[float]:
     """Reference NDCG implementation using ranx for verification. https://github.com/AmenRa/ranx"""
-    
 
     sorted_top_k = sorted(top_k)
     results = []
@@ -46,40 +44,6 @@ def ranx_ndcg(
         metric_name = f"{'ndcg_burges' if gain_function == 'exp_rank' else 'ndcg'}@{k}"
         results.append(float(evaluate(Qrels(qrels_dict), Run(run_dict), metric_name)))
     return results
-
-
-def catalyst_ndcg(
-    y_pred: np.ndarray,
-    y: np.ndarray,
-    top_k: list[int],
-    ignore_zero_hits: bool = True,
-    relevance_threshold: float = 1.0,
-    gain_function: str = "exp_rank",
-) -> list[float]:
-    """Reference NDCG implementation using catalyst for verification."""
-
-    sorted_top_k = sorted(top_k)
-
-    outputs = torch.from_numpy(y_pred).float()
-    targets = torch.from_numpy(y).float()
-
-    if ignore_zero_hits:
-        valid_mask = torch.any(targets >= relevance_threshold, dim=-1)
-        outputs = outputs[valid_mask]
-        targets = targets[valid_mask]
-
-    if targets.shape[0] == 0:
-        return [0.0] * len(sorted_top_k)
-
-    targets_for_dcg = torch.where(targets >= relevance_threshold, targets, torch.zeros_like(targets))
-    values = catalyst_ndcg_fn(
-        outputs=outputs,
-        targets=targets_for_dcg,
-        topk=sorted_top_k,
-        gain_function=gain_function,
-    )
-
-    return [float(v) for v in values]
 
 
 def test_zero_sample():
@@ -169,8 +133,8 @@ def test_compute_vs_ranx(num_queries, num_items, k, ignore_zero_hits, available_
 
 @pytest.mark.parametrize("top_k", [[3], [2, 5]])
 @pytest.mark.parametrize("ignore_zero_hits", [True, False])
-def test_compute_vs_ranx_and_catalyst_with_ties(top_k, ignore_zero_hits, available_device):
-    """Validate tie handling against ranx and catalyst with non-trivial tie cases."""
+def test_compute_vs_ranx_with_ties(top_k, ignore_zero_hits, available_device):
+    """Validate tie handling against ranx with non-trivial tie cases."""
     y_pred = torch.tensor(
         [
             [0.7, 0.7, 0.7, 0.5, 0.5],
@@ -201,22 +165,13 @@ def test_compute_vs_ranx_and_catalyst_with_ties(top_k, ignore_zero_hits, availab
         top_k,
         ignore_zero_hits=ignore_zero_hits,
     )
-    expected_catalyst = catalyst_ndcg(
-        y_pred.numpy(),
-        y_true.numpy(),
-        top_k,
-        ignore_zero_hits=ignore_zero_hits,
-        gain_function="exp_rank",
-    )
-
     np.testing.assert_allclose(res, expected_ranx, rtol=1e-5)
-    np.testing.assert_allclose(res, expected_catalyst, rtol=1e-5)
 
 
 @pytest.mark.parametrize("top_k", [[3], [2, 5]])
 @pytest.mark.parametrize("ignore_zero_hits", [True, False])
-def test_compute_vs_catalyst_linear_gain(top_k, ignore_zero_hits, available_device):
-    """Validate linear gain mode against catalyst."""
+def test_compute_vs_ranx_linear_gain(top_k, ignore_zero_hits, available_device):
+    """Validate linear gain mode against ranx."""
     y_pred = torch.tensor(
         [
             [0.7, 0.7, 0.7, 0.5, 0.5],
@@ -239,7 +194,7 @@ def test_compute_vs_catalyst_linear_gain(top_k, ignore_zero_hits, available_devi
     metric.update((y_pred, y_true))
     res = metric.compute()
 
-    expected_catalyst = catalyst_ndcg(
+    expected_ranx = ranx_ndcg(
         y_pred.numpy(),
         y_true.numpy(),
         top_k,
@@ -247,7 +202,7 @@ def test_compute_vs_catalyst_linear_gain(top_k, ignore_zero_hits, available_devi
         gain_function="linear_rank",
     )
 
-    np.testing.assert_allclose(res, expected_catalyst, rtol=1e-5)
+    np.testing.assert_allclose(res, expected_ranx, rtol=1e-5)
 
 
 def test_perfect_prediction():

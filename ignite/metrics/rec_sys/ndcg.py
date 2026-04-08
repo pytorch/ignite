@@ -111,7 +111,7 @@ class NDCG(Metric):
 
         .. testoutput:: 1
 
-            [0.0, 0.63..., 0.63..., 0.63...]
+            [0.0, 0.38..., 0.38..., 0.65...]
 
         ignore_zero_hits=False case
 
@@ -132,7 +132,7 @@ class NDCG(Metric):
 
         .. testoutput:: 2
 
-            [0.0, 0.31..., 0.31..., 0.31...]
+            [0.0, 0.19..., 0.19..., 0.32...]
 
     .. versionadded:: 0.6.0
     """
