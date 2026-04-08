@@ -219,7 +219,7 @@ class ProgressBar(BaseLogger):
             state_attributes=state_attributes,
         )
 
-        super(ProgressBar, self).attach(engine, log_handler, event_name)
+        super().attach(engine, log_handler, event_name)
         engine.add_event_handler(closing_event_name, self._close)
 
     def attach_opt_params_handler(

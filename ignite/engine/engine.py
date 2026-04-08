@@ -736,7 +736,7 @@ class Engine(Serializable):
             trainer.run(data)
 
         """
-        super(Engine, self).load_state_dict(state_dict)
+        super().load_state_dict(state_dict)
 
         for k in self._state_dict_user_keys:
             if k not in state_dict:
