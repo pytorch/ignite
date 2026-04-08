@@ -28,7 +28,7 @@ class DummyDS(Dataset):
 
 class DummyIterableDataset(IterableDataset):
     def __init__(self, start, end):
-        super(DummyIterableDataset).__init__()
+        super().__init__()
         self.start = start
         self.end = end
 

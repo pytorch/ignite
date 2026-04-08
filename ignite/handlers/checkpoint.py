@@ -1065,4 +1065,4 @@ class ModelCheckpoint(Checkpoint):
 
         self._check_objects(to_save, "state_dict")
         self.to_save = to_save
-        super(ModelCheckpoint, self).__call__(engine)
+        super().__call__(engine)
