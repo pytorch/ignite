@@ -28,5 +28,10 @@ Truncated Backpropagation Through Time
 Helper methods to setup trainer/evaluator
 -----------------------------------------
 
+.. note::
+
+   Logger setup helpers (``setup_tb_logging``, ``setup_mlflow_logging``, etc.) are now implemented in
+   :mod:`ignite.handlers.logger_utils` and re-exported from :mod:`ignite.contrib.engines.common` for backward compatibility.
+
 .. automodule:: ignite.contrib.engines.common
    :members:
