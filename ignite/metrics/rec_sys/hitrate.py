@@ -119,6 +119,8 @@ class HitRate(Metric):
             [1.0]
 
     .. versionadded:: 0.5.4
+    .. versionchanged:: 0.5.4
+        `top_k` now accepts a single positive integer in addition to a list of integers.
     """
 
     required_output_keys = ("y_pred", "y")
