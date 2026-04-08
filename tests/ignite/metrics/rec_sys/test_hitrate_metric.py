@@ -54,6 +54,11 @@ def test_shape_mismatch():
         metric.update((y_pred, y))
 
 
+def test_empty_top_k():
+    with pytest.raises(ValueError, match="top_k must not be empty"):
+        HitRate(top_k=[])
+
+
 @pytest.mark.parametrize("top_k", [[1], [1, 2, 4]])
 @pytest.mark.parametrize("ignore_zero_hits", [True, False])
 def test_compute(top_k, ignore_zero_hits, available_device):
