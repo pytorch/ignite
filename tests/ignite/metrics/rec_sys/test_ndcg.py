@@ -57,8 +57,6 @@ def catalyst_ndcg(
     gain_function: str = "exp_rank",
 ) -> list[float]:
     """Reference NDCG implementation using catalyst for verification."""
-    pytest.importorskip("catalyst", reason="catalyst is required for catalyst parity checks")
-    
 
     sorted_top_k = sorted(top_k)
 
