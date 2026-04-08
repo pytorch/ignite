@@ -28,7 +28,9 @@ class HitRate(Metric):
     - returns a list of HitRate ordered by the sorted values of ``top_k``.
 
     Args:
-        top_k: a list of sorted positive integers that specifies `k` for calculating hitrate@top-k.
+        top_k: a single positive integer or a list of positive integers that specifies `k` for
+            calculating hitrate@top-k. If a single int is provided, it will be wrapped in a list.
+            Default is 1.
         ignore_zero_hits: if True, users with no relevant items (ground truth tensor being all zeros)
             are ignored in computation of HitRate. if set False, such users are counted as a miss.
             By default, True.
@@ -97,7 +99,28 @@ class HitRate(Metric):
 
             [0.0, 0.5, 0.5, 0.5]
 
+        int top_k case
+
+        .. testcode:: 3
+
+            metric = HitRate(top_k=2)
+            metric.attach(default_evaluator, "hit_rate")
+            y_pred = torch.Tensor([
+                [4.0, 2.0, 3.0, 1.0],
+            ])
+            y_true = torch.Tensor([
+                [0.0, 0.0, 1.0, 0.0],
+            ])
+            state = default_evaluator.run([(y_pred, y_true)])
+            print(state.metrics["hit_rate"])
+
+        .. testoutput:: 3
+
+            [1.0]
+
     .. versionadded:: 0.5.4
+    .. versionchanged:: 0.5.4
+        `top_k` now accepts a single positive integer in addition to a list of integers.
     """
 
     required_output_keys = ("y_pred", "y")
@@ -105,14 +128,21 @@ class HitRate(Metric):
 
     def __init__(
         self,
-        top_k: list[int],
+        top_k: list[int] | int = 1,
         ignore_zero_hits: bool = True,
         output_transform: Callable = lambda x: x,
         device: str | torch.device = torch.device("cpu"),
         skip_unrolling: bool = False,
     ):
+        if not isinstance(top_k, (int, list)):
+            raise ValueError("top_k must be either int or a list[int]")
+
+        top_k = [top_k] if isinstance(top_k, int) else top_k
+
+        if len(top_k) == 0:
+            raise ValueError("top_k must have at least one positive value")
         if any(k <= 0 for k in top_k):
-            raise ValueError(" top_k must be list of positive integers only.")
+            raise ValueError("top_k must be list of positive integers only.")
 
         self.top_k = sorted(top_k)
         self.ignore_zero_hits = ignore_zero_hits

@@ -84,7 +84,7 @@ jobs:
           target_dir: /tmp
 
       - name: Run Tests
-        uses: nick-fields/retry@v3.0.2
+        uses: nick-fields/retry@v4.0.0
         with:
           max_attempts: 3
           timeout_minutes: 40
@@ -93,7 +93,7 @@ jobs:
           new_command_on_retry: USE_LAST_FAILED=1 USE_XDIST=0 bash tests/run_cpu_tests.sh
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
           files: ./coverage.xml
           flags: hvd-cpu
