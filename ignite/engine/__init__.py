@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
     # GradScaler is imported here rather than used as a string literal ("torch.amp.GradScaler")
@@ -221,7 +221,7 @@ def supervised_training_step_amp(
             if gradient_accumulation_steps > 1:
                 loss = loss / gradient_accumulation_steps
         if scaler:
-            scaler.scale(loss).backward()
+            cast(torch.Tensor, scaler.scale(loss)).backward()
             if engine.state.iteration % gradient_accumulation_steps == 0:
                 scaler.step(optimizer)
                 scaler.update()
