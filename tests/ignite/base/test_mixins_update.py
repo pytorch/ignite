@@ -69,27 +69,9 @@ def test_load_state_dict_validation():
     with pytest.raises(ValueError, match=r"should contain only one of '\('e', 'f'\)'"):
         s.load_state_dict({"a": 1, "b": 2, "c": 3, "e": 5, "f": 6})
 
-    # Test user keys
-    s.state_dict_user_keys.append("alpha")
-    with pytest.raises(ValueError, match=r"Required user state attribute 'alpha' is absent"):
-        s.load_state_dict({"a": 1, "b": 2, "c": 3, "e": 5})
-
     # Valid state dict
-    s.load_state_dict({"a": 1, "b": 2, "c": 3, "e": 5, "alpha": 0.1})
+    s.load_state_dict({"a": 1, "b": 2, "c": 3, "e": 5})
     print("✓ Valid state dict loaded successfully")
-
-
-def test_state_dict_user_keys_property():
-    """Test the state_dict_user_keys property."""
-    s = ExampleSerializable()
-
-    assert hasattr(s, "state_dict_user_keys")
-    assert isinstance(s.state_dict_user_keys, list)
-    assert len(s.state_dict_user_keys) == 0
-
-    s.state_dict_user_keys.append("test_key")
-    assert len(s.state_dict_user_keys) == 1
-    assert s.state_dict_user_keys[0] == "test_key"
 
 
 def test_empty_optional_groups():
@@ -213,22 +195,17 @@ def test_inheritance_overrides():
     derived.load_state_dict({"derived_req1": "d1", "derived_req2": "d2", "derived_opt2": "opt"})
 
 
-def test_user_keys_with_groups():
-    """Test user keys work with grouped optional keys."""
+def test_complex_grouped_keys():
+    """Test grouped optional keys."""
     s = EngineStyleSerializable()
-    s.state_dict_user_keys.append("custom_param")
-    s.state_dict_user_keys.append("learning_rate")
 
     # Valid with all requirements
-    s.load_state_dict(
-        {"epoch_length": 100, "iteration": 250, "max_iters": 500, "custom_param": 42, "learning_rate": 0.01}
-    )
+    s.load_state_dict({"epoch_length": 100, "iteration": 250, "max_iters": 500})
 
-    # Missing user key should fail
+    # Missing from a group should fail
     s2 = EngineStyleSerializable()
-    s2.state_dict_user_keys.append("custom_param")
-    with pytest.raises(ValueError, match="Required user state attribute.*custom_param"):
-        s2.load_state_dict({"epoch_length": 100, "iteration": 250, "max_iters": 500})
+    with pytest.raises(ValueError, match="should contain at least one of.*iteration.*epoch"):
+        s2.load_state_dict({"epoch_length": 100, "max_iters": 500})
 
 
 def test_error_messages():
@@ -287,8 +264,6 @@ def test_complex_scenario():
             return {}
 
     s = ComplexSerializable()
-    s.state_dict_user_keys.extend(["user1", "user2"])
-
     # Valid complex state
     s.load_state_dict(
         {
@@ -297,8 +272,6 @@ def test_complex_scenario():
             "pos2": "position",
             "term1": "termination",
             "opt3": "option",
-            "user1": "u1",
-            "user2": "u2",
         }
     )
 

@@ -6,7 +6,7 @@ import warnings
 import weakref
 from collections import defaultdict, OrderedDict
 from collections.abc import Callable, Generator, Iterable, Iterator, Mapping
-from typing import Any
+from typing import Any, Optional
 
 from torch.utils.data import DataLoader
 
@@ -135,12 +135,7 @@ class Engine(Serializable):
     interrupt_resume_enabled = True
 
     def __init__(self, process_function: Callable[["Engine", Any], Any]):
-<<<<<<< HEAD
         self._event_handlers: dict[Any, list] = defaultdict(list)
-=======
-        super(Engine, self).__init__()
-        self._event_handlers: Dict[Any, List] = defaultdict(list)
->>>>>>> 243afad0b (Fix max iters issue and add tests)
         self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self._process_function = process_function
         self.last_event_name: Events | None = None
@@ -152,12 +147,8 @@ class Engine(Serializable):
         self.should_terminate_single_epoch: bool | str = False
         self.should_interrupt = False
         self.state = State()
-<<<<<<< HEAD
         self._state_dict_user_keys: list[str] = []
         self._allowed_events: list[str | EventEnum] = []
-=======
-        self._allowed_events: List[EventEnum] = []
->>>>>>> 243afad0b (Fix max iters issue and add tests)
 
         self._dataloader_iter: Iterator[Any] | None = None
         self._init_iter: int | None = None
@@ -717,17 +708,13 @@ class Engine(Serializable):
                 a dictionary containing engine's state
 
         """
-<<<<<<< HEAD
-        keys: tuple[str, ...] = self._state_dict_all_req_keys + (self._state_dict_one_of_opt_keys[0],)
-=======
-        keys: Tuple[str, ...] = self._state_dict_all_req_keys
+        keys: tuple[str, ...] = self._state_dict_all_req_keys
         keys += ("iteration",)
         # Include either max_epochs or max_iters based on which was originally set
         if self.state.max_iters is not None:
             keys += ("max_iters",)
         else:
             keys += ("max_epochs",)
->>>>>>> 243afad0b (Fix max iters issue and add tests)
         keys += tuple(self._state_dict_user_keys)
         return OrderedDict([(k, getattr(self.state, k)) for k in keys])
 
@@ -764,6 +751,10 @@ class Engine(Serializable):
 
         # Set user keys
         for k in self._state_dict_user_keys:
+            if k not in state_dict:
+                raise ValueError(
+                    f"Required user state attribute '{k}' is absent in provided state_dict '{state_dict.keys()}'"
+                )
             setattr(self.state, k, state_dict[k])
 
         # Set iteration or epoch
@@ -851,29 +842,6 @@ class Engine(Serializable):
                     "before calling engine.run() in order to restart the training from the beginning."
                 )
             self.state.max_iters = max_iters
-
-    def _check_and_set_epoch_length(self, data: Optional[Iterable], epoch_length: Optional[int] = None) -> None:
-        """Validate and set epoch_length."""
-        # Check if we can redefine epoch_length
-        if self.state.epoch_length is not None:
-            if epoch_length is not None:
-                if epoch_length != self.state.epoch_length:
-                    raise ValueError(
-                        "Argument epoch_length should be same as in the state, "
-                        f"but given {epoch_length} vs {self.state.epoch_length}"
-                    )
-        else:
-            if epoch_length is None:
-                if data is not None:
-                    epoch_length = self._get_data_length(data)
-
-            if epoch_length is not None:
-                if epoch_length < 1:
-                    raise ValueError(
-                        "Argument epoch_length is invalid. Please, either set a correct epoch_length value or "
-                        "check if input data has non-zero size."
-                    )
-                self.state.epoch_length = epoch_length
 
     def set_data(self, data: Iterable | DataLoader) -> None:
         """Method to set data. After calling the method the next batch passed to `processing_function` is
@@ -979,27 +947,18 @@ class Engine(Serializable):
                 "Please provide only max_epochs or max_iters."
             )
 
+        if self.state.max_epochs is not None:
+            self._check_and_set_max_epochs(max_epochs)
+
+        if self.state.max_iters is not None:
+            self._check_and_set_max_iters(max_iters)
+
         # Check if we need to create new state or resume
         # Create new state if:
         # 1. No termination params set (first run), OR
-        # 2. Training is done AND generator is None AND no new params provided
-        # 3. Training is done AND same termination params provided (restart case)
-        should_create_new_state = (
-            (self.state.max_epochs is None and self.state.max_iters is None)
-            or (
-                self._is_done(self.state)
-                and self._internal_run_generator is None
-                and max_epochs is None
-                and max_iters is None
-            )
-            or (
-                self._is_done(self.state)
-                and self._internal_run_generator is None
-                and (
-                    (max_epochs is not None and max_epochs == self.state.max_epochs)
-                    or (max_iters is not None and max_iters == self.state.max_iters)
-                )
-            )
+        # 2. Training is done AND generator is None
+        should_create_new_state = (self.state.max_epochs is None and self.state.max_iters is None) or (
+            self._is_done(self.state) and self._internal_run_generator is None
         )
 
         if should_create_new_state:
@@ -1041,17 +1000,20 @@ class Engine(Serializable):
                 self.logger.info(f"Engine run starting with max_iters={self.state.max_iters}.")
         else:
             # Resume from existing state
-            # Apply overridden parameters using helper methods
-            self._check_and_set_max_epochs(max_epochs)
-            self._check_and_set_max_iters(max_iters)
-
-            # Handle epoch_length validation (simplified from original)
-            if epoch_length is not None:
-                if epoch_length != self.state.epoch_length:
+            # Handle epoch_length validation
+            if self.state.epoch_length is not None:
+                if epoch_length is not None and epoch_length != self.state.epoch_length:
                     raise ValueError(
                         "Argument epoch_length should be same as in the state, "
                         f"but given {epoch_length} vs {self.state.epoch_length}"
                     )
+            else:
+                if epoch_length is None and data is not None:
+                    epoch_length = self._get_data_length(data)
+                if epoch_length is not None:
+                    if epoch_length < 1:
+                        raise ValueError("Input data has zero size. Please provide non-empty data")
+                    self.state.epoch_length = epoch_length
 
             # Log resuming message
             if self.state.max_epochs is not None:

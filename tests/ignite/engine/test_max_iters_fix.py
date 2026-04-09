@@ -64,6 +64,24 @@ def test_load_state_dict_with_max_iters():
     assert engine.state.epoch_length == 100
     assert engine.state.epoch == 1  # 150 // 100
 
+    # Cross combination: iteration + max_epochs
+    engine = Engine(lambda e, b: 1)
+    state_dict_2 = {"iteration": 150, "max_epochs": 3, "epoch_length": 100}
+    engine.load_state_dict(state_dict_2)
+    assert engine.state.iteration == 150
+    assert engine.state.max_epochs == 3
+    assert engine.state.epoch_length == 100
+    assert engine.state.epoch == 1
+
+    # Cross combination: epoch + max_iters
+    engine = Engine(lambda e, b: 1)
+    state_dict_3 = {"epoch": 2, "max_iters": 500, "epoch_length": 100}
+    engine.load_state_dict(state_dict_3)
+    assert engine.state.epoch == 2
+    assert engine.state.max_iters == 500
+    assert engine.state.epoch_length == 100
+    assert engine.state.iteration == 200  # 2 * 100
+
 
 def test_save_and_load_with_max_iters():
     """Test saving and loading engine state with max_iters."""
@@ -411,8 +429,7 @@ def test_resume_with_higher_max_iters():
     engine2.load_state_dict(sd)
 
     # Directly set higher max_iters and run
-    engine2.state.max_iters = 25
-    engine2.run(data)
+    engine2.run(data, max_iters=25)
     assert counter[0] == 10  # 25 - 15
     assert engine2.state.iteration == 25
     assert engine2.state.max_iters == 25
@@ -421,3 +438,50 @@ def test_resume_with_higher_max_iters():
     final_sd = engine2.state_dict()
     assert final_sd["iteration"] == 25
     assert final_sd["max_iters"] == 25
+
+
+def test_checkpoint_with_max_iters():
+    import tempfile
+    import os
+    from ignite.handlers import Checkpoint, DiskSaver
+    from ignite.engine import Engine, Events
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        data = list(range(10))
+
+        def update_fn(engine, batch):
+            return 1
+
+        engine1 = Engine(update_fn)
+
+        # Save after 15 iterations (mid 2nd epoch)
+        to_save = {"engine": engine1}
+        handler = Checkpoint(to_save, DiskSaver(tmpdir, require_empty=False), n_saved=1)
+        engine1.add_event_handler(Events.ITERATION_COMPLETED(once=15), handler)
+
+        @engine1.on(Events.ITERATION_COMPLETED(once=15))
+        def stop_early():
+            engine1.terminate()
+
+        engine1.run(data, max_iters=25)
+
+        assert engine1.state.iteration == 15
+        assert engine1.state.max_iters == 25
+
+        # Reload checkpoint
+        engine2 = Engine(update_fn)
+        checkpoint_path = os.path.join(tmpdir, os.listdir(tmpdir)[0])
+        import torch
+
+        checkpoint = torch.load(checkpoint_path)
+        Checkpoint.load_objects(to_load={"engine": engine2}, checkpoint=checkpoint)
+
+        assert engine2.state.iteration == 15
+        assert engine2.state.max_iters == 25
+        assert engine2.state.epoch_length == 10
+
+        # Resume
+        engine2.run(data, max_iters=25)
+        assert engine2.state.iteration == 25
+        assert engine2.state.epoch == 3
+        assert getattr(engine2.state, "max_epochs", None) is None

@@ -117,6 +117,12 @@ def test_load_state_dict_with_user_keys():
 
     _test({"max_epochs": 100, "epoch_length": 120, "iteration": 123, "alpha": 0.1, "beta": "abc"})
 
+    # Test missing user key
+    engine2 = Engine(lambda e, b: 1)
+    engine2.state_dict_user_keys.append("alpha")
+    with pytest.raises(ValueError, match="Required user state attribute 'alpha' is absent in provided state_dict"):
+        engine2.load_state_dict({"max_epochs": 100, "epoch_length": 120, "iteration": 123})
+
 
 def test_load_state_dict_integration():
     engine = Engine(lambda e, b: 1)
