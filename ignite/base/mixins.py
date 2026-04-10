@@ -1,7 +1,7 @@
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from collections.abc import Mapping
-from typing import Any, Tuple, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ignite.engine import Engine
@@ -28,8 +28,8 @@ class ResettableHandler(metaclass=ABCMeta):
 
 
 class Serializable:
-    _state_dict_all_req_keys: Tuple[str, ...] = ()
-    _state_dict_one_of_opt_keys: Tuple[Tuple[str, ...], ...] = ((),)
+    _state_dict_all_req_keys: tuple = ()
+    _state_dict_one_of_opt_keys: tuple = ((),)
 
     def state_dict(self) -> OrderedDict:
         raise NotImplementedError
