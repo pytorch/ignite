@@ -707,8 +707,12 @@ class Engine(Serializable):
             OrderedDict:
                 a dictionary containing engine's state
 
+        .. versionchanged:: 0.5.5
+            Added support for serializing ``max_iters``.
+
         """
         keys: tuple[str, ...] = self._state_dict_all_req_keys
+        # We add iteration by default to get exact measure of progress
         keys += ("iteration",)
         # Include either max_epochs or max_iters based on which was originally set
         if self.state.max_iters is not None:
@@ -743,25 +747,24 @@ class Engine(Serializable):
             trainer.load_state_dict(state_dict)
             trainer.run(data)
 
+        .. versionchanged:: 0.5.5
+            Added support for restoring from a state dict containing ``max_iters`` instead of ``max_epochs``.
+
         """
         super(Engine, self).load_state_dict(state_dict)
 
-        # Set epoch_length
-        self.state.epoch_length = state_dict["epoch_length"]
-
-        # Set user keys
         for k in self._state_dict_user_keys:
             if k not in state_dict:
                 raise ValueError(
                     f"Required user state attribute '{k}' is absent in provided state_dict '{state_dict.keys()}'"
                 )
             setattr(self.state, k, state_dict[k])
+        self.state.epoch_length = state_dict["epoch_length"]
 
-        # Set iteration or epoch
         if "iteration" in state_dict:
             self.state.iteration = state_dict["iteration"]
             self.state.epoch = 0
-            if self.state.epoch_length is not None and self.state.epoch_length > 0:
+            if self.state.epoch_length is not None:
                 self.state.epoch = self.state.iteration // self.state.epoch_length
         else:  # epoch is in state_dict
             self.state.epoch = state_dict["epoch"]
@@ -976,7 +979,6 @@ class Engine(Serializable):
             if epoch_length is not None and epoch_length < 1:
                 raise ValueError("Input data has zero size. Please provide non-empty data")
 
-            # Determine max_epochs/max_iters
             if max_iters is None:
                 if max_epochs is None:
                     max_epochs = 1
@@ -984,7 +986,6 @@ class Engine(Serializable):
                 if epoch_length is not None:
                     max_epochs = math.ceil(max_iters / epoch_length)
 
-            # Initialize new state
             self.state.iteration = 0
             self.state.epoch = 0
             self.state.max_epochs = max_epochs
@@ -993,14 +994,11 @@ class Engine(Serializable):
             # Reset generator if previously used
             self._internal_run_generator = None
 
-            # Log start message
             if self.state.max_epochs is not None:
                 self.logger.info(f"Engine run starting with max_epochs={self.state.max_epochs}.")
             else:
                 self.logger.info(f"Engine run starting with max_iters={self.state.max_iters}.")
         else:
-            # Resume from existing state
-            # Handle epoch_length validation
             if self.state.epoch_length is not None:
                 if epoch_length is not None and epoch_length != self.state.epoch_length:
                     raise ValueError(
@@ -1015,7 +1013,6 @@ class Engine(Serializable):
                         raise ValueError("Input data has zero size. Please provide non-empty data")
                     self.state.epoch_length = epoch_length
 
-            # Log resuming message
             if self.state.max_epochs is not None:
                 self.logger.info(
                     f"Engine run resuming from iteration {self.state.iteration}, "
@@ -1031,8 +1028,6 @@ class Engine(Serializable):
                 raise ValueError("epoch_length should be provided if data is None")
 
             if self.should_terminate:
-                # If engine was terminated and now is resuming from terminated state
-                # we need to initialize iter_counter as 0
                 self._init_iter = 0
 
         if self._dataloader_iter is None:
