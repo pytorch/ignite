@@ -47,7 +47,7 @@ __all__ = [
 def _prepare_batch(
     batch: Sequence[torch.Tensor], device: str | torch.device | None = None, non_blocking: bool = False
 ) -> tuple[torch.Tensor | Sequence | Mapping | str | bytes, ...]:
-    """Prepare batch for training or evaluation: pass to a device with options."""
+    """Prepare batch for training or evaluation by moving it to a device with options."""
     x, y = batch
     return (
         convert_tensor(x, device=device, non_blocking=non_blocking),
