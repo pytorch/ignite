@@ -1,4 +1,4 @@
-""" ``ignite.contrib.metrics.average_precision`` was moved to ``ignite.metrics.average_precision``.
+"""``ignite.contrib.metrics.average_precision`` was moved to ``ignite.metrics.average_precision``.
 Note:
     ``ignite.contrib.metrics.average_precision`` was moved to ``ignite.metrics.average_precision``.
     Please refer to :mod:`~ignite.metrics.average_precision`.

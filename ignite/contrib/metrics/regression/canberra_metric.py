@@ -1,4 +1,4 @@
-""" ``ignite.contrib.metrics.regression.canberra_metric`` was moved to ``ignite.metrics.regression.canberra_metric``. # noqa
+"""``ignite.contrib.metrics.regression.canberra_metric`` was moved to ``ignite.metrics.regression.canberra_metric``. # noqa
 Note:
     ``ignite.contrib.metrics.regression.canberra_metric`` was moved to ``ignite.metrics.regression.canberra_metric``. # noqa
     Please refer to :mod:`~ignite.metrics.regression.canberra_metric`.

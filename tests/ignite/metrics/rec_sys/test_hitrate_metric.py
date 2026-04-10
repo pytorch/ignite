@@ -54,6 +54,26 @@ def test_shape_mismatch():
         metric.update((y_pred, y))
 
 
+def test_empty_top_k():
+    with pytest.raises(ValueError, match="top_k must have at least one positive value"):
+        HitRate(top_k=[])
+
+
+def test_invalid_top_k_type():
+    with pytest.raises(ValueError, match="top_k must be either int or a list"):
+        HitRate(top_k="invalid")
+
+
+def test_int_top_k(available_device):
+    metric = HitRate(top_k=2, device=available_device)
+    y_pred = torch.tensor([[4.0, 2.0, 3.0, 1.0]])
+    y_true = torch.tensor([[0.0, 0.0, 1.0, 0.0]])
+    metric.update((y_pred, y_true))
+    res = metric.compute()
+    expected = manual_hit_rate(y_pred.numpy(), y_true.numpy(), [2])
+    np.testing.assert_allclose(res, expected)
+
+
 @pytest.mark.parametrize("top_k", [[1], [1, 2, 4]])
 @pytest.mark.parametrize("ignore_zero_hits", [True, False])
 def test_compute(top_k, ignore_zero_hits, available_device):

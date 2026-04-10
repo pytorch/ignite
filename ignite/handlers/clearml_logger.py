@@ -963,7 +963,7 @@ class ClearMLSaver(DiskSaver):
         post_cb_id = WeightsFileHandler.add_post_callback(cb_context.post_callback)  # type: ignore[arg-type]
 
         try:
-            super(ClearMLSaver, self).__call__(checkpoint, filename, metadata)
+            super().__call__(checkpoint, filename, metadata)
         finally:
             WeightsFileHandler.remove_pre_callback(pre_cb_id)
             WeightsFileHandler.remove_post_callback(post_cb_id)
@@ -991,7 +991,7 @@ class ClearMLSaver(DiskSaver):
 
     @idist.one_rank_only()
     def remove(self, filename: str) -> None:
-        super(ClearMLSaver, self).remove(filename)
+        super().remove(filename)
         for slots in self._checkpoint_slots.values():
             try:
                 slots[slots.index(filename)] = None

@@ -103,7 +103,7 @@ jobs:
           cp -R /tmp/MNIST .
 
       - name: Run Tests
-        uses: nick-fields/retry@v3.0.2
+        uses: nick-fields/retry@v4.0.0
         with:
           max_attempts: 5
           timeout_minutes: 15
@@ -112,7 +112,7 @@ jobs:
           new_command_on_retry: USE_LAST_FAILED=1 SKIP_DISTRIB_TESTS=${{ matrix.skip-distrib-tests }} bash tests/run_cpu_tests.sh
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
           files: ./coverage.xml
           flags: cpu

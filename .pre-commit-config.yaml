@@ -27,15 +27,7 @@ repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.11.13
     hooks:
-      # Run the linter
       - id: ruff-check
         types_or: [python, pyi]
-      # TODO: Enable when black and ruff format converge
-      # Run the formatter
-      # - id: ruff-format
-      #   types_or: [python, pyi]
-
-  - repo: https://github.com/psf/black
-    rev: 24.10.0
-    hooks:
-      - id: black
+      - id: ruff-format
+        types_or: [python, pyi, jupyter]

@@ -378,7 +378,7 @@ def all_gather_tensors_with_shapes(
         group: list of integer or the process group for each backend. If None, the default process group will be used.
 
     Returns:
-        List[torch.Tensor]
+        list[torch.Tensor]
     """
     if _need_to_sync and isinstance(_model, _SerialModel):
         sync(temporary=True)

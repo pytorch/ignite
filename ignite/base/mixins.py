@@ -2,7 +2,6 @@ from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from collections.abc import Mapping
 from typing import Any, Tuple, TYPE_CHECKING
-import warnings
 
 if TYPE_CHECKING:
     from ignite.engine import Engine
@@ -14,7 +13,7 @@ class ResettableHandler(metaclass=ABCMeta):
     Subclasses must implement the :meth:`reset` method to clear any accumulated
     state, typically at the beginning of a training run.
 
-    .. versionadded:: 0.6.0
+    .. versionadded:: 0.5.4
     """
 
     @abstractmethod
@@ -31,7 +30,6 @@ class ResettableHandler(metaclass=ABCMeta):
 class Serializable:
     _state_dict_all_req_keys: Tuple[str, ...] = ()
     _state_dict_one_of_opt_keys: Tuple[Tuple[str, ...], ...] = ((),)
-
 
     def state_dict(self) -> OrderedDict:
         raise NotImplementedError

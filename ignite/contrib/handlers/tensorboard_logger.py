@@ -1,4 +1,4 @@
-""" ``ignite.contrib.handlers.tensorboard_logger`` was moved to ``ignite.handlers.tensorboard_logger``.
+"""``ignite.contrib.handlers.tensorboard_logger`` was moved to ``ignite.handlers.tensorboard_logger``.
 Note:
     ``ignite.contrib.handlers.tensorboard_logger`` was moved to ``ignite.handlers.tensorboard_logger``.
     Please refer to :mod:`~ignite.handlers.tensorboard_logger`.

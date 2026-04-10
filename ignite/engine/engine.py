@@ -751,7 +751,7 @@ class Engine(Serializable):
             Added support for restoring from a state dict containing ``max_iters`` instead of ``max_epochs``.
 
         """
-        super(Engine, self).load_state_dict(state_dict)
+        super().load_state_dict(state_dict)
 
         for k in self._state_dict_user_keys:
             if k not in state_dict:
@@ -946,8 +946,7 @@ class Engine(Serializable):
 
         if max_epochs is not None and max_iters is not None:
             raise ValueError(
-                "Arguments max_iters and max_epochs are mutually exclusive."
-                "Please provide only max_epochs or max_iters."
+                "Arguments max_iters and max_epochs are mutually exclusive.Please provide only max_epochs or max_iters."
             )
 
         if self.state.max_epochs is not None:
@@ -1179,8 +1178,7 @@ class Engine(Serializable):
         try:
             if self._dataloader_iter is None:
                 raise RuntimeError(
-                    "Internal error, self._dataloader_iter is None. "
-                    "Please, file an issue if you encounter this error."
+                    "Internal error, self._dataloader_iter is None. Please, file an issue if you encounter this error."
                 )
 
             while True:
@@ -1367,8 +1365,7 @@ class Engine(Serializable):
         try:
             if self._dataloader_iter is None:
                 raise RuntimeError(
-                    "Internal error, self._dataloader_iter is None. "
-                    "Please, file an issue if you encounter this error."
+                    "Internal error, self._dataloader_iter is None. Please, file an issue if you encounter this error."
                 )
 
             while True:

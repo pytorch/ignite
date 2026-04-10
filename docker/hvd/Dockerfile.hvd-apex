@@ -7,6 +7,20 @@ ARG PTH_VERSION
 FROM pytorch/pytorch:${PTH_VERSION}-devel AS apex-hvd-builder
 
 ENV CUDA_HOME=/usr/local/cuda
+# Set env vars to allow pip install
+ENV PIP_BREAK_SYSTEM_PACKAGES=1
+ENV PIP_ROOT_USER_ACTION=ignore
+
+# Temporary NCCL library setup (missing in pytorch 2.11 image)
+RUN export NCCL_ROOT=$(python -c "import os, nvidia; print(os.path.dirname(nvidia.__file__))")/nccl && \
+        libnccl_filename=$(ls $NCCL_ROOT/lib) && \
+        libnccl_path=$NCCL_ROOT/lib/$libnccl_filename && \
+        ln -s $libnccl_path /lib/x86_64-linux-gnu/$libnccl_filename && \
+        ln -s /lib/x86_64-linux-gnu/$libnccl_filename /lib/x86_64-linux-gnu/libnccl.so && \
+        cp -R $NCCL_ROOT/include/* /usr/include && \
+        # quick check:
+        ls /lib/x86_64-linux-gnu/libnccl.so && \
+        ls /usr/include/nccl.h
 
 # Install git
 RUN apt-get update && apt-get install -y --no-install-recommends git && \
@@ -25,7 +39,7 @@ ARG HVD_VERSION
 
 # Build Horovod
 RUN apt-get update && apt-get install -y git && \
-        conda install -y cmake=3.* nccl -c conda-forge && \
+        pip install -U "cmake<4" && \
         git clone --depth 1 https://github.com/horovod/horovod.git /horovod && \
         cd /horovod && \
         git fetch --tags && \
@@ -34,11 +48,20 @@ RUN apt-get update && apt-get install -y git && \
         # temporary -std=c++17 fix
         sed -i "s/CMAKE_CXX_STANDARD 14/CMAKE_CXX_STANDARD 17/g" CMakeLists.txt && \
         sed -i "s/CMAKE_CXX_STANDARD 14/CMAKE_CXX_STANDARD 17/g" horovod/torch/CMakeLists.txt && \
-        HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_NCCL_LINK=SHARED HOROVOD_WITHOUT_MPI=1 HOROVOD_WITH_PYTORCH=1 pip wheel --no-cache-dir . && \
+        sed -i "s/VERSION 2.8/VERSION 3.5/g" third_party/gloo/CMakeLists.txt && \
+        sed -i '1i #include <string>' horovod/common/group_table.h && \
+        sed -i '1i #include <string>' horovod/common/group_table.cc && \
+        sed -i '1i #include <stdexcept>' horovod/common/common.h && \
+        HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_NCCL_LINK=SHARED HOROVOD_WITHOUT_MPI=1 HOROVOD_WITH_PYTORCH=1 pip wheel --no-cache-dir --no-build-isolation . && \
         rm -rf /var/lib/apt/lists/*
 
 # Build runtime image
 FROM pytorch/pytorch:${PTH_VERSION}-runtime
+
+# Set env vars to allow pip install
+ENV PIP_BREAK_SYSTEM_PACKAGES=1
+ENV PIP_ROOT_USER_ACTION=ignore
+
 
 # Apex
 COPY --from=apex-hvd-builder /tmp/apex/apex-*.whl /tmp/apex/
@@ -78,11 +101,6 @@ RUN mkdir -p pytorch-ignite-examples && \
     git pull origin master && \
     # rm very large .git folder
     rm -rf .git
-
-# Horovod
-RUN conda install -y nccl -c conda-forge
-
-ENV LD_LIBRARY_PATH=/opt/conda/lib:$LD_LIBRARY_PATH
 
 COPY --from=apex-hvd-builder /horovod/horovod-*.whl /horovod/
 

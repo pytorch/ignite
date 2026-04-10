@@ -1,4 +1,4 @@
-""" ``ignite.contrib.handlers.param_scheduler`` was moved to ``ignite.handlers.param_scheduler``.
+"""``ignite.contrib.handlers.param_scheduler`` was moved to ``ignite.handlers.param_scheduler``.
 Note:
     ``ignite.contrib.handlers.param_scheduler`` was moved to ``ignite.handlers.param_scheduler``.
     Please refer to :mod:`~ignite.handlers.param_scheduler`.
