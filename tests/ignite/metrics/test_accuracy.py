@@ -498,3 +498,92 @@ def test_skip_unrolling():
     state = State(output=(y_pred, y_true))
     engine = MagicMock(state=state)
     acc.iteration_completed(engine)
+
+
+class TestGetSequenceTransform:
+    def test_basic_masking(self):
+        """Test that padding tokens are correctly masked out."""
+        transform = Accuracy.get_sequence_transform(pad_index=0)
+
+        # (batch=2, seq_len=3, num_classes=4)
+        y_pred = torch.tensor([
+            [[0.1, 0.8, 0.05, 0.05], [0.9, 0.05, 0.025, 0.025], [0.0, 0.0, 0.0, 0.0]],
+            [[0.7, 0.1, 0.1, 0.1], [0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0]],
+        ])
+        # (batch=2, seq_len=3), 0 = padding
+        y = torch.tensor([
+            [1, 0, 0],
+            [0, 0, 0],
+        ])
+
+        y_pred_out, y_out = transform((y_pred, y))
+
+        # Only non-pad positions: (0,0)->1, (0,1)->0, (1,0)->0
+        # Wait, pad_index=0 means y==0 is masked. So only y==1 survives.
+        # Position (0,0) has y=1, so only 1 token survives.
+        assert y_out.shape[0] == 1
+        assert y_out[0] == 1
+
+    def test_all_tokens_unmasked(self):
+        """Test with no padding (pad_index not present in targets)."""
+        transform = Accuracy.get_sequence_transform(pad_index=-1)
+
+        y_pred = torch.rand(2, 4, 3)
+        y = torch.tensor([[0, 1, 2, 1], [2, 0, 1, 0]])
+
+        y_pred_out, y_out = transform((y_pred, y))
+        assert y_out.shape[0] == 8  # 2 * 4, nothing masked
+
+    def test_accuracy_with_sequence_transform(self):
+        """End-to-end test: Accuracy metric with sequence transform."""
+        acc = Accuracy(output_transform=Accuracy.get_sequence_transform(pad_index=0))
+
+        # (batch=1, seq_len=3, num_classes=3)
+        y_pred = torch.tensor([[[0.1, 0.8, 0.1], [0.1, 0.1, 0.8], [0.0, 0.0, 0.0]]])
+        # (batch=1, seq_len=3), token 3 is padding
+        y = torch.tensor([[1, 2, 0]])
+
+        acc.update(acc._output_transform((y_pred, y)))
+        result = acc.compute()
+        assert result == 1.0  # Both non-pad predictions are correct
+
+    def test_accuracy_with_wrong_predictions(self):
+        """Test accuracy with some wrong predictions."""
+        acc = Accuracy(output_transform=Accuracy.get_sequence_transform(pad_index=-1))
+
+        # (batch=1, seq_len=4, num_classes=3)
+        y_pred = torch.tensor([
+            [[0.8, 0.1, 0.1], [0.1, 0.8, 0.1], [0.1, 0.1, 0.8], [0.8, 0.1, 0.1]],
+        ])
+        # (batch=1, seq_len=4)
+        y = torch.tensor([[0, 1, 0, 0]])  # 3rd token is wrong (pred=2, true=0)
+
+        acc.update(acc._output_transform((y_pred, y)))
+        result = acc.compute()
+        assert result == pytest.approx(0.75)  # 3 out of 4 correct
+
+    def test_custom_pad_index(self):
+        """Test with a non-zero pad index."""
+        transform = Accuracy.get_sequence_transform(pad_index=99)
+
+        y_pred = torch.rand(2, 5, 10)
+        y = torch.tensor([[1, 2, 3, 99, 99], [4, 5, 99, 99, 99]])
+
+        y_pred_out, y_out = transform((y_pred, y))
+        assert y_out.shape[0] == 5  # 3 + 2 non-pad tokens
+
+    def test_with_output_transform(self):
+        """Test composing with a custom output_transform."""
+        def extract_from_dict(output):
+            return output["logits"], output["labels"]
+
+        transform = Accuracy.get_sequence_transform(
+            pad_index=0, output_transform=extract_from_dict
+        )
+
+        y_pred = torch.rand(2, 3, 5)
+        y = torch.tensor([[1, 2, 0], [3, 0, 0]])
+        output = {"logits": y_pred, "labels": y}
+
+        y_pred_out, y_out = transform(output)
+        assert y_out.shape[0] == 3  # 2 + 1 non-pad tokens

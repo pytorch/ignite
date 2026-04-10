@@ -211,11 +211,83 @@ class Accuracy(_BaseClassification):
 
             0.6666...
 
+        Sequence case. For sequence-to-sequence models (e.g., NLP transformers), use
+        :meth:`get_sequence_transform` to handle flattening and padding mask:
+
+        .. testcode:: 5
+
+            metric = Accuracy(output_transform=Accuracy.get_sequence_transform(pad_index=0))
+            metric.attach(default_evaluator, "accuracy")
+            # (batch=2, seq_len=4, num_classes=3)
+            y_pred = torch.tensor([
+                [[0.1, 0.8, 0.1], [0.9, 0.05, 0.05], [0.2, 0.1, 0.7], [0.0, 0.0, 0.0]],
+                [[0.7, 0.2, 0.1], [0.1, 0.1, 0.8], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+            ])
+            # (batch=2, seq_len=4), 0 = padding
+            y_true = torch.tensor([
+                [1, 0, 2, 0],
+                [0, 2, 0, 0],
+            ])
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics["accuracy"])
+
+        .. testoutput:: 5
+
+            1.0
+
     .. versionchanged:: 0.5.1
         ``skip_unrolling`` argument is added.
     """
 
     _state_dict_all_req_keys = ("_num_correct", "_num_examples")
+
+    @staticmethod
+    def get_sequence_transform(
+        pad_index: int = 0,
+        output_transform: Callable = lambda x: x,
+    ) -> Callable:
+        """Returns an output transform for sequence-to-sequence models.
+
+        Handles the common NLP/Transformer pattern where model output is
+        ``(batch, seq_len, num_classes)`` and target is ``(batch, seq_len)``.
+        The returned transform flattens both tensors along the sequence
+        dimension and masks out positions where the target equals ``pad_index``.
+
+        Args:
+            pad_index: the target value used for padding. Positions where
+                ``y == pad_index`` are excluded from the accuracy computation.
+                Default: 0.
+            output_transform: an optional transform applied to the engine
+                output before the sequence transform. Default is the identity
+                function.
+
+        Returns:
+            A callable suitable for the ``output_transform`` argument of
+            :class:`Accuracy`.
+
+        Example::
+
+            from ignite.metrics import Accuracy
+
+            acc = Accuracy(
+                output_transform=Accuracy.get_sequence_transform(pad_index=0)
+            )
+
+        .. versionadded:: 0.5.3
+        """
+
+        def _sequence_transform(output: tuple) -> tuple:
+            y_pred, y = output_transform(output)
+
+            # y_pred: (batch, seq_len, num_classes) -> (batch * seq_len, num_classes)
+            # y: (batch, seq_len) -> (batch * seq_len,)
+            y_pred_flat = y_pred.reshape(-1, y_pred.size(-1))
+            y_flat = y.reshape(-1)
+
+            mask = y_flat != pad_index
+            return y_pred_flat[mask], y_flat[mask]
+
+        return _sequence_transform
 
     def __init__(
         self,
