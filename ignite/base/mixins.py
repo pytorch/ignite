@@ -29,7 +29,7 @@ class ResettableHandler(metaclass=ABCMeta):
 
 class Serializable:
     _state_dict_all_req_keys: tuple = ()
-    _state_dict_one_of_opt_keys: tuple = ((),)
+    _state_dict_one_of_opt_keys: tuple[tuple] = ((),)
 
     def state_dict(self) -> OrderedDict:
         raise NotImplementedError
