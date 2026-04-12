@@ -736,7 +736,7 @@ class Engine(Serializable):
             trainer.run(data)
 
         """
-        super(Engine, self).load_state_dict(state_dict)
+        super().load_state_dict(state_dict)
 
         for k in self._state_dict_user_keys:
             if k not in state_dict:
@@ -1081,8 +1081,7 @@ class Engine(Serializable):
         try:
             if self._dataloader_iter is None:
                 raise RuntimeError(
-                    "Internal error, self._dataloader_iter is None. "
-                    "Please, file an issue if you encounter this error."
+                    "Internal error, self._dataloader_iter is None. Please, file an issue if you encounter this error."
                 )
 
             while True:
@@ -1269,8 +1268,7 @@ class Engine(Serializable):
         try:
             if self._dataloader_iter is None:
                 raise RuntimeError(
-                    "Internal error, self._dataloader_iter is None. "
-                    "Please, file an issue if you encounter this error."
+                    "Internal error, self._dataloader_iter is None. Please, file an issue if you encounter this error."
                 )
 
             while True:

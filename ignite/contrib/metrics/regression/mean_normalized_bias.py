@@ -1,4 +1,4 @@
-""" ``ignite.contrib.metrics.regression.mean_normalized_bias`` was moved to ``ignite.metrics.regression.mean_normalized_bias``. # noqa
+"""``ignite.contrib.metrics.regression.mean_normalized_bias`` was moved to ``ignite.metrics.regression.mean_normalized_bias``. # noqa
 Note:
     ``ignite.contrib.metrics.regression.mean_normalized_bias`` was moved to ``ignite.metrics.regression.mean_normalized_bias``. # noqa
     Please refer to :mod:`~ignite.metrics.regression.mean_normalized_bias`.

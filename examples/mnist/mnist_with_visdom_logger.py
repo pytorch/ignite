@@ -1,21 +1,21 @@
 """
- MNIST example with training and validation monitoring using Visdom.
+MNIST example with training and validation monitoring using Visdom.
 
- Requirements:
-    Visdom (https://github.com/facebookresearch/visdom.git):
-    `pip install git+https://github.com/facebookresearch/visdom.git`
+Requirements:
+   Visdom (https://github.com/facebookresearch/visdom.git):
+   `pip install git+https://github.com/facebookresearch/visdom.git`
 
- Usage:
+Usage:
 
-    Start visdom server:
-    ```bash
-    visdom -logging_level 30
-    ```
+   Start visdom server:
+   ```bash
+   visdom -logging_level 30
+   ```
 
-    Run the example:
-    ```bash
-    python mnist_with_visdom_logger.py
-    ```
+   Run the example:
+   ```bash
+   python mnist_with_visdom_logger.py
+   ```
 """
 
 from argparse import ArgumentParser

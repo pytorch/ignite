@@ -214,8 +214,9 @@ class ResNet_QAT_Xb(nn.Module):
             replace_stride_with_dilation = [False, False, False]
         if len(replace_stride_with_dilation) != 3:
             raise ValueError(
-                "replace_stride_with_dilation should be None "
-                "or a 3-element tuple, got {}".format(replace_stride_with_dilation)
+                "replace_stride_with_dilation should be None or a 3-element tuple, got {}".format(
+                    replace_stride_with_dilation
+                )
             )
         self.groups = groups
         self.base_width = width_per_group

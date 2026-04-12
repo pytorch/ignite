@@ -1,4 +1,4 @@
-""" ``ignite.contrib.handlers.base_logger`` was moved to ``ignite.handlers.base_logger``.
+"""``ignite.contrib.handlers.base_logger`` was moved to ``ignite.handlers.base_logger``.
 Note:
     ``ignite.contrib.handlers.base_logger`` was moved to ``ignite.handlers.base_logger``.
     Please refer to :mod:`~ignite.handlers.base_logger`.

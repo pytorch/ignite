@@ -282,8 +282,7 @@ class OutputHandler(BaseOutputHandler):
 
         if not isinstance(global_step, int):
             raise TypeError(
-                f"global_step must be int, got {type(global_step)}."
-                " Please check the output of global_step_transform."
+                f"global_step must be int, got {type(global_step)}. Please check the output of global_step_transform."
             )
 
         # Additionally recheck metric names as MLflow rejects non-valid names with MLflowException

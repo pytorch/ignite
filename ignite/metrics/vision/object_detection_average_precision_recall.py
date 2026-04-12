@@ -1,8 +1,7 @@
 from collections.abc import Callable, Sequence
-from typing import cast
+from typing import cast, Literal
 
 import torch
-from typing_extensions import Literal
 
 from ignite.metrics import MetricGroup
 from ignite.metrics.mean_average_precision import _BaseAveragePrecision, _cat_and_agg_tensors
@@ -21,7 +20,7 @@ def coco_tensor_list_to_dict_list(
     Input format is a `(N, 6)` or (`N, 5)` tensor which `N` is the number of predicted/target bounding boxes for the
     image and the second dimension contains `(x1, y1, x2, y2, confidence, class)`/`(x1, y1, x2, y2, class[, iscrowd])`.
     Output format is a str-to-tensor dictionary containing 'bbox' and `class` keys, plus `confidence` key for `y_pred`
-    and possibly `iscrowd` for `y`.
+    and possibly `iscrowd` (dtype: `torch.bool`) for `y`.
 
     Args:
         output: `(y_pred,y)` tuple whose members are either list of tensors or list of dicts.
@@ -91,7 +90,7 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
                 metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
                 non-blocking. By default, CPU.
             skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
-                true for multi-output model, for example, if ``y_pred`` and ``y`` contain multi-ouput as
+                true for multi-output model, for example, if ``y_pred`` and ``y`` contain multi-output as
                 ``(y_pred_a, y_pred_b)`` and ``(y_a, y_b)``, in which case the update method is called for
                 ``(y_pred_a, y_a)`` and ``(y_pred_b, y_b)``.Alternatively, ``output_transform`` can be used to handle
                 this.
@@ -101,7 +100,7 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
         try:
             from torchvision.ops.boxes import _box_inter_union, box_area
 
-            def box_iou(pred_boxes: torch.Tensor, gt_boxes: torch.Tensor, iscrowd: torch.BoolTensor) -> torch.Tensor:
+            def box_iou(pred_boxes: torch.Tensor, gt_boxes: torch.Tensor, iscrowd: torch.Tensor) -> torch.Tensor:
                 inter, union = _box_inter_union(pred_boxes, gt_boxes)
                 union[:, iscrowd] = box_area(pred_boxes).reshape(-1, 1)
                 iou = inter / union
@@ -113,28 +112,18 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
             raise ModuleNotFoundError("This metric requires torchvision to be installed.")
 
         if iou_thresholds is None:
-            iou_thresholds = torch.linspace(0.5, 0.95, 10, dtype=torch.double)
-
-        self._iou_thresholds = self._setup_thresholds(iou_thresholds, "iou_thresholds")
+            iou_thresholds = torch.linspace(0.5, 0.95, 10)
 
         if rec_thresholds is None:
-            rec_thresholds = torch.linspace(0, 1, 101, dtype=torch.double)
+            rec_thresholds = torch.linspace(0, 1, 101)
 
         self._num_classes = num_classes
         self._area_range = area_range
         self._max_detections_per_image_per_class = max_detections_per_image_per_class
 
-        super(ObjectDetectionAvgPrecisionRecall, self).__init__(
-            output_transform=output_transform,
-            device=device,
-            skip_unrolling=skip_unrolling,
-        )
-        super(Metric, self).__init__(
-            rec_thresholds=rec_thresholds,
-            class_mean=None,
-        )
-        precision = torch.double if torch.device(device).type != "mps" else torch.float32
-        self.rec_thresholds = cast(torch.Tensor, self.rec_thresholds).to(device=device, dtype=precision)
+        Metric.__init__(self, output_transform=output_transform, device=device, skip_unrolling=skip_unrolling)
+        _BaseAveragePrecision.__init__(self, rec_thresholds=rec_thresholds, class_mean=None, device=device)
+        self._iou_thresholds = self._setup_thresholds(iou_thresholds, "iou_thresholds")
 
     @reinit__is_reduced
     def reset(self) -> None:
@@ -218,14 +207,10 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
         """
         indices = torch.argsort(scores, dim=-1, stable=True, descending=True)
         tp = TP[..., indices]
-        tp_summation = tp.cumsum(dim=-1)
-        if tp_summation.device.type != "mps":
-            tp_summation = tp_summation.double()
+        tp_summation = tp.cumsum(dim=-1).to(self._fp_precision)
 
         fp = FP[..., indices]
-        fp_summation = fp.cumsum(dim=-1)
-        if fp_summation.device.type != "mps":
-            fp_summation = fp_summation.double()
+        fp_summation = fp.cumsum(dim=-1).to(self._fp_precision)
 
         recall = tp_summation / y_true_count
         predicted_positive = tp_summation + fp_summation
@@ -259,7 +244,7 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
         rec_thresh_indices = (
             torch.searchsorted(recall, rec_thresholds)
             if recall.size(-1) != 0
-            else torch.LongTensor([], device=self._device)
+            else torch.tensor([], dtype=torch.long, device=self._device)
         )
         precision_integrand = precision_integrand.take_along_dim(
             rec_thresh_indices.where(rec_thresh_indices != recall.size(-1), 0), dim=-1
@@ -297,50 +282,60 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
                                             containing top left and bottom right coordinates.
                 'labels'  (N\ :sub:`gt`,)   Category number of ground truths in `torch.long`
                                             dtype.
-                'iscrowd' (N\ :sub:`gt`,)   Whether ground truth boxes are crowd ones or not.
-                                            This key is optional.
+                'iscrowd' (N\ :sub:`gt`,)   Whether ground truth boxes are crowd ones or not,
+                                            in `torch.bool` dtype. This key is optional.
                 ========= ================= =================================================
         """
         self._check_matching_input(output)
-        for pred, target in zip(*output):
-            labels = target["labels"]
-            gt_boxes = target["bbox"]
+
+        y_pred, y_true = output
+        for pred, target in zip(y_pred, y_true):
+            labels = target["labels"].detach()
+            gt_boxes = target["bbox"].detach()
             gt_is_crowd = (
-                target["iscrowd"].bool() if "iscrowd" in target else torch.zeros_like(labels, dtype=torch.bool)
+                target["iscrowd"].detach().bool() if "iscrowd" in target else torch.zeros_like(labels, dtype=torch.bool)
             )
+
+            input_device = gt_boxes.device
             gt_ignore = ~self._match_area_range(gt_boxes) | gt_is_crowd
-            self._y_true_count += torch.bincount(labels[~gt_ignore], minlength=self._num_classes).to(
-                device=self._device
+            self._y_true_count += (
+                torch.bincount(labels[~gt_ignore], minlength=self._num_classes).detach().to(device=self._device)
             )
 
             # Matching logic of object detection mAP, according to COCO reference implementation.
             if len(pred["labels"]):
-                best_detections_index = torch.argsort(pred["scores"], stable=True, descending=True)
+                pred_labels_orig = pred["labels"].detach()
+                pred_scores_orig = pred["scores"].detach()
+                pred_bbox_orig = pred["bbox"].detach()
+
+                best_detections_index = torch.argsort(pred_scores_orig, stable=True, descending=True)
                 max_best_detections_index = torch.cat(
                     [
-                        best_detections_index[pred["labels"][best_detections_index] == c][
+                        best_detections_index[pred_labels_orig[best_detections_index] == c][
                             : self._max_detections_per_image_per_class
                         ]
                         for c in range(self._num_classes)
                     ]
                 )
-                pred_boxes = pred["bbox"][max_best_detections_index]
-                pred_labels = pred["labels"][max_best_detections_index]
+                pred_boxes = pred_bbox_orig[max_best_detections_index]
+                pred_labels = pred_labels_orig[max_best_detections_index]
+                iou_thresholds = self._iou_thresholds.to(input_device)
+
                 if not len(labels):
                     tp = torch.zeros(
-                        (len(self._iou_thresholds), len(max_best_detections_index)),
+                        (len(iou_thresholds), len(max_best_detections_index)),
                         dtype=torch.uint8,
-                        device=self._device,
+                        device=input_device,
                     )
-                    self._tps.append(tp)
-                    self._fps.append(~tp & self._match_area_range(pred_boxes).to(self._device))
+                    self._tps.append(tp.to(self._device))
+                    self._fps.append((~tp & self._match_area_range(pred_boxes)).to(self._device))
                 else:
-                    ious = self.box_iou(pred_boxes, gt_boxes, cast(torch.BoolTensor, gt_is_crowd))
+                    ious = self.box_iou(pred_boxes, gt_boxes, gt_is_crowd)
                     category_no_match = labels.expand(len(pred_labels), -1) != pred_labels.view(-1, 1)
                     NO_MATCH = -3
                     ious[category_no_match] = NO_MATCH
-                    ious = ious.unsqueeze(-1).repeat((1, 1, len(self._iou_thresholds)))
-                    ious[ious < self._iou_thresholds] = NO_MATCH
+                    ious = ious.unsqueeze(-1).repeat((1, 1, len(iou_thresholds)))
+                    ious[ious < iou_thresholds] = NO_MATCH
                     IGNORANCE = -2
                     ious[:, gt_ignore] += IGNORANCE
                     for i in range(len(pred_labels)):
@@ -348,7 +343,7 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
                         # as torch.max selects the first one.
                         match_gts = ious[i].flip(0).max(0)
                         match_gts_indices = ious.size(1) - 1 - match_gts.indices
-                        for t in range(len(self._iou_thresholds)):
+                        for t in range(len(iou_thresholds)):
                             if match_gts.values[t] > NO_MATCH and not gt_is_crowd[match_gts_indices[t]]:
                                 ious[:, match_gts_indices[t], t] = NO_MATCH
                                 ious[i, match_gts_indices[t], t] = match_gts.values[t]
@@ -361,10 +356,8 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
                         )
                     )
 
-                scores = pred["scores"][max_best_detections_index]
-                if self._device.type == "mps" and scores.dtype == torch.double:
-                    scores = scores.to(dtype=torch.float32)
-                self._scores.append(scores.to(self._device))
+                scores = pred_scores_orig[max_best_detections_index]
+                self._scores.append(scores.to(self._device, dtype=self._fp_precision))
                 self._y_pred_labels.append(pred_labels.to(dtype=torch.int, device=self._device))
 
     @sync_all_reduce("_y_true_count")
@@ -372,13 +365,12 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
         pred_labels = _cat_and_agg_tensors(self._y_pred_labels, cast(tuple[int], ()), torch.int, self._device)
         TP = _cat_and_agg_tensors(self._tps, (len(self._iou_thresholds),), torch.uint8, self._device)
         FP = _cat_and_agg_tensors(self._fps, (len(self._iou_thresholds),), torch.uint8, self._device)
-        fp_precision = torch.double if self._device.type != "mps" else torch.float32
-        scores = _cat_and_agg_tensors(self._scores, cast(tuple[int], ()), fp_precision, self._device)
+        scores = _cat_and_agg_tensors(self._scores, cast(tuple[int], ()), self._fp_precision, self._device)
 
         average_precisions_recalls = -torch.ones(
             (2, self._num_classes, len(self._iou_thresholds)),
             device=self._device,
-            dtype=fp_precision,
+            dtype=self._fp_precision,
         )
         for cls in range(self._num_classes):
             if self._y_true_count[cls] == 0:
