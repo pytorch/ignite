@@ -84,56 +84,61 @@ def test_load_state_dict_validation():
     print("Valid state dict loaded successfully")
 
 
-def test_empty_optional_groups():
-    """Test handling of empty optional groups."""
+@pytest.mark.parametrize(
+    "all_req, opt_groups, state_dict, expected_error_match",
+    [
+        # Case 1: Pure empty - should pass
+        (("required",), (), {"required": "value"}, None),
+        # Case 2: Nested empty group - should raise descriptive ValueError
+        (
+            ("required",),
+            ((),),
+            {"required": "value"},
+            r"Empty group found in 'ParametrizedSerializable._state_dict_one_of_opt_keys'",
+        ),
+        # Case 3: Mixed empty and filled - should raise descriptive ValueError
+        (
+            ("required",),
+            ((), ("opt1", "opt2")),
+            {"required": "value", "opt1": "val"},
+            r"Empty group found in 'ParametrizedSerializable._state_dict_one_of_opt_keys'",
+        ),
+        # Case 4: Standard one-of group - missing keys
+        (
+            ("required",),
+            (("opt1", "opt2"),),
+            {"required": "value"},
+            r"should contain at least one of '\('opt1', 'opt2'\)'",
+        ),
+        # Case 5: Standard one-of group - too many keys
+        (
+            ("required",),
+            (("opt1", "opt2"),),
+            {"required": "value", "opt1": "v1", "opt2": "v2"},
+            r"should contain only one of '\('opt1', 'opt2'\)'",
+        ),
+        # Case 6: Standard one-of group - valid
+        (("required",), (("opt1", "opt2"),), {"required": "value", "opt1": "v1"}, None),
+    ],
+)
+def test_optional_groups_logic(all_req, opt_groups, state_dict, expected_error_match):
+    """Test various combinations of optional groups using parametrization."""
 
-    class EmptyOptionalSerializable(Serializable):
-        _state_dict_all_req_keys = ("required",)
-        _state_dict_one_of_opt_keys = ((),)  # Empty tuple
+    class ParametrizedSerializable(Serializable):
+        _state_dict_all_req_keys = all_req
+        _state_dict_one_of_opt_keys = opt_groups
 
         def state_dict(self):
             return {}
 
-    s = EmptyOptionalSerializable()
-
-    # Should pass validation with just required key
-    s.load_state_dict({"required": "value"})
-
-
-def test_multiple_empty_groups():
-    """Test multiple empty groups in _state_dict_one_of_opt_keys."""
-
-    class MultiEmptySerializable(Serializable):
-        _state_dict_all_req_keys = ("base",)
-        _state_dict_one_of_opt_keys = ((), (), ())  # Multiple empty groups
-
-        def state_dict(self):
-            return {}
-
-    s = MultiEmptySerializable()
-
-    # Should pass with just required key
-    s.load_state_dict({"base": "value"})
-
-
-def test_mixed_empty_and_filled_groups():
-    """Test mix of empty and filled optional groups."""
-
-    class MixedSerializable(Serializable):
-        _state_dict_all_req_keys = ("base",)
-        _state_dict_one_of_opt_keys = ((), ("opt1", "opt2"), ())
-
-        def state_dict(self):
-            return {}
-
-    s = MixedSerializable()
-
-    # Should require one from non-empty group
-    with pytest.raises(ValueError, match="should contain at least one of"):
-        s.load_state_dict({"base": "value"})
-
-    # Should pass with one from non-empty group
-    s.load_state_dict({"base": "value", "opt1": "option"})
+    s = ParametrizedSerializable()
+    if expected_error_match:
+        # for negative cases where we expect case to fail
+        with pytest.raises(ValueError, match=expected_error_match):
+            s.load_state_dict(state_dict)
+    else:
+        # for positive cases
+        s.load_state_dict(state_dict)
 
 
 def test_engine_style_validation():

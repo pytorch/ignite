@@ -18,7 +18,9 @@ def test_state_dict():
     def _test(state):
         engine.state = state
         sd = engine.state_dict()
-        assert isinstance(sd, Mapping) and len(sd) == len(engine._state_dict_all_req_keys) + 2
+        # Total keys = required keys + 1 from each optional group (e.g. iteration & max_epochs)
+        expected_len = len(engine._state_dict_all_req_keys) + len(engine._state_dict_one_of_opt_keys)
+        assert isinstance(sd, Mapping) and len(sd) == expected_len
         assert sd["iteration"] == engine.state.iteration
         assert sd["epoch_length"] == engine.state.epoch_length
         assert sd["max_epochs"] == engine.state.max_epochs
@@ -35,9 +37,10 @@ def test_state_dict_with_user_keys():
     def _test(state):
         engine.state = state
         sd = engine.state_dict()
-        assert isinstance(sd, Mapping) and len(sd) == len(engine._state_dict_all_req_keys) + 2 + len(
-            engine.state_dict_user_keys
-        )
+        # Total keys = required keys + 1 from each optional group + user keys
+        num_opt_keys = len(engine._state_dict_one_of_opt_keys)
+        expected_len = len(engine._state_dict_all_req_keys) + num_opt_keys + len(engine.state_dict_user_keys)
+        assert isinstance(sd, Mapping) and len(sd) == expected_len
         assert sd["iteration"] == engine.state.iteration
         assert sd["epoch_length"] == engine.state.epoch_length
         assert sd["max_epochs"] == engine.state.max_epochs
@@ -52,31 +55,49 @@ def test_state_dict_integration():
     data = range(100)
     engine.run(data, max_epochs=10)
     sd = engine.state_dict()
-    assert isinstance(sd, Mapping) and len(sd) == len(engine._state_dict_all_req_keys) + 2
+    # Total keys = required keys + 1 from each optional group (e.g. iteration & max_epochs)
+    expected_len = len(engine._state_dict_all_req_keys) + len(engine._state_dict_one_of_opt_keys)
+    assert isinstance(sd, Mapping) and len(sd) == expected_len
     assert sd["iteration"] == engine.state.iteration == 10 * 100
     assert sd["epoch_length"] == engine.state.epoch_length == 100
     assert sd["max_epochs"] == engine.state.max_epochs == 10
 
 
-def test_load_state_dict_asserts():
+@pytest.mark.parametrize(
+    "state_dict, error_type, match",
+    [
+        ("not a dict", TypeError, r"Argument state_dict should be a dictionary"),
+        ({}, ValueError, r"Required state attribute 'epoch_length' is absent"),
+        ({"epoch_length": 100}, ValueError, r"state_dict should contain at least one of"),
+        (
+            {"epoch_length": 100, "iteration": 10, "epoch": 1, "max_epochs": 5},
+            ValueError,
+            r"should contain only one of '\('iteration', 'epoch'\)'",
+        ),
+        (
+            {"epoch_length": 100, "iteration": 10, "max_epochs": 5, "max_iters": 500},
+            ValueError,
+            r"should contain only one of '\('max_epochs', 'max_iters'\)'",
+        ),
+        ({"epoch": 5, "max_epochs": 3, "epoch_length": 10}, ValueError, r"larger than or equal to the current epoch"),
+        (
+            {"iteration": 100, "max_iters": 50, "epoch_length": 10},
+            ValueError,
+            r"larger than or equal to the current iteration",
+        ),
+        (
+            {"iteration": 12, "epoch_length": 120, "max_epochs": 100},
+            ValueError,
+            r"Required user state attribute 'alpha'",
+        ),
+    ],
+)
+def test_load_state_dict_errors(state_dict, error_type, match):
     engine = Engine(lambda e, b: 1)
-
-    with pytest.raises(TypeError, match=r"Argument state_dict should be a dictionary"):
-        engine.load_state_dict("123")
-
-    with pytest.raises(ValueError, match=r"is absent in provided state_dict"):
-        engine.load_state_dict({})
-
-    with pytest.raises(ValueError, match=r"state_dict should contain at least one of"):
-        engine.load_state_dict({"max_epochs": 100, "epoch_length": 120})
-
-    with pytest.raises(ValueError, match=r"state_dict should contain only one of"):
-        engine.load_state_dict({"max_epochs": 100, "epoch_length": 120, "iteration": 12, "epoch": 123})
-
-    engine = Engine(lambda e, b: 1)
-    engine.state_dict_user_keys.append("alpha")
-    with pytest.raises(ValueError, match=r"Required user state attribute"):
-        engine.load_state_dict({"max_epochs": 100, "epoch_length": 120, "iteration": 12})
+    if "alpha" in str(match):
+        engine.state_dict_user_keys.append("alpha")
+    with pytest.raises(error_type, match=match):
+        engine.load_state_dict(state_dict)
 
     engine = Engine(lambda e, b: 1)
     with pytest.raises(ValueError, match=r"If epoch is provided in the state dict, epoch_length should not be None"):
@@ -282,80 +303,58 @@ def test_restart_training():
     engine.run(data, max_epochs=2)
 
 
-def test_state_dict_with_max_epochs():
-    """Test state_dict with max_epochs set."""
+@pytest.mark.parametrize(
+    "termination_param, value, expected_iters",
+    [
+        ("max_epochs", 5, 500),
+        ("max_iters", 250, 250),
+    ],
+)
+def test_state_dict_termination_variants(termination_param, value, expected_iters):
+    """Test state_dict with different termination parameters."""
     engine = Engine(lambda e, b: 1)
     data = range(100)
-    engine.run(data, max_epochs=5)
+    engine.run(data, **{termination_param: value})
 
     sd = engine.state_dict()
     assert "iteration" in sd
     assert "epoch_length" in sd
-    assert "max_epochs" in sd
-    assert "max_iters" not in sd
-    assert sd["max_epochs"] == 5
+    assert termination_param in sd
+    other_param = "max_iters" if termination_param == "max_epochs" else "max_epochs"
+    assert other_param not in sd
+    assert sd[termination_param] == value
     assert sd["epoch_length"] == 100
-    assert sd["iteration"] == 500
+    assert sd["iteration"] == expected_iters
 
 
-def test_state_dict_with_max_iters():
-    """Test state_dict with max_iters set."""
+@pytest.mark.parametrize(
+    "state_dict, expected_state",
+    [
+        (
+            {"epoch": 2, "max_epochs": 5, "epoch_length": 100},
+            {"epoch": 2, "max_epochs": 5, "epoch_length": 100, "iteration": 200},
+        ),
+        (
+            {"iteration": 150, "max_iters": 250, "epoch_length": 100},
+            {"iteration": 150, "max_iters": 250, "epoch_length": 100, "epoch": 1},
+        ),
+        (
+            {"iteration": 150, "max_epochs": 3, "epoch_length": 100},
+            {"iteration": 150, "max_epochs": 3, "epoch_length": 100, "epoch": 1},
+        ),
+        (
+            {"epoch": 2, "max_iters": 500, "epoch_length": 100},
+            {"epoch": 2, "max_iters": 500, "epoch_length": 100, "iteration": 200},
+        ),
+    ],
+)
+def test_load_state_dict_termination_variants(state_dict, expected_state):
+    """Test load_state_dict with different combinations of progress and termination params."""
     engine = Engine(lambda e, b: 1)
-    data = range(100)
-    engine.run(data, max_iters=250)
-
-    sd = engine.state_dict()
-    assert "iteration" in sd
-    assert "epoch_length" in sd
-    assert "max_iters" in sd
-    assert "max_epochs" not in sd
-    assert sd["max_iters"] == 250
-    assert sd["epoch_length"] == 100
-    assert sd["iteration"] == 250
-
-
-def test_load_state_dict_with_max_epochs():
-    """Test load_state_dict with max_epochs."""
-    engine = Engine(lambda e, b: 1)
-
-    state_dict = {"epoch": 2, "max_epochs": 5, "epoch_length": 100}
-
     engine.load_state_dict(state_dict)
-    assert engine.state.epoch == 2
-    assert engine.state.max_epochs == 5
-    assert engine.state.epoch_length == 100
-    assert engine.state.iteration == 200
 
-
-def test_load_state_dict_with_max_iters():
-    """Test load_state_dict with max_iters."""
-    engine = Engine(lambda e, b: 1)
-
-    state_dict = {"iteration": 150, "max_iters": 250, "epoch_length": 100}
-
-    engine.load_state_dict(state_dict)
-    assert engine.state.iteration == 150
-    assert engine.state.max_iters == 250
-    assert engine.state.epoch_length == 100
-    assert engine.state.epoch == 1  # 150 // 100
-
-    # Cross combination: iteration + max_epochs
-    engine = Engine(lambda e, b: 1)
-    state_dict_2 = {"iteration": 150, "max_epochs": 3, "epoch_length": 100}
-    engine.load_state_dict(state_dict_2)
-    assert engine.state.iteration == 150
-    assert engine.state.max_epochs == 3
-    assert engine.state.epoch_length == 100
-    assert engine.state.epoch == 1
-
-    # Cross combination: epoch + max_iters
-    engine = Engine(lambda e, b: 1)
-    state_dict_3 = {"epoch": 2, "max_iters": 500, "epoch_length": 100}
-    engine.load_state_dict(state_dict_3)
-    assert engine.state.epoch == 2
-    assert engine.state.max_iters == 500
-    assert engine.state.epoch_length == 100
-    assert engine.state.iteration == 200  # 2 * 100
+    for attr, expected_value in expected_state.items():
+        assert getattr(engine.state, attr) == expected_value
 
 
 def test_save_and_load_with_max_iters():
@@ -426,21 +425,6 @@ def test_mutually_exclusive_max_epochs_max_iters():
         engine.run(data, max_epochs=5, max_iters=50)
 
 
-def test_validation_errors():
-    """Test validation errors for invalid states."""
-    engine = Engine(lambda e, b: 1)
-
-    # Test invalid max_epochs in state_dict
-    with pytest.raises(ValueError, match="larger than or equal to the current epoch"):
-        state_dict = {"epoch": 5, "max_epochs": 3, "epoch_length": 10}
-        engine.load_state_dict(state_dict)
-
-    # Test invalid max_iters in state_dict
-    with pytest.raises(ValueError, match="larger than or equal to the current iteration"):
-        state_dict = {"iteration": 100, "max_iters": 50, "epoch_length": 10}
-        engine.load_state_dict(state_dict)
-
-
 def test_unknown_epoch_length_with_max_iters():
     """Test handling unknown epoch_length with max_iters."""
     counter = [0]
@@ -494,28 +478,30 @@ def test_engine_attributes():
     assert engine.state.epoch_length is None
 
 
-def test_helper_methods():
+@pytest.mark.parametrize(
+    "param_name, current_val, low_val, high_val",
+    [
+        ("max_epochs", 3, 2, 5),
+        ("max_iters", 30, 25, 40),
+    ],
+)
+def test_helper_methods(param_name, current_val, low_val, high_val):
     """Test the helper validation methods."""
     engine = Engine(lambda e, b: 1)
     data = range(10)
-    engine.run(data, max_epochs=3)
 
-    # Test _check_and_set_max_epochs
+    # Initialize engine state
+    engine.run(data, **{param_name: current_val})
+
+    helper_method = getattr(engine, f"_check_and_set_{param_name}")
+
+    # Test too low value
     with pytest.raises(ValueError, match="greater than or equal to the start"):
-        engine._check_and_set_max_epochs(2)
+        helper_method(low_val)
 
-    engine._check_and_set_max_epochs(5)
-    assert engine.state.max_epochs == 5
-
-    # Test _check_and_set_max_iters
-    engine.state.max_epochs = None
-    engine.state.max_iters = 30
-
-    with pytest.raises(ValueError, match="greater than or equal to the start"):
-        engine._check_and_set_max_iters(25)
-
-    engine._check_and_set_max_iters(40)
-    assert engine.state.max_iters == 40
+    # Test valid higher value
+    helper_method(high_val)
+    assert getattr(engine.state, param_name) == high_val
 
 
 def test_backward_compatibility():
@@ -530,36 +516,6 @@ def test_backward_compatibility():
     assert engine.state.max_epochs == 5
     assert engine.state.epoch_length == 100
     assert engine.state.epoch == 2  # 200 // 100
-
-
-def test_invalid_state_dict_both_termination_params():
-    """Test that state dict with both max_epochs and max_iters fails."""
-    engine = Engine(lambda e, b: 1)
-
-    state_dict = {"iteration": 100, "max_epochs": 5, "max_iters": 500, "epoch_length": 100}
-
-    with pytest.raises(ValueError, match="should contain only one of"):
-        engine.load_state_dict(state_dict)
-
-
-def test_invalid_state_dict_both_position_params():
-    """Test that state dict with both iteration and epoch fails."""
-    engine = Engine(lambda e, b: 1)
-
-    state_dict = {"iteration": 100, "epoch": 2, "max_epochs": 5, "epoch_length": 100}
-
-    with pytest.raises(ValueError, match="should contain only one of"):
-        engine.load_state_dict(state_dict)
-
-
-def test_invalid_state_dict_missing_termination():
-    """Test that state dict without max_epochs or max_iters fails."""
-    engine = Engine(lambda e, b: 1)
-
-    state_dict = {"iteration": 100, "epoch_length": 100}
-
-    with pytest.raises(ValueError, match="should contain at least one of"):
-        engine.load_state_dict(state_dict)
 
 
 def test_user_keys_with_max_iters():

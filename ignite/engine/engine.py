@@ -6,7 +6,7 @@ import warnings
 import weakref
 from collections import defaultdict, OrderedDict
 from collections.abc import Callable, Generator, Iterable, Iterator, Mapping
-from typing import Any, Optional
+from typing import Any
 
 from torch.utils.data import DataLoader
 
@@ -816,35 +816,30 @@ class Engine(Serializable):
         is_done_epochs = state.max_epochs is not None and state.epoch >= state.max_epochs
         return is_done_iters or is_done_count or is_done_epochs
 
-    def _check_and_set_max_epochs(self, max_epochs: Optional[int] = None) -> None:
-        """Validate and set max_epochs with proper checks."""
-        if max_epochs is not None:
-            if max_epochs < 1:
-                raise ValueError("Argument max_epochs is invalid. Please, set a correct max_epochs positive value")
-            # Only validate if training is actually done - allow resuming interrupted training
-            if self.state.max_epochs is not None and max_epochs < self.state.epoch:
-                raise ValueError(
-                    "Argument max_epochs should be greater than or equal to the start "
-                    f"epoch defined in the state: {max_epochs} vs {self.state.epoch}. "
-                    "Please, set engine.state.max_epochs = None "
-                    "before calling engine.run() in order to restart the training from the beginning."
-                )
-            self.state.max_epochs = max_epochs
+    def _check_and_set_termination_param(
+        self, name: str, value: int | None, progress_name: str, progress_value: int
+    ) -> None:
+        """Validate and set the passed parameter (max_epochs or max_iters)."""
+        if value is not None:
+            if value < 1:
+                raise ValueError(f"Argument {name} is invalid. Please, set a correct {name} positive value")
 
-    def _check_and_set_max_iters(self, max_iters: Optional[int] = None) -> None:
-        """Validate and set max_iters with proper checks."""
-        if max_iters is not None:
-            if max_iters < 1:
-                raise ValueError("Argument max_iters is invalid. Please, set a correct max_iters positive value")
-            # Only validate if training is actually done - allow resuming interrupted training
-            if (self.state.max_iters is not None) and max_iters < self.state.iteration:
+            if getattr(self.state, name) is not None and value < progress_value:
                 raise ValueError(
-                    "Argument max_iters should be greater than or equal to the start "
-                    f"iteration defined in the state: {max_iters} vs {self.state.iteration}. "
-                    "Please, set engine.state.max_iters = None "
+                    f"Argument {name} should be greater than or equal to the start "
+                    f"{progress_name} defined in the state: {value} vs {progress_value}. "
+                    f"Please, set engine.state.{name} = None "
                     "before calling engine.run() in order to restart the training from the beginning."
                 )
-            self.state.max_iters = max_iters
+            setattr(self.state, name, value)
+
+    def _check_and_set_max_epochs(self, max_epochs: int | None = None) -> None:
+        """Validate and set max_epochs with proper checks."""
+        self._check_and_set_termination_param("max_epochs", max_epochs, "epoch", self.state.epoch)
+
+    def _check_and_set_max_iters(self, max_iters: int | None = None) -> None:
+        """Validate and set max_iters with proper checks."""
+        self._check_and_set_termination_param("max_iters", max_iters, "iteration", self.state.iteration)
 
     def set_data(self, data: Iterable | DataLoader) -> None:
         """Method to set data. After calling the method the next batch passed to `processing_function` is

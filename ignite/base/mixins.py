@@ -29,7 +29,7 @@ class ResettableHandler(metaclass=ABCMeta):
 
 class Serializable:
     _state_dict_all_req_keys: tuple = ()
-    _state_dict_one_of_opt_keys: tuple[tuple] = ((),)
+    _state_dict_one_of_opt_keys: tuple[tuple[str, ...], ...] = ()
 
     def state_dict(self) -> OrderedDict:
         raise NotImplementedError
@@ -46,10 +46,14 @@ class Serializable:
 
         # Handle groups of one-of optional keys
         for one_of_opt_keys in self._state_dict_one_of_opt_keys:
-            if len(one_of_opt_keys) > 0:
-                opts = [k in state_dict for k in one_of_opt_keys]
-                num_present = sum(opts)
-                if num_present == 0:
-                    raise ValueError(f"state_dict should contain at least one of '{one_of_opt_keys}' keys")
-                if num_present > 1:
-                    raise ValueError(f"state_dict should contain only one of '{one_of_opt_keys}' keys")
+            if len(one_of_opt_keys) == 0:
+                raise ValueError(
+                    f"Empty group found in '{self.__class__.__name__}._state_dict_one_of_opt_keys'. "
+                    "Each group must contain at least one state attribute key."
+                )
+            opts = [k in state_dict for k in one_of_opt_keys]
+            num_present = sum(opts)
+            if num_present == 0:
+                raise ValueError(f"state_dict should contain at least one of '{one_of_opt_keys}' keys")
+            if num_present > 1:
+                raise ValueError(f"state_dict should contain only one of '{one_of_opt_keys}' keys")
