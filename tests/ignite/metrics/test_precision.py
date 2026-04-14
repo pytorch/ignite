@@ -325,6 +325,87 @@ def test_incorrect_y_classes(average):
     assert pr._updated is False
 
 
+@pytest.mark.parametrize(
+    "invalid_class_names",
+    [
+        [0, 1, 2],  # list of ints
+        "cat",  # string instead of list
+        [0.1, 0.2],  # list of floats
+        ["cat", 1],  # mixed
+    ],
+)
+def test_class_names_invalid_type(invalid_class_names):
+    with pytest.raises(ValueError, match="class_names must be a list of strings"):
+        Precision(average=False, class_names=invalid_class_names)
+
+
+@pytest.mark.parametrize("average", ["macro", "micro", "weighted", "samples", True])
+def test_class_names_incompatible_average(average):
+    with pytest.raises(ValueError, match="class_names is only applicable when average=False or average=None"):
+        Precision(average=average, class_names=["cat", "dog", "horse"])
+
+
+@pytest.mark.parametrize("average", [False, None])
+def test_class_names_multiclass(average):
+    class_names = ["cat", "dog", "horse"]
+    pr = Precision(average=average, class_names=class_names)
+
+    y_pred = torch.tensor(
+        [
+            [0.0266, 0.1719, 0.3055],
+            [0.6886, 0.3978, 0.8176],
+            [0.9230, 0.0197, 0.8395],
+            [0.1785, 0.2670, 0.6084],
+            [0.8448, 0.7177, 0.7288],
+        ]
+    )
+    y = torch.tensor([2, 0, 2, 1, 0])
+
+    pr.update((y_pred, y))
+    result = pr.compute()
+
+    assert isinstance(result, dict)
+    assert list(result.keys()) == class_names
+    assert result == pytest.approx({"cat": 0.5, "dog": 0.0, "horse": 0.3333333333333333})
+
+
+def test_class_names_length_mismatch():
+    pr = Precision(average=False, class_names=["cat", "dog"])
+
+    y_pred = torch.tensor(
+        [
+            [0.0266, 0.1719, 0.3055],
+            [0.6886, 0.3978, 0.8176],
+            [0.9230, 0.0197, 0.8395],
+        ]
+    )
+    y = torch.tensor([2, 0, 1])
+
+    pr.update((y_pred, y))
+    with pytest.raises(ValueError, match="class_names has 2 entries but the metric computed 3 classes"):
+        pr.compute()
+
+
+def test_class_names_none_returns_tensor():
+    pr = Precision(average=False)
+
+    y_pred = torch.tensor(
+        [
+            [0.0266, 0.1719, 0.3055],
+            [0.6886, 0.3978, 0.8176],
+            [0.9230, 0.0197, 0.8395],
+            [0.1785, 0.2670, 0.6084],
+            [0.8448, 0.7177, 0.7288],
+        ]
+    )
+    y = torch.tensor([2, 0, 2, 1, 0])
+
+    pr.update((y_pred, y))
+    result = pr.compute()
+
+    assert isinstance(result, torch.Tensor)
+
+
 @pytest.mark.usefixtures("distributed")
 class TestDistributed:
     @pytest.mark.parametrize("average", [False, "macro", "weighted", "micro"])
