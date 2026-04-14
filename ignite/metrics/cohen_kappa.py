@@ -7,10 +7,11 @@ from ignite.metrics.epoch_metric import EpochMetric
 
 
 class CohenKappa(EpochMetric):
-    """Compute different types of Cohen's Kappa: Non-Wieghted, Linear, Quadratic.
-    Accumulating predictions and the ground-truth during an epoch and applying
-    `sklearn.metrics.cohen_kappa_score <https://scikit-learn.org/stable/modules/
-    generated/sklearn.metrics.cohen_kappa_score.html>`_ .
+    """Compute different types of Cohen's Kappa: Non-Weighted, Linear, Quadratic.
+    Accumulating predictions and the ground-truth during an epoch and computing
+    Cohen's Kappa using native PyTorch operations via the formula:
+    κ = (p_o - p_e) / (1 - p_e), where p_o is the observed agreement and p_e
+    is the expected agreement computed from marginal probabilities.
 
     Args:
         output_transform: a callable that is used to transform the
@@ -19,10 +20,9 @@ class CohenKappa(EpochMetric):
             you want to compute the metric with respect to one of the outputs.
         weights: a string is used to define the type of Cohen's Kappa whether Non-Weighted or Linear
             or Quadratic. Default, None.
-        check_compute_fn: Default False. If True, `cohen_kappa_score
-            <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.cohen_kappa_score.html>`_
-            is run on the first batch of data to ensure there are
-            no issues. User will be warned in case there are any issues computing the function.
+        check_compute_fn: Default False. If True, the compute function is run on the first batch
+            of data to ensure there are no issues. User will be warned in case there are any issues
+            computing the function.
         device: optional device specification for internal storage.
         skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
             true for multi-output model, for example, if ``y_pred`` contains multi-output as ``(y_pred_a, y_pred_b)``
@@ -31,7 +31,7 @@ class CohenKappa(EpochMetric):
     Examples:
         To use with ``Engine`` and ``process_function``, simply attach the metric instance to the engine.
         The output of the engine's ``process_function`` needs to be in the format of
-        ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``. If not, ``output_tranform`` can be added
+        ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``. If not, ``output_transform`` can be added
         to the metric to transform the output into the form expected by the metric.
 
         .. include:: defaults.rst
@@ -52,6 +52,9 @@ class CohenKappa(EpochMetric):
 
     .. versionchanged:: 0.5.1
         ``skip_unrolling`` argument is added.
+
+    .. versionchanged:: 0.6.0
+        Replaced scikit-learn dependency with a native PyTorch implementation.
     """
 
     def __init__(
