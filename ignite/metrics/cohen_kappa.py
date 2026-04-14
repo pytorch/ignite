@@ -62,10 +62,6 @@ class CohenKappa(EpochMetric):
         device: str | torch.device = torch.device("cpu"),
         skip_unrolling: bool = False,
     ):
-        try:
-            from sklearn.metrics import cohen_kappa_score  # noqa: F401
-        except ImportError:
-            raise ModuleNotFoundError("This contrib module requires scikit-learn to be installed.")
         if weights not in (None, "linear", "quadratic"):
             raise ValueError("Kappa Weighting type must be None or linear or quadratic.")
 
@@ -81,8 +77,33 @@ class CohenKappa(EpochMetric):
         )
 
     def _cohen_kappa_score(self, y_targets: torch.Tensor, y_preds: torch.Tensor) -> float:
-        from sklearn.metrics import cohen_kappa_score
+        if y_targets.ndim > 1 or y_preds.ndim > 1:
+            raise ValueError("multilabel-indicator is not supported")
+        n_classes = int(max(y_targets.max().item(), y_preds.max().item())) + 1
 
-        y_true = y_targets.cpu().numpy()
-        y_pred = y_preds.cpu().numpy()
-        return cohen_kappa_score(y_true, y_pred, weights=self.weights)
+        indices = y_targets * n_classes + y_preds
+        conf = torch.bincount(indices, minlength=n_classes * n_classes).reshape(n_classes, n_classes).double()
+        n = conf.sum()
+
+        if self.weights is None:
+            p_o = conf.trace() / n
+            row = conf.sum(dim=1)
+            col = conf.sum(dim=0)
+            p_e = (row * col).sum() / (n * n)
+
+        else:
+            idx = torch.arange(n_classes, device=y_targets.device)
+            if self.weights == "linear":
+                w = torch.abs(idx.unsqueeze(0) - idx.unsqueeze(1)).double()
+            else:
+                w = ((idx.unsqueeze(0) - idx.unsqueeze(1)) ** 2).double()
+
+            w = w / w.max()
+            p_o = 1 - (w * conf).sum() / n
+            row = conf.sum(dim=1)
+            col = conf.sum(dim=0)
+            expected = row.unsqueeze(1) * col.unsqueeze(0) / n
+            p_e = 1 - (w * expected).sum() / n
+
+        kappa = (p_o - p_e) / (1 - p_e)
+        return kappa.item()
