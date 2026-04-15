@@ -4,10 +4,7 @@
   "postCreateCommand": "pip install -e . && pip install -r requirements-dev.txt && pre-commit install",
   "customizations": {
     "vscode": {
-      "extensions": [
-        "ms-python.python",
-        "charliermarsh.ruff"
-      ],
+      "extensions": ["ms-python.python", "charliermarsh.ruff"],
       "settings": {
         "editor.formatOnSave": true,
         "python.testing.pytestEnabled": true,

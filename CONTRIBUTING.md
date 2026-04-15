@@ -140,9 +140,7 @@ please run lint checking and tests:
 
 #### Checking Code Style
 
-To ensure the codebase complies with the PEP8 style guide, we use
-[ruff](https://docs.astral.sh/ruff/) and
-[ruff format](https://docs.astral.sh/ruff/formatter/) to lint and format the codebase respectively.
+To ensure the codebase complies with the PEP8 style guide, we use [ruff](https://docs.astral.sh/ruff/) to lint and [ruff format](https://docs.astral.sh/ruff/formatter/) to format the codebase.
 
 ##### Formatting the code
 
