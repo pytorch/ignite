@@ -175,9 +175,8 @@ pre-commit install
 git add .
 git commit -m "Added awesome feature"
 # DONT'T WORRY IF ERRORS ARE RAISED.
-# YOUR CODE IS NOT COMPLIANT WITH flake8, µsort or ruff format
-# Fix any flake8 errors by following their suggestions
-# µfmt will automatically format the files so they might look different, but you'll need to stage the files
+# YOUR CODE IS NOT COMPLIANT WITH ruff format
+# Fix any errors by following their suggestions
 # again for committing
 # After fixing any flake8 errors
 git add .
