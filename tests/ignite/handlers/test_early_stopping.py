@@ -1,4 +1,5 @@
 import os
+import warnings
 
 import pytest
 import torch
@@ -18,8 +19,8 @@ def test_args_validation():
     with pytest.raises(ValueError, match=r"Argument patience should be positive integer."):
         EarlyStopping(patience=-1, score_function=lambda engine: 0, trainer=trainer)
 
-    with pytest.raises(ValueError, match=r"Argument min_delta should not be a negative number."):
-        EarlyStopping(patience=2, min_delta=-0.1, score_function=lambda engine: 0, trainer=trainer)
+    with pytest.raises(ValueError, match=r"Argument threshold should not be a negative number."):
+        EarlyStopping(patience=2, threshold=-0.1, score_function=lambda engine: 0, trainer=trainer)
 
     with pytest.raises(TypeError, match=r"Argument score_function should be a function."):
         EarlyStopping(patience=2, score_function=12345, trainer=trainer)
@@ -27,11 +28,68 @@ def test_args_validation():
     with pytest.raises(TypeError, match=r"Argument trainer should be an instance of Engine."):
         EarlyStopping(patience=2, score_function=lambda engine: 0, trainer=None)
 
-    with pytest.raises(ValueError, match=r"Argument min_delta_mode should be either 'abs' or 'rel'."):
-        EarlyStopping(patience=2, min_delta_mode="invalid_mode", score_function=lambda engine: 0, trainer=trainer)
+    with pytest.raises(ValueError, match=r"Argument threshold_mode should be either 'abs' or 'rel'."):
+        EarlyStopping(patience=2, threshold_mode="invalid_mode", score_function=lambda engine: 0, trainer=trainer)
 
     with pytest.raises(ValueError, match=r"Argument mode should be either 'min' or 'max'."):
         EarlyStopping(patience=2, mode="invalid_mode", score_function=lambda engine: 0, trainer=trainer)
+
+
+def test_args_validation_deprecated_names():
+    """Test that deprecated parameter names still trigger proper validation."""
+    trainer = Engine(do_nothing_update_fn)
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+
+        with pytest.raises(ValueError, match=r"Argument threshold should not be a negative number."):
+            EarlyStopping(patience=2, min_delta=-0.1, score_function=lambda engine: 0, trainer=trainer)
+
+        with pytest.raises(ValueError, match=r"Argument threshold_mode should be either 'abs' or 'rel'."):
+            EarlyStopping(
+                patience=2, min_delta_mode="invalid_mode", score_function=lambda engine: 0, trainer=trainer
+            )
+
+
+def test_deprecated_min_delta():
+    trainer = Engine(do_nothing_update_fn)
+
+    with pytest.warns(DeprecationWarning, match="'min_delta' is deprecated"):
+        h = EarlyStopping(patience=2, min_delta=0.1, score_function=lambda engine: 0, trainer=trainer)
+    assert h.threshold == 0.1
+
+
+def test_deprecated_cumulative_delta():
+    trainer = Engine(do_nothing_update_fn)
+
+    with pytest.warns(DeprecationWarning, match="'cumulative_delta' is deprecated"):
+        h = EarlyStopping(patience=2, cumulative_delta=True, score_function=lambda engine: 0, trainer=trainer)
+    assert h.cumulative is True
+
+
+def test_deprecated_min_delta_mode():
+    trainer = Engine(do_nothing_update_fn)
+
+    with pytest.warns(DeprecationWarning, match="'min_delta_mode' is deprecated"):
+        h = EarlyStopping(patience=2, min_delta_mode="rel", score_function=lambda engine: 0, trainer=trainer)
+    assert h.threshold_mode == "rel"
+
+
+def test_deprecated_and_new_param_conflict():
+    trainer = Engine(do_nothing_update_fn)
+
+    with pytest.raises(ValueError, match="Cannot specify both 'min_delta' and 'threshold'"):
+        EarlyStopping(patience=2, min_delta=0.1, threshold=0.2, score_function=lambda engine: 0, trainer=trainer)
+
+    with pytest.raises(ValueError, match="Cannot specify both 'cumulative_delta' and 'cumulative'"):
+        EarlyStopping(
+            patience=2, cumulative_delta=True, cumulative=True, score_function=lambda engine: 0, trainer=trainer
+        )
+
+    with pytest.raises(ValueError, match="Cannot specify both 'min_delta_mode' and 'threshold_mode'"):
+        EarlyStopping(
+            patience=2, min_delta_mode="rel", threshold_mode="rel", score_function=lambda engine: 0, trainer=trainer
+        )
 
 
 def test_simple_early_stopping():
@@ -86,17 +144,21 @@ def test_state_dict_with_mode():
     trainer = Engine(do_nothing_update_fn)
 
     # Use "rel" mode
-    h = EarlyStopping(patience=2, score_function=score_function, trainer=trainer, min_delta=0.1, min_delta_mode="rel")
+    h = EarlyStopping(
+        patience=2, score_function=score_function, trainer=trainer, threshold=0.1, threshold_mode="rel"
+    )
     h(None)  # best_score=1.0
     h(None)  # score=2.0 (improvement)
 
     state = h.state_dict()
 
     # New handler with "rel" mode
-    h2 = EarlyStopping(patience=2, score_function=score_function, trainer=trainer, min_delta=0.1, min_delta_mode="rel")
+    h2 = EarlyStopping(
+        patience=2, score_function=score_function, trainer=trainer, threshold=0.1, threshold_mode="rel"
+    )
     h2.load_state_dict(state)
 
-    assert h2.min_delta_mode == "rel"
+    assert h2.threshold_mode == "rel"
     h2(None)  # score=2.1 (no improvement: 2.1 <= 2.0 * 1.1 = 2.2)
     assert h2.counter == 1
     assert not trainer.should_terminate
@@ -110,7 +172,7 @@ def test_early_stopping_on_delta():
 
     trainer = Engine(do_nothing_update_fn)
 
-    h = EarlyStopping(patience=2, min_delta=0.1, score_function=lambda _: next(scores), trainer=trainer)
+    h = EarlyStopping(patience=2, threshold=0.1, score_function=lambda _: next(scores), trainer=trainer)
 
     assert not trainer.should_terminate
     h(None)  # counter == 0
@@ -132,9 +194,9 @@ def test_early_stopping_on_rel_delta():
 
     trainer = Engine(do_nothing_update_fn)
 
-    # upper_bound = best_score * (1 + min_delta)
+    # upper_bound = best_score * (1 + threshold)
     h = EarlyStopping(
-        patience=2, min_delta=0.1, min_delta_mode="rel", score_function=lambda _: next(scores), trainer=trainer
+        patience=2, threshold=0.1, threshold_mode="rel", score_function=lambda _: next(scores), trainer=trainer
     )
 
     assert not trainer.should_terminate
@@ -158,7 +220,7 @@ def test_early_stopping_on_last_event_delta():
     trainer = Engine(do_nothing_update_fn)
 
     h = EarlyStopping(
-        patience=2, min_delta=0.4, cumulative_delta=False, score_function=lambda _: next(scores), trainer=trainer
+        patience=2, threshold=0.4, cumulative=False, score_function=lambda _: next(scores), trainer=trainer
     )
 
     assert not trainer.should_terminate
@@ -176,7 +238,7 @@ def test_early_stopping_on_cumulative_delta():
     trainer = Engine(do_nothing_update_fn)
 
     h = EarlyStopping(
-        patience=2, min_delta=0.4, cumulative_delta=True, score_function=lambda _: next(scores), trainer=trainer
+        patience=2, threshold=0.4, cumulative=True, score_function=lambda _: next(scores), trainer=trainer
     )
 
     assert not trainer.should_terminate
@@ -323,7 +385,7 @@ def test_early_stopping_min_mode_with_delta():
 
     trainer = Engine(do_nothing_update_fn)
 
-    h = EarlyStopping(patience=2, min_delta=0.1, score_function=lambda _: next(scores), trainer=trainer, mode="min")
+    h = EarlyStopping(patience=2, threshold=0.1, score_function=lambda _: next(scores), trainer=trainer, mode="min")
 
     assert not trainer.should_terminate
     h(None)  # best_score=1.1
@@ -343,10 +405,10 @@ def test_early_stopping_min_mode_with_delta_cumulative():
 
     h = EarlyStopping(
         patience=2,
-        min_delta=0.1,
+        threshold=0.1,
         score_function=lambda _: next(scores),
         trainer=trainer,
-        cumulative_delta=True,
+        cumulative=True,
         mode="min",
     )
 
@@ -368,8 +430,8 @@ def test_early_stopping_min_mode_rel_delta():
 
     h = EarlyStopping(
         patience=2,
-        min_delta=0.1,
-        min_delta_mode="rel",
+        threshold=0.1,
+        threshold_mode="rel",
         score_function=lambda _: next(scores),
         trainer=trainer,
         mode="min",
@@ -383,6 +445,79 @@ def test_early_stopping_min_mode_rel_delta():
     h(None)  # score=0.79 (no improvement: 0.79 >= 0.8 * (1 - 0.1) = 0.72)
     assert not trainer.should_terminate
     h(None)  # score=0.78 (no improvement)
+    assert trainer.should_terminate
+
+
+def test_backward_compat_deprecated_params_still_work():
+    """Test that using deprecated parameter names still produces correct behavior."""
+    scores = iter([1.0, 2.0, 2.01, 3.0, 3.01, 3.02])
+
+    trainer = Engine(do_nothing_update_fn)
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        h = EarlyStopping(patience=2, min_delta=0.1, score_function=lambda _: next(scores), trainer=trainer)
+
+    assert not trainer.should_terminate
+    h(None)  # counter == 0
+    assert not trainer.should_terminate
+    h(None)  # delta == 1.0; counter == 0
+    assert not trainer.should_terminate
+    h(None)  # delta == 0.01; counter == 1
+    assert not trainer.should_terminate
+    h(None)  # delta == 0.99; counter == 0
+    assert not trainer.should_terminate
+    h(None)  # delta == 0.01; counter == 1
+    assert not trainer.should_terminate
+    h(None)  # delta == 0.01; counter == 2
+    assert trainer.should_terminate
+
+
+def test_backward_compat_cumulative_delta():
+    """Test that using deprecated cumulative_delta still produces correct behavior."""
+    scores = iter([0.0, 0.3, 0.6])
+
+    trainer = Engine(do_nothing_update_fn)
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        h = EarlyStopping(
+            patience=2, min_delta=0.4, cumulative_delta=True, score_function=lambda _: next(scores), trainer=trainer
+        )
+
+    assert not trainer.should_terminate
+    h(None)  # counter == 0
+    assert not trainer.should_terminate
+    h(None)  # delta == 0.3; counter == 1
+    assert not trainer.should_terminate
+    h(None)  # delta == 0.6; counter == 0
+    assert not trainer.should_terminate
+
+
+def test_backward_compat_min_delta_mode():
+    """Test that using deprecated min_delta_mode still produces correct behavior."""
+    scores = iter([1.0, 2.0, 2.1, 3.0, 3.2, 3.25])
+
+    trainer = Engine(do_nothing_update_fn)
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        h = EarlyStopping(
+            patience=2, min_delta=0.1, min_delta_mode="rel", score_function=lambda _: next(scores), trainer=trainer
+        )
+
+    assert not trainer.should_terminate
+    h(None)  # best_score = 1.0; counter == 0
+    assert not trainer.should_terminate
+    h(None)  # score = 2.0; upper_bound = 1.0 * (1.1) = 1.1; 2.0 > 1.1; best_score = 2.0; counter == 0
+    assert not trainer.should_terminate
+    h(None)  # score = 2.1; upper_bound = 2.0 * (1.1) = 2.2; 2.1 <= 2.2; counter == 1
+    assert not trainer.should_terminate
+    h(None)  # score = 3.0; upper_bound = 2.0 * (1.1) = 2.2; 3.0 > 2.2; best_score = 3.0; counter == 0
+    assert not trainer.should_terminate
+    h(None)  # score = 3.2; upper_bound = 3.0 * (1.1) = 3.3; 3.2 <= 3.3; counter == 1
+    assert not trainer.should_terminate
+    h(None)  # score = 3.25; upper_bound = 3.0 * (1.1) = 3.3; 3.25 <= 3.3; counter == 2
     assert trainer.should_terminate
 
 
