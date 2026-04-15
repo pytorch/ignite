@@ -6,13 +6,13 @@
     "vscode": {
       "extensions": [
         "ms-python.python",
-        "astral-sh.ruff"
+        "charliermarsh.ruff"
       ],
       "settings": {
         "editor.formatOnSave": true,
         "python.testing.pytestEnabled": true,
         "[python]": {
-          "editor.defaultFormatter": "astral-sh.ruff"
+          "editor.defaultFormatter": "charliermarsh.ruff"
         },
         "editor.rulers": [80, 120]
       }
