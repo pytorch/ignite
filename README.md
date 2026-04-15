@@ -352,6 +352,31 @@ Few pointers to get you started:
 - [Concepts of the library: Engine, Events & Handlers, State, Metrics](https://pytorch-ignite.ai/concepts/)
 - Full-featured template examples (coming soon)
 
+If you want a simple way to add TensorBoard logging in a training script, use
+[`setup_tb_logging`](https://pytorch.org/ignite/generated/ignite.handlers.logger_utils.setup_tb_logging.html)
+as an alternative to manually attaching handlers to a
+[`TensorboardLogger`](https://pytorch.org/ignite/generated/ignite.handlers.tensorboard_logger.html):
+
+```python
+from ignite.handlers.logger_utils import setup_tb_logging
+
+# Assume `trainer`, `evaluator`, and `optimizer` are already defined
+tb_logger = setup_tb_logging(
+    output_path="experiments/tb_logs",
+    trainer=trainer,
+    optimizers=optimizer,
+    evaluators={"validation": evaluator},
+    log_every_iters=100,
+)
+
+# Close the logger when finished
+tb_logger.close()
+```
+
+This helper automatically attaches common logging events for you, including
+training loss or other tracked metrics, optimizer learning rate, and evaluation
+metrics from attached evaluators.
+
 <!-- ############################################################################################################### -->
 
 # Documentation
