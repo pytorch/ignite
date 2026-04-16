@@ -30,7 +30,7 @@ class _BasePrecisionRecall(_BaseClassification):
                 raise ValueError("class_names must be a list of strings")
             if average is not False and average is not None:
                 raise ValueError(
-                    f"class_names is only applicable when average = False or None,but got average={average!r}"
+                    f"class_names is only applicable when average=False or average=None, got average={average!r}."
                 )
         self._class_names = class_names
 
@@ -168,11 +168,6 @@ class _BasePrecisionRecall(_BaseClassification):
             return cast(torch.Tensor, fraction).mean().item()
         else:
             if self._class_names is not None:
-                if len(self._class_names) != fraction.shape[0]:
-                    raise ValueError(
-                        f"class_names has {len(self._class_names)} entries but the metric computed "
-                        f"{fraction.shape[0]} classes."
-                    )
                 return dict(zip(self._class_names, fraction.tolist()))
             return fraction
 
@@ -449,5 +444,9 @@ class Precision(_BasePrecisionRecall):
 
             if self._average == "weighted":
                 self._weight += y.sum(dim=0)
-
+            if self._class_names is not None and len(self._class_names) != self._numerator.shape[0]:
+                raise ValueError(
+                    f"class_names has {len(self._class_names)} entries but the metric computed "
+                    f"{self._numerator.shape[0]} classes."
+                )
         self._updated = True

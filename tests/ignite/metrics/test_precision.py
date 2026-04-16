@@ -381,9 +381,8 @@ def test_class_names_length_mismatch():
     )
     y = torch.tensor([2, 0, 1])
 
-    pr.update((y_pred, y))
     with pytest.raises(ValueError, match="class_names has 2 entries but the metric computed 3 classes"):
-        pr.compute()
+        pr.update((y_pred, y))
 
 
 def test_class_names_none_returns_tensor():

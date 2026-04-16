@@ -97,7 +97,10 @@ class Recall(_BasePrecisionRecall):
         skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
             true for multi-output model, for example, if ``y_pred`` contains multi-output as ``(y_pred_a, y_pred_b)``
             Alternatively, ``output_transform`` can be used to handle this.
-
+        class_names: list of class name strings used to label per-class output when ``average=False``
+            or ``average=None``. If provided, :meth:`compute` returns a ``dict`` mapping each class
+            name to its metric value instead of a tensor. Must match the number of classes inferred
+            from the data. Default: ``None``.
     Examples:
 
         For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
@@ -240,5 +243,10 @@ class Recall(_BasePrecisionRecall):
 
             if self._average == "weighted":
                 self._weight += y.sum(dim=0)
+            if self._class_names is not None and len(self._class_names) != self._numerator.shape[0]:
+                raise ValueError(
+                    f"class_names has {len(self._class_names)} entries but the metric computed "
+                    f"{self._numerator.shape[0]} classes."
+                )
 
         self._updated = True
