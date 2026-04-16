@@ -35,3 +35,4 @@ pandas
 gymnasium
 # temporary fix: E   AttributeError: module 'mpmath' has no attribute 'rational'
 mpmath<1.4
+ranx

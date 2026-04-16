@@ -25,7 +25,7 @@ version=$(sed -nE 's/__version__ = "(.*)"/\1/p' ignite/__init__.py)
 sed -i "s/__version__ = \"\(.*\)\"/__version__ = \"$version\"/g" conda.recipe/meta.yaml
 cat conda.recipe/meta.yaml | grep version
 
-conda install -y conda-build conda-verify anaconda-client conda-package-handling
+conda install -y conda-build anaconda-client conda-package-handling
 conda config --set anaconda_upload no
 
 conda build --no-test --output-folder conda_build conda.recipe -c pytorch --package-format 1

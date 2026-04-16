@@ -234,7 +234,7 @@ class Metric(Serializable, metaclass=ABCMeta):
             metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
             non-blocking. By default, CPU.
         skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
-            true for multi-output model, for example, if ``y_pred`` contains multi-ouput as ``(y_pred_a, y_pred_b)``
+            true for multi-output model, for example, if ``y_pred`` contains multi-output as ``(y_pred_a, y_pred_b)``
             Alternatively, ``output_transform`` can be used to handle this.
         metrics_result_mode: specifies how to put the computed metrics results into
             ``engine.state.metrics`` dictionary. Valid values are: "flatten", "named", "both".

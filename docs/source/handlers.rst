@@ -88,6 +88,25 @@ Loggers
 
 .. _param-scheduler-label:
 
+Logger setup helpers
+---------------------
+.. automodule:: ignite.handlers.logger_utils
+
+.. currentmodule:: ignite.handlers.logger_utils
+
+.. autosummary::
+    :nosignatures:
+    :toctree: generated
+
+    setup_tb_logging
+    setup_visdom_logging
+    setup_mlflow_logging
+    setup_neptune_logging
+    setup_wandb_logging
+    setup_plx_logging
+    setup_clearml_logging
+    setup_trains_logging
+
 Parameter scheduler
 -------------------
 

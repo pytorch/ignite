@@ -40,7 +40,7 @@ class SelectionRate(_BaseClassification):
 
             tensor([0.5000, 0.5000])
 
-    .. versionadded:: 0.6.0
+    .. versionadded:: 0.5.4
     """
 
     _state_dict_all_req_keys = ("_num_positives", "_num_examples")
@@ -164,7 +164,7 @@ class DemographicParityDifference(SubgroupDifference):
 
             1.0
 
-    .. versionadded:: 0.6.0
+    .. versionadded:: 0.5.4
 
     References:
         - Verma & Rubin, `Fairness Definitions Explained

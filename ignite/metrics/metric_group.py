@@ -17,7 +17,7 @@ class MetricGroup(Metric):
             form expected by the metric. `output_transform` of each metric in the group is also
             called upon its update.
         skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
-            true for multi-output model, for example, if ``y_pred`` and ``y`` contain multi-ouput as
+            true for multi-output model, for example, if ``y_pred`` and ``y`` contain multi-output as
             ``(y_pred_a, y_pred_b)`` and ``(y_a, y_b)``, in which case the update method is called for
             ``(y_pred_a, y_a)`` and ``(y_pred_b, y_b)``.Alternatively, ``output_transform`` can be used to handle
             this.
