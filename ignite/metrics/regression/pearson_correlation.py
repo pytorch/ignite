@@ -2,8 +2,9 @@ from collections.abc import Callable
 
 import torch
 
+import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
-from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
+from ignite.metrics.metric import reinit__is_reduced
 
 from ignite.metrics.regression._base import _BaseRegression
 
@@ -18,6 +19,11 @@ class PearsonCorrelation(_BaseRegression):
         \quad \bar{P}=\frac{1}{n}\sum_{j=1}^n P_j, \quad \bar{A}=\frac{1}{n}\sum_{j=1}^n A_j
 
     where :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
+
+    Internally uses `Welford's online algorithm <https://en.wikipedia.org/wiki/
+    Algorithms_for_calculating_variance#Welford's_online_algorithm>`_ for numerically
+    stable computation, avoiding catastrophic cancellation that can occur with the
+    naive sum-of-squares formula in float32.
 
     - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
     - `y` and `y_pred` must be of same shape `(N, )` or `(N, 1)`.
@@ -54,7 +60,10 @@ class PearsonCorrelation(_BaseRegression):
 
         .. testoutput::
 
-            0.9768688678741455
+            0.9768687504744322
+
+    .. versionchanged:: 0.6.0
+        Uses Welford's online algorithm for improved numerical stability.
     """
 
     def __init__(
@@ -68,56 +77,106 @@ class PearsonCorrelation(_BaseRegression):
         self.eps = eps
 
     _state_dict_all_req_keys = (
-        "_sum_of_y_preds",
-        "_sum_of_ys",
-        "_sum_of_y_pred_squares",
-        "_sum_of_y_squares",
-        "_sum_of_products",
         "_num_examples",
+        "_mean_x",
+        "_mean_y",
+        "_m2_x",
+        "_m2_y",
+        "_cxy",
     )
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._sum_of_y_preds = torch.tensor(0.0, device=self._device)
-        self._sum_of_ys = torch.tensor(0.0, device=self._device)
-        self._sum_of_y_pred_squares = torch.tensor(0.0, device=self._device)
-        self._sum_of_y_squares = torch.tensor(0.0, device=self._device)
-        self._sum_of_products = torch.tensor(0.0, device=self._device)
         self._num_examples = 0
+        self._mean_x = torch.tensor(0.0, dtype=torch.float64, device=self._device)
+        self._mean_y = torch.tensor(0.0, dtype=torch.float64, device=self._device)
+        self._m2_x = torch.tensor(0.0, dtype=torch.float64, device=self._device)
+        self._m2_y = torch.tensor(0.0, dtype=torch.float64, device=self._device)
+        self._cxy = torch.tensor(0.0, dtype=torch.float64, device=self._device)
 
     def _update(self, output: tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output[0].detach(), output[1].detach()
-        self._sum_of_y_preds += y_pred.sum().to(self._device)
-        self._sum_of_ys += y.sum().to(self._device)
-        self._sum_of_y_pred_squares += y_pred.square().sum().to(self._device)
-        self._sum_of_y_squares += y.square().sum().to(self._device)
-        self._sum_of_products += (y_pred * y).sum().to(self._device)
-        self._num_examples += y.shape[0]
+        y_pred = y_pred.to(dtype=torch.float64)
+        y = y.to(dtype=torch.float64)
 
-    @sync_all_reduce(
-        "_sum_of_y_preds",
-        "_sum_of_ys",
-        "_sum_of_y_pred_squares",
-        "_sum_of_y_squares",
-        "_sum_of_products",
-        "_num_examples",
-    )
+        n_b = y.shape[0]
+        n_a = self._num_examples
+        n_ab = n_a + n_b
+
+        mean_x_b = y_pred.mean().to(self._device)
+        mean_y_b = y.mean().to(self._device)
+
+        # Within-batch second moments
+        dx_b = y_pred - mean_x_b
+        dy_b = y - mean_y_b
+        m2_x_b = dx_b.square().sum().to(self._device)
+        m2_y_b = dy_b.square().sum().to(self._device)
+        cxy_b = (dx_b * dy_b).sum().to(self._device)
+
+        if n_a == 0:
+            self._mean_x = mean_x_b
+            self._mean_y = mean_y_b
+            self._m2_x = m2_x_b
+            self._m2_y = m2_y_b
+            self._cxy = cxy_b
+        else:
+            delta_x = mean_x_b - self._mean_x
+            delta_y = mean_y_b - self._mean_y
+
+            self._mean_x += delta_x * n_b / n_ab
+            self._mean_y += delta_y * n_b / n_ab
+
+            self._m2_x += m2_x_b + delta_x * delta_x * n_a * n_b / n_ab
+            self._m2_y += m2_y_b + delta_y * delta_y * n_a * n_b / n_ab
+            self._cxy += cxy_b + delta_x * delta_y * n_a * n_b / n_ab
+
+        self._num_examples = n_ab
+
     def compute(self) -> float:
-        n = self._num_examples
-        if n == 0:
+        if self._num_examples == 0:
             raise NotComputableError("PearsonCorrelation must have at least one example before it can be computed.")
 
-        # cov = E[xy] - E[x]*E[y]
-        cov = self._sum_of_products / n - self._sum_of_y_preds * self._sum_of_ys / (n * n)
+        n = self._num_examples
+        mean_x = self._mean_x
+        mean_y = self._mean_y
+        m2_x = self._m2_x
+        m2_y = self._m2_y
+        cxy = self._cxy
 
-        # var = E[x^2] - E[x]^2
-        y_pred_mean = self._sum_of_y_preds / n
-        y_pred_var = self._sum_of_y_pred_squares / n - y_pred_mean * y_pred_mean
-        y_pred_var = torch.clamp(y_pred_var, min=0.0)
+        ws = idist.get_world_size()
+        if ws > 1:
+            # Gather Welford state from all processes and merge using
+            # the parallel variant of Welford's algorithm.
+            state = torch.stack([
+                torch.tensor(float(n), dtype=torch.float64, device=self._device),
+                mean_x, mean_y, m2_x, m2_y, cxy,
+            ])
+            all_states = idist.all_gather(state)
+            all_states = all_states.reshape(ws, 6)
 
-        y_mean = self._sum_of_ys / n
-        y_var = self._sum_of_y_squares / n - y_mean * y_mean
-        y_var = torch.clamp(y_var, min=0.0)
+            n = all_states[0, 0].item()
+            mean_x = all_states[0, 1]
+            mean_y = all_states[0, 2]
+            m2_x = all_states[0, 3]
+            m2_y = all_states[0, 4]
+            cxy = all_states[0, 5]
 
-        r = cov / torch.clamp(torch.sqrt(y_pred_var * y_var), min=self.eps)
+            for i in range(1, ws):
+                n_i = all_states[i, 0].item()
+                n_combined = n + n_i
+                dx = all_states[i, 1] - mean_x
+                dy = all_states[i, 2] - mean_y
+
+                mean_x = mean_x + dx * n_i / n_combined
+                mean_y = mean_y + dy * n_i / n_combined
+                m2_x = m2_x + all_states[i, 3] + dx * dx * n * n_i / n_combined
+                m2_y = m2_y + all_states[i, 4] + dy * dy * n * n_i / n_combined
+                cxy = cxy + all_states[i, 5] + dx * dy * n * n_i / n_combined
+                n = n_combined
+
+        var_x = torch.clamp(m2_x / n, min=0.0)
+        var_y = torch.clamp(m2_y / n, min=0.0)
+        cov = cxy / n
+
+        r = cov / torch.clamp(torch.sqrt(var_x * var_y), min=self.eps)
         return float(r.item())
