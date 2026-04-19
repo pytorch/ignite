@@ -76,6 +76,17 @@ class PearsonCorrelation(_BaseRegression):
 
         self.eps = eps
 
+    # Welford state kept between updates. `x` denotes `y_pred`, `y` denotes the
+    # ground truth. Names follow the convention used in Welford (1962) and on
+    # the Wikipedia page linked in the class docstring:
+    #   _num_examples  -- running count of samples seen (n)
+    #   _mean_x, _mean_y -- running means of x and y
+    #   _m2_x, _m2_y   -- running sums of squared deviations from the mean:
+    #                       M2_x = Σ (x_i - mean_x)^2
+    #                     (dividing by n at the end gives the variance)
+    #   _cxy           -- running sum of paired deviations:
+    #                       C_xy = Σ (x_i - mean_x)(y_i - mean_y)
+    #                     (dividing by n at the end gives the covariance)
     _state_dict_all_req_keys = (
         "_num_examples",
         "_mean_x",
@@ -95,6 +106,9 @@ class PearsonCorrelation(_BaseRegression):
         self._cxy = torch.tensor(0.0, dtype=torch.float64, device=self._device)
 
     def _update(self, output: tuple[torch.Tensor, torch.Tensor]) -> None:
+        # Parallel Welford: compute the current batch's Welford state in one
+        # shot, then merge it into the running state. "_a" suffix = prior
+        # (accumulated) state, "_b" suffix = this batch, "_ab" = combined.
         y_pred, y = output[0].detach(), output[1].detach()
         y_pred = y_pred.to(dtype=torch.float64)
         y = y.to(dtype=torch.float64)
@@ -103,10 +117,9 @@ class PearsonCorrelation(_BaseRegression):
         n_a = self._num_examples
         n_ab = n_a + n_b
 
+        # ---- Batch stats (mean + M2/Cxy computed about the batch mean) ----
         mean_x_b = y_pred.mean().to(self._device)
         mean_y_b = y.mean().to(self._device)
-
-        # Within-batch second moments
         dx_b = y_pred - mean_x_b
         dy_b = y - mean_y_b
         m2_x_b = dx_b.square().sum().to(self._device)
@@ -114,12 +127,17 @@ class PearsonCorrelation(_BaseRegression):
         cxy_b = (dx_b * dy_b).sum().to(self._device)
 
         if n_a == 0:
+            # First batch: running state is just the batch state.
             self._mean_x = mean_x_b
             self._mean_y = mean_y_b
             self._m2_x = m2_x_b
             self._m2_y = m2_y_b
             self._cxy = cxy_b
         else:
+            # ---- Welford merge: combine running state (a) with batch (b) ----
+            # delta = mean_b - mean_a is the shift between the two group means;
+            # the correction term n_a*n_b/n_ab * delta^2 accounts for the fact
+            # that M2_a and M2_b are measured about *different* centres.
             delta_x = mean_x_b - self._mean_x
             delta_y = mean_y_b - self._mean_y
 
@@ -145,8 +163,11 @@ class PearsonCorrelation(_BaseRegression):
 
         ws = idist.get_world_size()
         if ws > 1:
-            # Gather Welford state from all processes and merge using
-            # the parallel variant of Welford's algorithm.
+            # Distributed reduce: each rank already holds its local Welford
+            # state (n, mean_x, mean_y, M2_x, M2_y, C_xy). We can't sum them
+            # directly — M2/Cxy on each rank are measured about *that rank's*
+            # local mean. Instead we all_gather the per-rank states and fold
+            # them in one by one using the same pairwise merge as _update.
             state = torch.stack([
                 torch.tensor(float(n), dtype=torch.float64, device=self._device),
                 mean_x, mean_y, m2_x, m2_y, cxy,
@@ -154,6 +175,7 @@ class PearsonCorrelation(_BaseRegression):
             all_states = idist.all_gather(state)
             all_states = all_states.reshape(ws, 6)
 
+            # Seed the accumulator with rank 0's state, then merge ranks 1..ws-1.
             n = all_states[0, 0].item()
             mean_x = all_states[0, 1]
             mean_y = all_states[0, 2]
