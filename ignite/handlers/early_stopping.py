@@ -84,8 +84,8 @@ class EarlyStopping(Serializable, ResettableHandler):
         score_function: Callable,
         trainer: Engine,
         threshold: float = 0.0,
-        threshold_mode: Literal["abs", "rel"] = "abs",
         cumulative: bool = False,
+        threshold_mode: Literal["abs", "rel"] = "abs",
         mode: Literal["min", "max"] = "max",
         # Deprecated args for BC
         min_delta: float | None = None,
