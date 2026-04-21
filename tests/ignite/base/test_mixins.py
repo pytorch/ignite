@@ -81,7 +81,6 @@ def test_load_state_dict_validation():
 
     # Valid state dict
     s.load_state_dict({"a": 1, "b": 2, "c": 3, "e": 5})
-    print("Valid state dict loaded successfully")
 
 
 @pytest.mark.parametrize(

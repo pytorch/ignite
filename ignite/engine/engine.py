@@ -128,8 +128,8 @@ class Engine(Serializable):
 
     """
 
-    _state_dict_all_req_keys = ("epoch_length",)
-    _state_dict_one_of_opt_keys = (("iteration", "epoch"), ("max_epochs", "max_iters"))
+    _state_dict_all_req_keys: tuple[str, ...] = ("epoch_length",)
+    _state_dict_one_of_opt_keys: tuple[tuple[str, ...], ...] = (("iteration", "epoch"), ("max_epochs", "max_iters"))
 
     # Flag to disable engine._internal_run as generator feature for BC
     interrupt_resume_enabled = True
@@ -775,35 +775,9 @@ class Engine(Serializable):
                 )
             self.state.iteration = self.state.epoch_length * self.state.epoch
 
-        # Set max_epochs or max_iters with validation
-        max_epochs_value = state_dict.get("max_epochs", None)
-        max_iters_value = state_dict.get("max_iters", None)
-
-        # Validate max_epochs if present
-        if max_epochs_value is not None:
-            if max_epochs_value < 1:
-                raise ValueError("max_epochs in state_dict is invalid. Please, set a correct max_epochs positive value")
-            if max_epochs_value < self.state.epoch:
-                raise ValueError(
-                    "max_epochs in state_dict should be larger than or equal to the current epoch "
-                    f"defined in the state: {max_epochs_value} vs {self.state.epoch}. "
-                )
-            self.state.max_epochs = max_epochs_value
-        else:
-            self.state.max_epochs = None
-
-        # Validate max_iters if present
-        if max_iters_value is not None:
-            if max_iters_value < 1:
-                raise ValueError("max_iters in state_dict is invalid. Please, set a correct max_iters positive value")
-            if max_iters_value < self.state.iteration:
-                raise ValueError(
-                    "max_iters in state_dict should be larger than or equal to the current iteration "
-                    f"defined in the state: {max_iters_value} vs {self.state.iteration}. "
-                )
-            self.state.max_iters = max_iters_value
-        else:
-            self.state.max_iters = None
+        # Set max_epochs and max_iters with validation
+        self._check_and_set_max_epochs(state_dict.get("max_epochs"))
+        self._check_and_set_max_iters(state_dict.get("max_iters"))
 
     @staticmethod
     def _is_done(state: State) -> bool:
@@ -941,7 +915,21 @@ class Engine(Serializable):
 
         if max_epochs is not None and max_iters is not None:
             raise ValueError(
-                "Arguments max_iters and max_epochs are mutually exclusive.Please provide only max_epochs or max_iters."
+                "Arguments max_iters and max_epochs are mutually exclusive. Please provide only max_epochs or max_iters."
+            )
+
+        # Check for mode switching during resume
+        if max_iters is not None and self.state.max_epochs is not None:
+            raise ValueError(
+                "Cannot switch from max_epochs to max_iters mode during resume. "
+                "To switch termination modes, you must first reset by "
+                "setting 'engine.state.max_epochs = None' before calling run()."
+            )
+        if max_epochs is not None and self.state.max_iters is not None:
+            raise ValueError(
+                "Cannot switch from max_iters to max_epochs mode during resume. "
+                "To switch termination modes, you must first reset by "
+                "setting 'engine.state.max_iters = None' before calling run()."
             )
 
         if self.state.max_epochs is not None:
@@ -968,7 +956,7 @@ class Engine(Serializable):
                 # Try to get from data first, then fall back to existing state
                 if data is not None:
                     epoch_length = self._get_data_length(data)
-                if epoch_length is None and self.state.epoch_length is not None:
+                if epoch_length is None:
                     epoch_length = self.state.epoch_length
             if epoch_length is not None and epoch_length < 1:
                 raise ValueError("Input data has zero size. Please provide non-empty data")
@@ -988,10 +976,11 @@ class Engine(Serializable):
             # Reset generator if previously used
             self._internal_run_generator = None
 
-            if self.state.max_epochs is not None:
-                self.logger.info(f"Engine run starting with max_epochs={self.state.max_epochs}.")
-            else:
+            if self.state.max_iters is not None:
                 self.logger.info(f"Engine run starting with max_iters={self.state.max_iters}.")
+            else:
+                self.logger.info(f"Engine run starting with max_epochs={self.state.max_epochs}.")
+
         else:
             if self.state.epoch_length is not None:
                 if epoch_length is not None and epoch_length != self.state.epoch_length:
@@ -1007,21 +996,23 @@ class Engine(Serializable):
                         raise ValueError("Input data has zero size. Please provide non-empty data")
                     self.state.epoch_length = epoch_length
 
-            if self.state.max_epochs is not None:
+            if self.state.max_iters is not None:
                 self.logger.info(
                     f"Engine run resuming from iteration {self.state.iteration}, "
-                    f"epoch {self.state.epoch} until {self.state.max_epochs} epochs"
+                    f"epoch {self.state.epoch} until {self.state.max_iters} iterations"
                 )
             else:
                 self.logger.info(
                     f"Engine run resuming from iteration {self.state.iteration}, "
-                    f"epoch {self.state.epoch} until {self.state.max_iters} iterations"
+                    f"epoch {self.state.epoch} until {self.state.max_epochs} epochs"
                 )
 
             if self.state.epoch_length is None and data is None:
                 raise ValueError("epoch_length should be provided if data is None")
 
             if self.should_terminate:
+                # If engine was terminated and now is resuming from terminated state
+                # we need to initialize iter_counter as 0
                 self._init_iter = 0
 
         if self._dataloader_iter is None:
