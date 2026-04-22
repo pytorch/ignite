@@ -64,7 +64,7 @@ class EarlyStopping(Serializable, ResettableHandler):
             evaluator.add_event_handler(Events.COMPLETED, handler)
 
     .. versionchanged:: 0.6.0
-        Added ``threshold_mode`` parameter to support both absolute and relative improvements.
+        Renamed ``min_delta_mode``  to ``threshold_mode``.
         Renamed ``min_delta`` to ``threshold``.
         Renamed ``cumulative_delta`` to ``cumulative``.
     .. versionchanged:: 0.5.4
