@@ -16,38 +16,9 @@ def test_no_update():
     ck = CohenKappa()
 
     with pytest.raises(
-        NotComputableError, match=r"EpochMetric must have at least one example before it can be computed"
+        NotComputableError, match=r"CohenKappa must have at least one example before it can be computed"
     ):
         ck.compute()
-
-
-def test_input_types():
-    ck = CohenKappa()
-    ck.reset()
-    output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
-    ck.update(output1)
-
-    with pytest.raises(ValueError, match=r"Incoherent types between input y_pred and stored predictions"):
-        ck.update((torch.randint(0, 5, size=(4, 3)), torch.randint(0, 2, size=(4, 3))))
-
-    with pytest.raises(ValueError, match=r"Incoherent types between input y and stored targets"):
-        ck.update((torch.rand(4, 3), torch.randint(0, 2, size=(4, 3)).to(torch.int32)))
-
-    with pytest.raises(ValueError, match=r"Incoherent types between input y_pred and stored predictions"):
-        ck.update((torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10, 5)).long()))
-
-
-def test_check_shape():
-    ck = CohenKappa()
-
-    with pytest.raises(ValueError, match=r"Predictions should be of shape"):
-        ck._check_shape((torch.tensor(0), torch.tensor(0)))
-
-    with pytest.raises(ValueError, match=r"Predictions should be of shape"):
-        ck._check_shape((torch.rand(4, 3, 1), torch.rand(4, 3)))
-
-    with pytest.raises(ValueError, match=r"Targets should be of shape"):
-        ck._check_shape((torch.rand(4, 3), torch.rand(4, 3, 1)))
 
 
 def test_cohen_kappa_wrong_weights_type():

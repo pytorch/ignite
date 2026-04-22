@@ -1,15 +1,67 @@
 from collections.abc import Callable
+from functools import partial
 from typing import Literal
 
 import torch
+import torch.nn.functional as F
 
+from ignite.exceptions import NotComputableError
+from ignite.metrics.confusion_matrix import ConfusionMatrix
 from ignite.metrics.epoch_metric import EpochMetric
+from ignite.metrics.metric import reinit__is_reduced
+
+
+def _kappa_from_conf(conf: torch.Tensor, weights: Literal["linear", "quadratic"] | None) -> float:
+    n = conf.sum()
+    if n == 0:
+        raise NotComputableError("CohenKappa cannot be computed on an empty confusion matrix (n == 0).")
+
+    n_classes = conf.shape[0]
+
+    if weights is None:
+        p_o = conf.trace() / n
+        row = conf.sum(dim=1)
+        col = conf.sum(dim=0)
+        p_e = (row * col).sum() / (n * n)
+    else:
+        idx = torch.arange(n_classes, device=conf.device)
+        if weights == "linear":
+            w = torch.abs(idx.unsqueeze(0) - idx.unsqueeze(1)).double()
+        else:
+            w = ((idx.unsqueeze(0) - idx.unsqueeze(1)) ** 2).double()
+
+        w = w / w.max()
+        p_o = 1 - (w * conf).sum() / n
+        row = conf.sum(dim=1)
+        col = conf.sum(dim=0)
+        expected = row.unsqueeze(1) * col.unsqueeze(0) / n
+        p_e = 1 - (w * expected).sum() / n
+
+    if (1 - p_e).abs() < 1e-9:
+        return 1.0 if (p_o - p_e).abs() < 1e-9 else float("nan")
+
+    return ((p_o - p_e) / (1 - p_e)).item()
+
+
+def _cohen_kappa_score(
+    y_pred: torch.Tensor,
+    y: torch.Tensor,
+    weights: Literal["linear", "quadratic"] | None,
+) -> float:
+    num_classes = int(max(y_pred.max().item(), y.max().item())) + 1
+
+    cm = ConfusionMatrix(num_classes=num_classes, device=y_pred.device)
+    y_pred_oh = F.one_hot(y_pred.long(), num_classes).float()
+    cm.update((y_pred_oh, y.long()))
+    conf = cm.compute().double()
+
+    return _kappa_from_conf(conf, weights)
 
 
 class CohenKappa(EpochMetric):
     """Compute different types of Cohen's Kappa: Non-Weighted, Linear, Quadratic.
-    Accumulating predictions and the ground-truth during an epoch and computing
-    Cohen's Kappa using native PyTorch operations via the formula:
+    Buffers predictions and targets across batches, then computes the confusion
+    matrix via :class:`~ignite.metrics.ConfusionMatrix` and applies the formula:
     κ = (p_o - p_e) / (1 - p_e), where p_o is the observed agreement and p_e
     is the expected agreement computed from marginal probabilities.
 
@@ -20,9 +72,6 @@ class CohenKappa(EpochMetric):
             you want to compute the metric with respect to one of the outputs.
         weights: a string is used to define the type of Cohen's Kappa whether Non-Weighted or Linear
             or Quadratic. Default, None.
-        check_compute_fn: Default False. If True, the compute function is run on the first batch
-            of data to ensure there are no issues. User will be warned in case there are any issues
-            computing the function.
         device: optional device specification for internal storage.
         skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
             true for multi-output model, for example, if ``y_pred`` contains multi-output as ``(y_pred_a, y_pred_b)``
@@ -61,52 +110,38 @@ class CohenKappa(EpochMetric):
         self,
         output_transform: Callable = lambda x: x,
         weights: Literal["linear", "quadratic"] | None = None,
-        check_compute_fn: bool = False,
         device: str | torch.device = torch.device("cpu"),
         skip_unrolling: bool = False,
     ):
         if weights not in (None, "linear", "quadratic"):
             raise ValueError("Kappa Weighting type must be None or linear or quadratic.")
 
-        # initialize weights
         self.weights: Literal["linear", "quadratic"] | None = weights
 
         super().__init__(
-            self._cohen_kappa_score,
+            compute_fn=partial(_cohen_kappa_score, weights=weights),
             output_transform=output_transform,
-            check_compute_fn=check_compute_fn,
+            check_compute_fn=False,
             device=device,
             skip_unrolling=skip_unrolling,
         )
 
-    def _cohen_kappa_score(self, y_targets: torch.Tensor, y_preds: torch.Tensor) -> float:
-        if y_targets.ndim > 1 or y_preds.ndim > 1:
+    @reinit__is_reduced
+    def update(self, output: tuple[torch.Tensor, torch.Tensor]) -> None:
+        y_pred, y = output[0].detach(), output[1].detach()
+
+        if y_pred.ndim == 2 and y_pred.shape[1] == 1:
+            y_pred = y_pred.squeeze(dim=-1)
+        if y.ndim == 2 and y.shape[1] == 1:
+            y = y.squeeze(dim=-1)
+
+        if y_pred.ndim > 1 or y.ndim > 1:
             raise ValueError("multilabel-indicator is not supported")
-        n_classes = int(max(y_targets.max().item(), y_preds.max().item())) + 1
 
-        indices = y_targets * n_classes + y_preds
-        conf = torch.bincount(indices, minlength=n_classes * n_classes).reshape(n_classes, n_classes).double()
-        n = conf.sum()
+        super().update((y_pred, y))
 
-        if self.weights is None:
-            p_o = conf.trace() / n
-            row = conf.sum(dim=1)
-            col = conf.sum(dim=0)
-            p_e = (row * col).sum() / (n * n)
-
-        else:
-            idx = torch.arange(n_classes, device=y_targets.device)
-            if self.weights == "linear":
-                w = torch.abs(idx.unsqueeze(0) - idx.unsqueeze(1)).double()
-            else:
-                w = ((idx.unsqueeze(0) - idx.unsqueeze(1)) ** 2).double()
-
-            w = w / w.max()
-            p_o = 1 - (w * conf).sum() / n
-            row = conf.sum(dim=1)
-            col = conf.sum(dim=0)
-            expected = row.unsqueeze(1) * col.unsqueeze(0) / n
-            p_e = 1 - (w * expected).sum() / n
-
-        kappa = (p_o - p_e) / (1 - p_e)
-        return kappa.item()
+    def compute(self) -> float:
+        try:
+            return super().compute()
+        except NotComputableError:
+            raise NotComputableError("CohenKappa must have at least one example before it can be computed.")
