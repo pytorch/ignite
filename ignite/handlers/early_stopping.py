@@ -76,6 +76,7 @@ class EarlyStopping(Serializable, ResettableHandler):
     _state_dict_all_req_keys = (
         "counter",
         "best_score",
+        "threshold_mode",
     )
 
     def __init__(
@@ -209,11 +210,11 @@ class EarlyStopping(Serializable, ResettableHandler):
             self.best_score = score
             return
 
-        delta = -self.threshold if self.mode == "min" else self.threshold
+        threshold = -self.threshold if self.mode == "min" else self.threshold
         if self.threshold_mode == "abs":
-            improvement_threshold = self.best_score + delta
+            improvement_threshold = self.best_score + threshold
         else:
-            improvement_threshold = self.best_score * (1 + delta)
+            improvement_threshold = self.best_score * (1 + threshold)
 
         no_improvement = score <= improvement_threshold if self.mode == "max" else score >= improvement_threshold
 
@@ -268,11 +269,17 @@ class EarlyStopping(Serializable, ResettableHandler):
         target_reset_engine = reset_engine or engine
         target_reset_engine.add_event_handler(reset_event, self.reset)
 
-    def state_dict(self) -> "OrderedDict[str, float]":
+    def state_dict(self) -> "OrderedDict[str, Any]":
         """Method returns state dict with ``counter`` and ``best_score``.
         Can be used to save internal state of the class.
         """
-        return OrderedDict([("counter", self.counter), ("best_score", cast(float, self.best_score))])
+        return OrderedDict(
+            [
+                ("counter", self.counter),
+                ("best_score", cast(float, self.best_score)),
+                ("threshold_mode", self.threshold_mode),
+            ]
+        )
 
     def load_state_dict(self, state_dict: Mapping) -> None:
         """Method replace internal state of the class with provided state dict data.
@@ -283,3 +290,4 @@ class EarlyStopping(Serializable, ResettableHandler):
         super().load_state_dict(state_dict)
         self.counter = state_dict["counter"]
         self.best_score = state_dict["best_score"]
+        self.threshold_mode = state_dict.get("threshold_mode", self.threshold_mode)
