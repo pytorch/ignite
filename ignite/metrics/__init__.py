@@ -16,6 +16,7 @@ from ignite.metrics.frequency import Frequency
 from ignite.metrics.gan.fid import FID
 from ignite.metrics.gan.inception_score import InceptionScore
 from ignite.metrics.gpu_info import GpuInfo
+from ignite.metrics.hausdorff_distance import HausdorffDistance, HausdorffDistance95
 from ignite.metrics.hsic import HSIC
 from ignite.metrics.js_divergence import JSDivergence
 from ignite.metrics.kl_divergence import KLDivergence
@@ -99,6 +100,8 @@ __all__ = [
     "AveragePrecision",
     "CohenKappa",
     "GpuInfo",
+    "HausdorffDistance",
+    "HausdorffDistance95",
     "PrecisionRecallCurve",
     "RocCurve",
     "ROC_AUC",
