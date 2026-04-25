@@ -655,3 +655,139 @@ def test_deprecated_setters():
     with pytest.warns(DeprecationWarning):
         h.cumulative_delta = True
         assert h.cumulative is True
+
+
+def test_get_default_score_fn_positive_sign():
+    score_fn = EarlyStopping.get_default_score_fn("accuracy")
+
+    engine = Engine(do_nothing_update_fn)
+    engine.state.metrics["accuracy"] = 0.9
+
+    assert score_fn(engine) == pytest.approx(0.9)
+
+
+def test_get_default_score_fn_negative_sign():
+    score_fn = EarlyStopping.get_default_score_fn("loss", -1.0)
+
+    engine = Engine(do_nothing_update_fn)
+    engine.state.metrics["loss"] = 0.25
+
+    assert score_fn(engine) == pytest.approx(-0.25)
+
+
+def test_get_default_score_fn_invalid_sign():
+    with pytest.raises(ValueError, match=r"Argument score_sign should be 1.0 or -1.0"):
+        EarlyStopping.get_default_score_fn("acc", score_sign=2.0)
+
+    with pytest.raises(ValueError, match=r"Argument score_sign should be 1.0 or -1.0"):
+        EarlyStopping.get_default_score_fn("acc", score_sign=0.0)
+
+
+def test_get_default_score_fn_with_handler_min_mode():
+    # With mode="min" the score_function should still return the raw metric (sign=1).
+    score_fn = EarlyStopping.get_default_score_fn("loss")
+
+    trainer = Engine(do_nothing_update_fn)
+    losses = iter([1.0, 1.2, 1.3])
+    evaluator = Engine(do_nothing_update_fn)
+
+    @evaluator.on(Events.STARTED)
+    def _set_metric(engine):
+        engine.state.metrics["loss"] = next(losses)
+
+    handler = EarlyStopping(patience=2, score_function=score_fn, trainer=trainer, mode="min")
+
+    evaluator.run([0])
+    handler(evaluator)  # best_score=1.0
+    assert not trainer.should_terminate
+
+    evaluator.run([0])
+    handler(evaluator)  # 1.2 is no improvement (counter=1)
+    assert not trainer.should_terminate
+
+    evaluator.run([0])
+    handler(evaluator)  # 1.3 is no improvement (counter=2 -> stop)
+    assert trainer.should_terminate
+
+
+def test_get_default_event_filter_invalid_after():
+    trainer = Engine(do_nothing_update_fn)
+    handler = EarlyStopping(patience=2, score_function=lambda e: 0.0, trainer=trainer)
+
+    with pytest.raises(ValueError, match=r"Argument after should be a non-negative integer."):
+        handler.get_default_event_filter(after=-1)
+
+    with pytest.raises(ValueError, match=r"Argument after should be a non-negative integer."):
+        handler.get_default_event_filter(after=1.5)  # type: ignore[arg-type]
+
+
+def test_get_default_event_filter_skips_warmup():
+    trainer = Engine(do_nothing_update_fn)
+    handler = EarlyStopping(patience=2, score_function=lambda e: 0.0, trainer=trainer)
+
+    event_filter = handler.get_default_event_filter(after=3)
+
+    # The filter inspects trainer.state.epoch, so vary that to exercise the gate.
+    trainer.state.epoch = 1
+    assert not event_filter(trainer, 1)
+    trainer.state.epoch = 3
+    assert not event_filter(trainer, 1)
+    trainer.state.epoch = 4
+    assert event_filter(trainer, 1)
+    trainer.state.epoch = 10
+    assert event_filter(trainer, 1)
+
+
+def test_get_default_event_filter_zero_after():
+    # after=0 means no warmup; trainer.state.epoch starts at 1 once a run begins.
+    trainer = Engine(do_nothing_update_fn)
+    handler = EarlyStopping(patience=2, score_function=lambda e: 0.0, trainer=trainer)
+
+    event_filter = handler.get_default_event_filter(after=0)
+
+    trainer.state.epoch = 1
+    assert event_filter(trainer, 1)
+    trainer.state.epoch = 5
+    assert event_filter(trainer, 1)
+
+
+def test_get_default_event_filter_with_engine_warmup():
+    # Integration test: handler is attached with the warmup filter and skips the first
+    # N trainer epochs before enforcing patience.
+    scores = iter([0.5, 0.4, 0.39, 0.38, 0.37, 0.36, 0.35])
+
+    def score_function(engine):
+        return next(scores)
+
+    trainer = Engine(do_nothing_update_fn)
+    evaluator = Engine(do_nothing_update_fn)
+
+    handler = EarlyStopping(patience=2, score_function=score_function, trainer=trainer)
+    evaluator.add_event_handler(
+        Events.COMPLETED(event_filter=handler.get_default_event_filter(after=3)),
+        handler,
+    )
+
+    @trainer.on(Events.EPOCH_COMPLETED)
+    def _eval(engine):
+        evaluator.run([0])
+
+    trainer.run([0], max_epochs=10)
+
+    # Trainer epochs 1, 2, 3: filter rejects (no scores consumed).
+    # Epoch 4: score=0.5 -> best_score=0.5, counter=0
+    # Epoch 5: score=0.4 (no improvement, mode=max) counter=1
+    # Epoch 6: score=0.39 (no improvement) counter=2 -> trainer.terminate
+    assert trainer.state.epoch == 6
+
+
+def test_get_default_event_filter_attach_signature():
+    # Sanity: the filter has the right (engine, event) signature accepted by Events(...).
+    trainer = Engine(do_nothing_update_fn)
+    evaluator = Engine(do_nothing_update_fn)
+    handler = EarlyStopping(patience=2, score_function=lambda e: 0.0, trainer=trainer)
+
+    filtered_event = Events.COMPLETED(event_filter=handler.get_default_event_filter(after=2))
+    evaluator.add_event_handler(filtered_event, handler)
+
+    assert evaluator.has_event_handler(handler)
