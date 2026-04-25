@@ -38,6 +38,8 @@ from ignite.metrics.precision_recall_curve import PrecisionRecallCurve
 from ignite.metrics.psnr import PSNR
 from ignite.metrics.recall import Recall
 from ignite.metrics.rec_sys.hitrate import HitRate
+from ignite.metrics.rec_sys.map import MAP
+from ignite.metrics.rec_sys.mrr import MRR
 from ignite.metrics.rec_sys.ndcg import NDCG
 from ignite.metrics.roc_auc import ROC_AUC, RocCurve
 from ignite.metrics.root_mean_squared_error import RootMeanSquaredError
@@ -107,5 +109,7 @@ __all__ = [
     "CommonObjectDetectionMetrics",
     "coco_tensor_list_to_dict_list",
     "HitRate",
+    "MAP",
+    "MRR",
     "NDCG",
 ]
