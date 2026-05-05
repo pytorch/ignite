@@ -8,7 +8,7 @@ import torch.nn.functional as F
 from ignite.exceptions import NotComputableError
 from ignite.metrics.confusion_matrix import ConfusionMatrix
 from ignite.metrics.epoch_metric import EpochMetric
-from ignite.metrics.metric import reinit__is_reduced
+from ignite.metrics.metric import Metric, reinit__is_reduced
 
 
 def _kappa_from_conf(conf: torch.Tensor, weights: Literal["linear", "quadratic"] | None) -> float:
@@ -53,17 +53,108 @@ def _cohen_kappa_score(
     cm = ConfusionMatrix(num_classes=num_classes, device=y_pred.device)
     y_pred_oh = F.one_hot(y_pred.long(), num_classes).float()
     cm.update((y_pred_oh, y.long()))
-    conf = cm.compute().double()
+    conf = cm.compute().cpu().double()
 
     return _kappa_from_conf(conf, weights)
 
 
-class CohenKappa(EpochMetric):
+class _CohenKappaEpochMetric(EpochMetric):
+    """CohenKappa backed by EpochMetric — infers num_classes dynamically from data."""
+
+    def __init__(
+        self,
+        weights: Literal["linear", "quadratic"] | None,
+        output_transform: Callable,
+        device: str | torch.device,
+        skip_unrolling: bool,
+    ):
+        super().__init__(
+            compute_fn=partial(_cohen_kappa_score, weights=weights),
+            output_transform=output_transform,
+            check_compute_fn=False,
+            device=device,
+            skip_unrolling=skip_unrolling,
+        )
+
+    @reinit__is_reduced
+    def update(self, output: tuple[torch.Tensor, torch.Tensor]) -> None:
+        y_pred, y = output[0].detach(), output[1].detach()
+
+        if y_pred.ndim == 2 and y_pred.shape[1] == 1:
+            y_pred = y_pred.squeeze(dim=-1)
+        if y.ndim == 2 and y.shape[1] == 1:
+            y = y.squeeze(dim=-1)
+
+        if y_pred.ndim > 1 or y.ndim > 1:
+            raise ValueError("multilabel-indicator is not supported")
+
+        super().update((y_pred, y))
+
+    def compute(self) -> float:
+        try:
+            return super().compute()
+        except NotComputableError:
+            raise NotComputableError("CohenKappa must have at least one example before it can be computed.")
+
+
+class _CohenKappaConfusionMatrix(Metric):
+    """CohenKappa backed by ConfusionMatrix — requires num_classes at construction time.
+    Accumulates a running confusion matrix; no raw tensor buffering.
+    """
+
+    _state_dict_all_req_keys = ("_cm",)
+
+    def __init__(
+        self,
+        num_classes: int,
+        weights: Literal["linear", "quadratic"] | None,
+        output_transform: Callable,
+        device: str | torch.device,
+        skip_unrolling: bool,
+    ):
+        self._weights = weights
+        self._cm = ConfusionMatrix(
+            num_classes=num_classes,
+            output_transform=output_transform,
+            device=device,
+            skip_unrolling=skip_unrolling,
+        )
+        super().__init__(output_transform=output_transform, device=device, skip_unrolling=skip_unrolling)
+
+    @reinit__is_reduced
+    def reset(self) -> None:
+        self._cm.reset()
+
+    @reinit__is_reduced
+    def update(self, output: tuple[torch.Tensor, torch.Tensor]) -> None:
+        y_pred, y = output[0].detach(), output[1].detach()
+
+        if y_pred.ndim == 2 and y_pred.shape[1] == 1:
+            y_pred = y_pred.squeeze(dim=-1)
+        if y.ndim == 2 and y.shape[1] == 1:
+            y = y.squeeze(dim=-1)
+
+        if y_pred.ndim > 1 or y.ndim > 1:
+            raise ValueError("multilabel-indicator is not supported")
+
+        num_classes = self._cm.num_classes
+        y_pred_oh = F.one_hot(y_pred.long(), num_classes).float().to(self._device)
+        self._cm.update((y_pred_oh, y.long().to(self._device)))
+
+    def compute(self) -> float:
+        if self._cm.confusion_matrix.sum() == 0:
+            raise NotComputableError("CohenKappa must have at least one example before it can be computed.")
+        conf = self._cm.compute().cpu().double()
+        return _kappa_from_conf(conf, self._weights)
+
+
+class CohenKappa(Metric):
     """Compute different types of Cohen's Kappa: Non-Weighted, Linear, Quadratic.
-    Buffers predictions and targets across batches, then computes the confusion
-    matrix via :class:`~ignite.metrics.ConfusionMatrix` and applies the formula:
-    κ = (p_o - p_e) / (1 - p_e), where p_o is the observed agreement and p_e
-    is the expected agreement computed from marginal probabilities.
+
+    When ``num_classes`` is provided, accumulates a running confusion matrix via
+    :class:`~ignite.metrics.ConfusionMatrix` (memory-efficient, no raw tensor buffering).
+    When ``num_classes`` is ``None`` (default), buffers predictions and targets via
+    :class:`~ignite.metrics.EpochMetric` and infers the number of classes from data.
 
     Args:
         output_transform: a callable that is used to transform the
@@ -76,6 +167,8 @@ class CohenKappa(EpochMetric):
         skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
             true for multi-output model, for example, if ``y_pred`` contains multi-output as ``(y_pred_a, y_pred_b)``
             Alternatively, ``output_transform`` can be used to handle this.
+        num_classes: number of classes. If provided, uses a running confusion matrix
+            (memory-efficient). If ``None``, infers from data at compute time (backward-compatible default).
 
     Examples:
         To use with ``Engine`` and ``process_function``, simply attach the metric instance to the engine.
@@ -104,6 +197,9 @@ class CohenKappa(EpochMetric):
 
     .. versionchanged:: 0.6.0
         Replaced scikit-learn dependency with a native PyTorch implementation.
+
+    .. versionchanged:: 0.6.2
+        Added ``num_classes`` argument; routes to a running-confusion-matrix backend when provided.
     """
 
     def __init__(
@@ -112,36 +208,38 @@ class CohenKappa(EpochMetric):
         weights: Literal["linear", "quadratic"] | None = None,
         device: str | torch.device = torch.device("cpu"),
         skip_unrolling: bool = False,
+        num_classes: int | None = None,
     ):
         if weights not in (None, "linear", "quadratic"):
             raise ValueError("Kappa Weighting type must be None or linear or quadratic.")
 
         self.weights: Literal["linear", "quadratic"] | None = weights
 
-        super().__init__(
-            compute_fn=partial(_cohen_kappa_score, weights=weights),
-            output_transform=output_transform,
-            check_compute_fn=False,
-            device=device,
-            skip_unrolling=skip_unrolling,
-        )
+        if num_classes is not None:
+            self._impl: Metric = _CohenKappaConfusionMatrix(
+                num_classes=num_classes,
+                weights=weights,
+                output_transform=output_transform,
+                device=device,
+                skip_unrolling=skip_unrolling,
+            )
+        else:
+            self._impl = _CohenKappaEpochMetric(
+                weights=weights,
+                output_transform=output_transform,
+                device=device,
+                skip_unrolling=skip_unrolling,
+            )
+
+        super().__init__(output_transform=output_transform, device=device, skip_unrolling=skip_unrolling)
+
+    @reinit__is_reduced
+    def reset(self) -> None:
+        self._impl.reset()
 
     @reinit__is_reduced
     def update(self, output: tuple[torch.Tensor, torch.Tensor]) -> None:
-        y_pred, y = output[0].detach(), output[1].detach()
-
-        if y_pred.ndim == 2 and y_pred.shape[1] == 1:
-            y_pred = y_pred.squeeze(dim=-1)
-        if y.ndim == 2 and y.shape[1] == 1:
-            y = y.squeeze(dim=-1)
-
-        if y_pred.ndim > 1 or y.ndim > 1:
-            raise ValueError("multilabel-indicator is not supported")
-
-        super().update((y_pred, y))
+        self._impl.update(output)
 
     def compute(self) -> float:
-        try:
-            return super().compute()
-        except NotComputableError:
-            raise NotComputableError("CohenKappa must have at least one example before it can be computed.")
+        return self._impl.compute()

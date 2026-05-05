@@ -287,3 +287,70 @@ def _test_distrib_xla_nprocs(index):
 def test_distrib_xla_nprocs(xmp_executor):
     n = int(os.environ["NUM_TPU_WORKERS"])
     xmp_executor(_test_distrib_xla_nprocs, args=(), nprocs=n)
+
+
+# --- num_classes path tests ---
+
+
+def test_num_classes_no_update():
+    ck = CohenKappa(num_classes=3)
+    with pytest.raises(
+        NotComputableError, match=r"CohenKappa must have at least one example before it can be computed"
+    ):
+        ck.compute()
+
+
+@pytest.mark.parametrize("weights", [None, "linear", "quadratic"])
+def test_num_classes_matches_dynamic(weights, available_device):
+    torch.manual_seed(42)
+    y_pred = torch.randint(0, 4, size=(60,)).long()
+    y = torch.randint(0, 4, size=(60,)).long()
+    batch_size = 10
+
+    ck_dynamic = CohenKappa(weights=weights, device=available_device)
+    ck_fixed = CohenKappa(weights=weights, device=available_device, num_classes=4)
+
+    for ck in (ck_dynamic, ck_fixed):
+        ck.reset()
+        for i in range(60 // batch_size):
+            idx = i * batch_size
+            ck.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
+
+    assert ck_dynamic.compute() == pytest.approx(ck_fixed.compute())
+
+
+@pytest.mark.parametrize("weights", [None, "linear", "quadratic"])
+def test_num_classes_single_batch(weights, available_device):
+    torch.manual_seed(0)
+    y_pred = torch.randint(0, 3, size=(30,)).long()
+    y = torch.randint(0, 3, size=(30,)).long()
+
+    ck = CohenKappa(weights=weights, device=available_device, num_classes=3)
+    ck.reset()
+    ck.update((y_pred, y))
+    res = ck.compute()
+
+    assert isinstance(res, float)
+    assert cohen_kappa_score(y.numpy(), y_pred.numpy(), weights=weights) == pytest.approx(res)
+
+
+def test_num_classes_multilabel_inputs():
+    ck = CohenKappa(num_classes=4)
+    with pytest.raises(ValueError, match=r"multilabel-indicator is not supported"):
+        ck.reset()
+        ck.update((torch.randint(0, 2, size=(10, 4)).long(), torch.randint(0, 2, size=(10, 4)).long()))
+        ck.compute()
+
+
+def test_num_classes_squeeze_n1():
+    torch.manual_seed(7)
+    y_pred = torch.randint(0, 2, size=(20, 1)).long()
+    y = torch.randint(0, 2, size=(20, 1)).long()
+
+    ck = CohenKappa(num_classes=2)
+    ck.reset()
+    ck.update((y_pred, y))
+    res = ck.compute()
+
+    assert isinstance(res, float)
+    assert cohen_kappa_score(y.squeeze().numpy(), y_pred.squeeze().numpy()) == pytest.approx(res)
