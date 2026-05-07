@@ -26,9 +26,9 @@ def _kappa_from_conf(conf: torch.Tensor, weights: Literal["linear", "quadratic"]
     else:
         idx = torch.arange(n_classes, device=conf.device)
         if weights == "linear":
-            w = torch.abs(idx.unsqueeze(0) - idx.unsqueeze(1)).double()
+            w = torch.abs(idx.unsqueeze(0) - idx.unsqueeze(1)).to(dtype=conf.dtype)
         else:
-            w = ((idx.unsqueeze(0) - idx.unsqueeze(1)) ** 2).double()
+            w = ((idx.unsqueeze(0) - idx.unsqueeze(1)) ** 2).to(dtype=conf.dtype)
 
         w = w / w.max()
         p_o = 1 - (w * conf).sum() / n
@@ -53,7 +53,8 @@ def _cohen_kappa_score(
     cm = ConfusionMatrix(num_classes=num_classes, device=y_pred.device)
     y_pred_oh = F.one_hot(y_pred.long(), num_classes).float()
     cm.update((y_pred_oh, y.long()))
-    conf = cm.compute().cpu().double()
+    double_dtype = torch.float32 if y_pred.device.type == "mps" else torch.float64
+    conf = cm.compute().to(dtype=double_dtype)
 
     return _kappa_from_conf(conf, weights)
 
@@ -144,7 +145,7 @@ class _CohenKappaConfusionMatrix(Metric):
     def compute(self) -> float:
         if self._cm.confusion_matrix.sum() == 0:
             raise NotComputableError("CohenKappa must have at least one example before it can be computed.")
-        conf = self._cm.compute().cpu().double()
+        conf = self._cm.compute().to(dtype=self._double_dtype)
         return _kappa_from_conf(conf, self._weights)
 
 
