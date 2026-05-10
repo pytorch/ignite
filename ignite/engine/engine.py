@@ -775,9 +775,21 @@ class Engine(Serializable):
                 )
             self.state.iteration = self.state.epoch_length * self.state.epoch
 
-        # Set max_epochs and max_iters with validation
-        self._check_and_set_max_epochs(state_dict.get("max_epochs"))
-        self._check_and_set_max_iters(state_dict.get("max_iters"))
+        if "max_epochs" in state_dict:
+            self.state.max_iters = None
+            max_epochs = state_dict.get("max_epochs")
+            if max_epochs is None:
+                self.state.max_epochs = None
+            else:
+                self._check_and_set_max_epochs(max_epochs)
+
+        elif "max_iters" in state_dict:
+            self.state.max_epochs = None
+            max_iters = state_dict.get("max_iters")
+            if max_iters is None:
+                self.state.max_iters = None
+            else:
+                self._check_and_set_max_iters(max_iters)
 
     @staticmethod
     def _is_done(state: State) -> bool:
@@ -798,7 +810,7 @@ class Engine(Serializable):
             if value < 1:
                 raise ValueError(f"Argument {name} is invalid. Please, set a correct {name} positive value")
 
-            if getattr(self.state, name) is not None and value < progress_value:
+            if value < progress_value:
                 raise ValueError(
                     f"Argument {name} should be greater than or equal to the start "
                     f"{progress_name} defined in the state: {value} vs {progress_value}. "
@@ -921,15 +933,13 @@ class Engine(Serializable):
         # Check for mode switching during resume
         if max_iters is not None and self.state.max_epochs is not None:
             raise ValueError(
-                "Cannot switch from max_epochs to max_iters mode during resume. "
-                "To switch termination modes, you must first reset by "
-                "setting 'engine.state.max_epochs = None' before calling run()."
+                "To switch from max_epochs to max_iters mode during resume, "
+                "you must first reset by setting 'engine.state.max_epochs = None' before calling run()."
             )
         if max_epochs is not None and self.state.max_iters is not None:
             raise ValueError(
-                "Cannot switch from max_iters to max_epochs mode during resume. "
-                "To switch termination modes, you must first reset by "
-                "setting 'engine.state.max_iters = None' before calling run()."
+                "To switch from max_iters to max_epochs mode during resume, "
+                "you must first reset by setting 'engine.state.max_iters = None' before calling run()."
             )
 
         if self.state.max_epochs is not None:
@@ -965,8 +975,8 @@ class Engine(Serializable):
                 if max_epochs is None:
                     max_epochs = 1
             else:
-                if epoch_length is not None:
-                    max_epochs = math.ceil(max_iters / epoch_length)
+                # If max_iters is provided, we stay in max_iters mode
+                max_epochs = None
 
             self.state.iteration = 0
             self.state.epoch = 0

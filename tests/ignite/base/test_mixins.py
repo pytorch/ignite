@@ -68,15 +68,15 @@ def test_load_state_dict_validation():
         s.load_state_dict({"a": 1})
 
     # Test one-of optional keys - missing all
-    with pytest.raises(ValueError, match=r"should contain at least one of"):
+    with pytest.raises(ValueError, match=r"should contain exactly one of"):
         s.load_state_dict({"a": 1, "b": 2})
 
     # Test one-of optional keys - having all from one group
-    with pytest.raises(ValueError, match=r"should contain only one of '\('c', 'd'\)'"):
+    with pytest.raises(ValueError, match=r"should contain exactly one of '\('c', 'd'\)'"):
         s.load_state_dict({"a": 1, "b": 2, "c": 3, "d": 4, "e": 5})
 
     # Test one-of optional keys - having all from another group
-    with pytest.raises(ValueError, match=r"should contain only one of '\('e', 'f'\)'"):
+    with pytest.raises(ValueError, match=r"should contain exactly one of '\('e', 'f'\)'"):
         s.load_state_dict({"a": 1, "b": 2, "c": 3, "e": 5, "f": 6})
 
     # Valid state dict
@@ -107,14 +107,14 @@ def test_load_state_dict_validation():
             ("required",),
             (("opt1", "opt2"),),
             {"required": "value"},
-            r"should contain at least one of '\('opt1', 'opt2'\)'",
+            r"should contain exactly one of '\('opt1', 'opt2'\)'",
         ),
         # Case 5: Standard one-of group - too many keys
         (
             ("required",),
             (("opt1", "opt2"),),
             {"required": "value", "opt1": "v1", "opt2": "v2"},
-            r"should contain only one of '\('opt1', 'opt2'\)'",
+            r"should contain exactly one of '\('opt1', 'opt2'\)'",
         ),
         # Case 6: Standard one-of group - valid
         (("required",), (("opt1", "opt2"),), {"required": "value", "opt1": "v1"}, None),
@@ -153,12 +153,12 @@ def test_engine_style_validation():
 
     # Invalid: both iteration and epoch
     s3 = EngineStyleSerializable()
-    with pytest.raises(ValueError, match="should contain only one of.*iteration.*epoch"):
+    with pytest.raises(ValueError, match="should contain exactly one of.*iteration.*epoch"):
         s3.load_state_dict({"epoch_length": 100, "iteration": 150, "epoch": 3, "max_epochs": 10})
 
     # Invalid: both max_epochs and max_iters
     s4 = EngineStyleSerializable()
-    with pytest.raises(ValueError, match="should contain only one of.*max_epochs.*max_iters"):
+    with pytest.raises(ValueError, match="should contain exactly one of.*max_epochs.*max_iters"):
         s4.load_state_dict({"epoch_length": 100, "iteration": 150, "max_epochs": 10, "max_iters": 500})
 
 
@@ -175,7 +175,7 @@ def test_single_option_group():
     s = SingleOptionSerializable()
 
     # Should require the single option
-    with pytest.raises(ValueError, match="should contain at least one of"):
+    with pytest.raises(ValueError, match="should contain exactly one of"):
         s.load_state_dict({"base": "value"})
 
     # Should pass with single option
@@ -218,7 +218,7 @@ def test_complex_grouped_keys():
 
     # Missing from a group should fail
     s2 = EngineStyleSerializable()
-    with pytest.raises(ValueError, match="should contain at least one of.*iteration.*epoch"):
+    with pytest.raises(ValueError, match="should contain exactly one of.*iteration.*epoch"):
         s2.load_state_dict({"epoch_length": 100, "max_iters": 500})
 
 
@@ -270,5 +270,5 @@ def test_complex_scenario():
 
     # Missing from one group should fail
     s2 = ComplexSerializable()
-    with pytest.raises(ValueError, match="should contain at least one of.*term1.*term2"):
+    with pytest.raises(ValueError, match="should contain exactly one of.*term1.*term2"):
         s2.load_state_dict({"base1": "b1", "base2": "b2", "pos1": "pos", "opt4": "opt"})

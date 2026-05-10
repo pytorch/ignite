@@ -68,22 +68,22 @@ def test_state_dict_integration():
     [
         ("not a dict", TypeError, r"Argument state_dict should be a dictionary"),
         ({}, ValueError, r"Required state attribute 'epoch_length' is absent"),
-        ({"epoch_length": 100}, ValueError, r"state_dict should contain at least one of"),
+        ({"epoch_length": 100}, ValueError, r"state_dict should contain exactly one of"),
         (
             {"epoch_length": 100, "iteration": 10, "epoch": 1, "max_epochs": 5},
             ValueError,
-            r"should contain only one of '\('iteration', 'epoch'\)'",
+            r"should contain exactly one of '\('iteration', 'epoch'\)'",
         ),
         (
             {"epoch_length": 100, "iteration": 10, "max_epochs": 5, "max_iters": 500},
             ValueError,
-            r"should contain only one of '\('max_epochs', 'max_iters'\)'",
+            r"should contain exactly one of '\('max_epochs', 'max_iters'\)'",
         ),
-        ({"epoch": 5, "max_epochs": 3, "epoch_length": 10}, ValueError, r"larger than or equal to the current epoch"),
+        ({"epoch": 5, "max_epochs": 3, "epoch_length": 10}, ValueError, r"greater than or equal to the start epoch"),
         (
             {"iteration": 100, "max_iters": 50, "epoch_length": 10},
             ValueError,
-            r"larger than or equal to the current iteration",
+            r"greater than or equal to the start iteration",
         ),
         (
             {"iteration": 12, "epoch_length": 120, "max_epochs": 100},

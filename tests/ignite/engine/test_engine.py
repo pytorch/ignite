@@ -1099,9 +1099,46 @@ class TestEngine:
         with pytest.raises(
             ValueError,
             match=r"Arguments max_iters and max_epochs are mutually exclusive."
-            "Please provide only max_epochs or max_iters.",
+            " Please provide only max_epochs or max_iters.",
         ):
             engine.run([0] * 20, max_iters=max_iters, max_epochs=max_epochs)
+
+    def test_switch_termination_mode_errors(self):
+        engine = Engine(lambda e, b: 1)
+        data = range(100)
+
+        # 1. Start with max_epochs
+        engine.run(data, max_epochs=5)
+        assert engine.state.max_epochs == 5
+        assert engine.state.max_iters is None
+
+        # 2. Try to switch to max_iters without reset
+        expected_msg = (
+            "To switch from max_epochs to max_iters mode during resume, "
+            "you must first reset by setting 'engine.state.max_epochs = None' before calling run()."
+        )
+        with pytest.raises(ValueError, match=expected_msg):
+            engine.run(data, max_iters=500)
+
+        # 3. Reset and switch
+        engine.state.max_epochs = None
+        engine.run(data, max_iters=600)
+        assert engine.state.max_iters == 600
+        assert engine.state.max_epochs is None
+
+        # 4. Try to switch back to max_epochs without reset
+        expected_msg_back = (
+            "To switch from max_iters to max_epochs mode during resume, "
+            "you must first reset by setting 'engine.state.max_iters = None' before calling run()."
+        )
+        with pytest.raises(ValueError, match=expected_msg_back):
+            engine.run(data, max_epochs=10)
+
+        # 5. Reset and switch back
+        engine.state.max_iters = None
+        engine.run(data, max_epochs=10)
+        assert engine.state.max_epochs == 10
+        assert engine.state.max_iters is None
 
     def test_epoch_events_fired_max_iters(self):
         max_iters = 32
