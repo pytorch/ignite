@@ -153,7 +153,7 @@ class CohenKappa(Metric):
     """Compute different types of Cohen's Kappa: Non-Weighted, Linear, Quadratic.
 
     When ``num_classes`` is provided, accumulates a running confusion matrix via
-    :class:`~ignite.metrics.ConfusionMatrix` (memory-efficient, no raw tensor buffering).
+    :class:`~ignite.metrics.confusion_matrix.ConfusionMatrix` (memory-efficient, no raw tensor buffering).
     When ``num_classes`` is ``None`` (default), buffers predictions and targets via
     :class:`~ignite.metrics.EpochMetric` and infers the number of classes from data.
 
