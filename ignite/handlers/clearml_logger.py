@@ -110,6 +110,19 @@ class ClearMLLogger(BaseLogger):
                 log_handler=WeightsScalarHandler(model)
             )
 
+        Alternatively, you can use :func:`~ignite.handlers.logger_utils.setup_clearml_logging` for simplified setup:
+
+        .. code-block:: python
+
+            from ignite.handlers.logger_utils import setup_clearml_logging
+            # Assume `trainer`, `evaluator`, and `optimizer` are already defined
+            clearml_logger = setup_clearml_logging(
+                trainer=trainer,
+                optimizers=optimizer,
+                evaluators={"validation": evaluator},
+                log_every_iters=100
+            )
+
     Note:
         :class:`~ignite.handlers.clearml_logger.OutputHandler` can handle
         metrics, state attributes and engine output values of the following format:

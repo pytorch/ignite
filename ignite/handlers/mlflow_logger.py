@@ -86,6 +86,19 @@ class MLflowLogger(BaseLogger):
                 param_name='lr'  # optional
             )
 
+        Alternatively, you can use :func:`~ignite.handlers.logger_utils.setup_mlflow_logging` for simplified setup:
+
+        .. code-block:: python
+
+            from ignite.handlers.logger_utils import setup_mlflow_logging
+            # Assume `trainer`, `evaluator`, and `optimizer` are already defined
+            mlflow_logger = setup_mlflow_logging(
+                trainer=trainer,
+                optimizers=optimizer,
+                evaluators={"validation": evaluator},
+                log_every_iters=100
+            )
+
     Note:
         :class:`~ignite.handlers.mlflow_logger.OutputHandler` can handle
         metrics, state attributes and engine output values of the following format:
