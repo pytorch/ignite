@@ -151,6 +151,19 @@ class NeptuneLogger(BaseLogger):
                     output_transform=lambda loss: {"loss": loss},
                 )
 
+        Alternatively, you can use :func:`~ignite.handlers.logger_utils.setup_neptune_logging` for simplified setup:
+
+        .. code-block:: python
+
+            from ignite.handlers.logger_utils import setup_neptune_logging
+            # Assume `trainer`, `evaluator`, and `optimizer` are already defined
+            neptune_logger = setup_neptune_logging(
+                trainer=trainer,
+                optimizers=optimizer,
+                evaluators={"validation": evaluator},
+                log_every_iters=100
+            )
+
     Note:
         :class:`~ignite.handlers.neptune_logger.OutputHandler` can handle
         metrics, state attributes and engine output values of the following format:

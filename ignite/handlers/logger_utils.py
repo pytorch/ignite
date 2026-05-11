@@ -102,6 +102,22 @@ def setup_tb_logging(
 
     Returns:
         :class:`~ignite.handlers.tensorboard_logger.TensorboardLogger`
+
+    Examples:
+        .. code-block:: python
+
+            from ignite.handlers.logger_utils import setup_tb_logging
+            # Assume `trainer`, `evaluator`, and `optimizer` are already defined
+            tb_logger = setup_tb_logging(
+                output_path="experiments/tb_logs",
+                trainer=trainer,
+                optimizers=optimizer,
+                evaluators={"validation": evaluator},
+                log_every_iters=100
+            )
+
+            # Logger instance can be closed
+            tb_logger.close()
     """
     logger = TensorboardLogger(log_dir=output_path, **kwargs)
     _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
@@ -138,6 +154,21 @@ def setup_visdom_logging(
 
     Returns:
         :class:`~ignite.handlers.visdom_logger.VisdomLogger`
+
+    Examples:
+        .. code-block:: python
+
+            from ignite.handlers.logger_utils import setup_visdom_logging
+            # Assume `trainer`, `evaluator`, and `optimizer` are already defined
+            vd_logger = setup_visdom_logging(
+                trainer=trainer,
+                optimizers=optimizer,
+                evaluators={"validation": evaluator},
+                log_every_iters=100
+            )
+
+            # Logger instance can be closed
+            vd_logger.close()
     """
     logger = VisdomLogger(**kwargs)
     _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
@@ -169,6 +200,21 @@ def setup_mlflow_logging(
 
     Returns:
         :class:`~ignite.handlers.mlflow_logger.MLflowLogger`
+
+    Examples:
+        .. code-block:: python
+
+            from ignite.handlers.logger_utils import setup_mlflow_logging
+            # Assume `trainer`, `evaluator`, and `optimizer` are already defined
+            mlflow_logger = setup_mlflow_logging(
+                trainer=trainer,
+                optimizers=optimizer,
+                evaluators={"validation": evaluator},
+                log_every_iters=100
+            )
+
+            # Logger instance can be closed
+            mlflow_logger.close()
     """
     logger = MLflowLogger(**kwargs)
     _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
@@ -200,6 +246,21 @@ def setup_neptune_logging(
 
     Returns:
         :class:`~ignite.handlers.neptune_logger.NeptuneLogger`
+
+    Examples:
+        .. code-block:: python
+
+            from ignite.handlers.logger_utils import setup_neptune_logging
+            # Assume `trainer`, `evaluator`, and `optimizer` are already defined
+            neptune_logger = setup_neptune_logging(
+                trainer=trainer,
+                optimizers=optimizer,
+                evaluators={"validation": evaluator},
+                log_every_iters=100
+            )
+
+            # Logger instance can be closed
+            neptune_logger.close()
     """
     logger = NeptuneLogger(**kwargs)
     _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
@@ -231,6 +292,21 @@ def setup_wandb_logging(
 
     Returns:
         :class:`~ignite.handlers.wandb_logger.WandBLogger`
+
+    Examples:
+        .. code-block:: python
+
+            from ignite.handlers.logger_utils import setup_wandb_logging
+            # Assume `trainer`, `evaluator`, and `optimizer` are already defined
+            wandb_logger = setup_wandb_logging(
+                trainer=trainer,
+                optimizers=optimizer,
+                evaluators={"validation": evaluator},
+                log_every_iters=100
+            )
+
+            # Logger instance can be closed
+            wandb_logger.close()
     """
     logger = WandBLogger(**kwargs)
     _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
@@ -262,6 +338,21 @@ def setup_plx_logging(
 
     Returns:
         :class:`~ignite.handlers.polyaxon_logger.PolyaxonLogger`
+
+    Examples:
+        .. code-block:: python
+
+            from ignite.handlers.logger_utils import setup_plx_logging
+            # Assume `trainer`, `evaluator`, and `optimizer` are already defined
+            plx_logger = setup_plx_logging(
+                trainer=trainer,
+                optimizers=optimizer,
+                evaluators={"validation": evaluator},
+                log_every_iters=100
+            )
+
+            # Logger instance can be closed
+            plx_logger.close()
     """
     logger = PolyaxonLogger(**kwargs)
     _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
@@ -293,6 +384,21 @@ def setup_clearml_logging(
 
     Returns:
         :class:`~ignite.handlers.clearml_logger.ClearMLLogger`
+
+    Examples:
+        .. code-block:: python
+
+            from ignite.handlers.logger_utils import setup_clearml_logging
+            # Assume `trainer`, `evaluator`, and `optimizer` are already defined
+            clearml_logger = setup_clearml_logging(
+                trainer=trainer,
+                optimizers=optimizer,
+                evaluators={"validation": evaluator},
+                log_every_iters=100
+            )
+
+            # Logger instance can be closed
+            clearml_logger.close()
     """
     logger = ClearMLLogger(**kwargs)
     _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
