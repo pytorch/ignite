@@ -93,6 +93,19 @@ class PolyaxonLogger(BaseLogger):
             # to manually end a run
             plx_logger.close()
 
+        Alternatively, you can use :func:`~ignite.handlers.logger_utils.setup_plx_logging` for simplified setup:
+
+        .. code-block:: python
+
+            from ignite.handlers.logger_utils import setup_plx_logging
+            # Assume `trainer`, `evaluator`, and `optimizer` are already defined
+            plx_logger = setup_plx_logging(
+                trainer=trainer,
+                optimizers=optimizer,
+                evaluators={"validation": evaluator},
+                log_every_iters=100
+            )
+
     Note:
         :class:`~ignite.handlers.polyaxon_logger.OutputHandler` can handle
         metrics, state attributes and engine output values of the following format:
