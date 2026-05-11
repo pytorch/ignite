@@ -7,11 +7,16 @@ trap of the naive ``E[X^2] - E[X]^2`` formula. Used by
 :class:`~ignite.metrics.regression.R2Score`; new metrics with the same
 need should consume these helpers rather than rolling their own.
 
-Both classes keep internal state in ``float64`` regardless of the input
-dtype, follow Welford's online algorithm for incremental updates, and
-fold accumulators together with the Chan / Welford parallel formula
-(used both for batch-wise updates and for cross-rank merges in
-distributed settings).
+Both classes are tensor-type-agnostic dataclasses: callers supply
+tensors in whatever dtype and device they want, and the helper
+preserves both. For numerical stability under large means, callers
+should pre-cast inputs to ``float64`` (the consumer metric classes
+already do this in their own ``update`` methods).
+
+Updates follow Welford's online algorithm. Two accumulators can be
+combined into one via :meth:`merge`, which implements the Chan /
+Welford parallel formula and is the basis for cross-rank distributed
+reductions.
 
 References:
     Welford, B. P. (1962). Note on a method for calculating corrected
@@ -21,11 +26,16 @@ References:
     https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Welford's_online_algorithm
 """
 
-from typing import Union
+from dataclasses import dataclass, field
 
 import torch
 
 
+def _zero() -> torch.Tensor:
+    return torch.tensor(0.0)
+
+
+@dataclass
 class WelfordVariance:
     """Numerically stable running mean and variance via Welford's algorithm.
 
@@ -35,52 +45,38 @@ class WelfordVariance:
     which uses the Chan / Welford parallel formula and is the basis for
     distributed reductions.
 
-    State is kept in ``float64`` regardless of input dtype so that the
-    classic ``E[X^2] - E[X]^2`` cancellation does not bite for inputs
-    with large means.
+    No dtype or device handling is performed inside the class: the
+    state takes the dtype and device of the first batch passed to
+    :meth:`update`. For numerical stability under large means, callers
+    should hand in ``float64`` tensors.
 
-    Args:
-        device: device on which to keep the running-state tensors.
-            Default: ``"cpu"``.
+    Example::
 
-    Example:
-
-        .. code-block:: python
-
-            ws = WelfordVariance()
-            for batch in stream:
-                ws.update(batch)
-            print(ws.mean.item(), ws.variance.item(), ws.std.item())
+        ws = WelfordVariance()
+        for batch in stream:
+            ws.update(batch.to(torch.float64))
+        print(ws.mean.item(), ws.variance.item(), ws.std.item())
     """
 
-    n_samples: int
-    mean: torch.Tensor
-    sum_sq_dev_from_mean: torch.Tensor
-
-    def __init__(self, device: Union[str, torch.device] = "cpu") -> None:
-        self._device = torch.device(device)
-        self.reset()
-
-    def reset(self) -> None:
-        """Drop all accumulated state."""
-        self.n_samples = 0
-        self.mean = torch.tensor(0.0, dtype=torch.float64, device=self._device)
-        self.sum_sq_dev_from_mean = torch.tensor(0.0, dtype=torch.float64, device=self._device)
+    n_samples: int = 0
+    mean: torch.Tensor = field(default_factory=_zero)
+    sum_sq_dev_from_mean: torch.Tensor = field(default_factory=_zero)
 
     @torch.no_grad()
     def update(self, batch: torch.Tensor) -> None:
         """Fold a batch of samples into the running state.
 
-        Empty batches are silently ignored. Inputs of any dtype are
-        upcast to ``float64`` for the internal computation.
+        Empty batches are silently ignored. ``batch.mean()`` and
+        ``batch.numel()`` perform a full reduction over the input, so
+        any shape is accepted and treated as ``numel`` scalar samples.
         """
         if batch.numel() == 0:
             return
-        batch64 = batch.detach().to(dtype=torch.float64).flatten()
-        n_b = batch64.shape[0]
+        batch = batch.detach()
+        n_b = batch.numel()
 
-        mean_b = batch64.mean().to(self._device)
-        m2_b = (batch64 - batch64.mean()).square().sum().to(self._device)
+        mean_b = batch.mean()
+        m2_b = (batch - mean_b).square().sum()
 
         if self.n_samples == 0:
             self.mean = mean_b
@@ -96,26 +92,21 @@ class WelfordVariance:
         self.n_samples = n_ab
 
     def merge(self, other: "WelfordVariance") -> None:
-        """Combine ``other`` into ``self`` using the Chan / Welford parallel formula.
-
-        Used both for cross-rank reduction in distributed settings and
-        for any other case where two accumulators need to be combined
-        into one without re-iterating the raw data.
-        """
+        """Combine ``other`` into ``self`` using the Chan / Welford parallel formula."""
         if other.n_samples == 0:
             return
         if self.n_samples == 0:
             self.n_samples = other.n_samples
-            self.mean = other.mean.detach().clone().to(self._device)
-            self.sum_sq_dev_from_mean = other.sum_sq_dev_from_mean.detach().clone().to(self._device)
+            self.mean = other.mean.detach().clone()
+            self.sum_sq_dev_from_mean = other.sum_sq_dev_from_mean.detach().clone()
             return
         n_a = self.n_samples
         n_b = other.n_samples
         n_ab = n_a + n_b
-        delta = other.mean.to(self._device) - self.mean
+        delta = other.mean - self.mean
         self.mean = self.mean + delta * n_b / n_ab
         self.sum_sq_dev_from_mean = (
-            self.sum_sq_dev_from_mean + other.sum_sq_dev_from_mean.to(self._device) + delta * delta * n_a * n_b / n_ab
+            self.sum_sq_dev_from_mean + other.sum_sq_dev_from_mean + delta * delta * n_a * n_b / n_ab
         )
         self.n_samples = n_ab
 
@@ -123,7 +114,7 @@ class WelfordVariance:
     def variance(self) -> torch.Tensor:
         """Population variance (divisor ``n``). Returns ``0.0`` when empty."""
         if self.n_samples == 0:
-            return torch.tensor(0.0, dtype=torch.float64, device=self._device)
+            return torch.tensor(0.0)
         return torch.clamp(self.sum_sq_dev_from_mean / self.n_samples, min=0.0)
 
     @property
@@ -132,6 +123,7 @@ class WelfordVariance:
         return self.variance.sqrt()
 
 
+@dataclass
 class WelfordCovariance:
     """Numerically stable running covariance for a pair of variables (x, y).
 
@@ -140,37 +132,24 @@ class WelfordCovariance:
     online update + Chan / Welford parallel merge as
     :class:`WelfordVariance`.
 
-    Args:
-        device: device on which to keep the running-state tensors.
-            Default: ``"cpu"``.
+    Like :class:`WelfordVariance`, the class is dtype and device
+    agnostic: state takes the dtype and device of the first batch
+    passed to :meth:`update`.
     """
 
-    n_samples: int
-    mean_x: torch.Tensor
-    mean_y: torch.Tensor
-    sum_sq_dev_x: torch.Tensor
-    sum_sq_dev_y: torch.Tensor
-    sum_product_of_devs: torch.Tensor
-
-    def __init__(self, device: Union[str, torch.device] = "cpu") -> None:
-        self._device = torch.device(device)
-        self.reset()
-
-    def reset(self) -> None:
-        """Drop all accumulated state."""
-        self.n_samples = 0
-        self.mean_x = torch.tensor(0.0, dtype=torch.float64, device=self._device)
-        self.mean_y = torch.tensor(0.0, dtype=torch.float64, device=self._device)
-        self.sum_sq_dev_x = torch.tensor(0.0, dtype=torch.float64, device=self._device)
-        self.sum_sq_dev_y = torch.tensor(0.0, dtype=torch.float64, device=self._device)
-        self.sum_product_of_devs = torch.tensor(0.0, dtype=torch.float64, device=self._device)
+    n_samples: int = 0
+    mean_x: torch.Tensor = field(default_factory=_zero)
+    mean_y: torch.Tensor = field(default_factory=_zero)
+    sum_sq_dev_x: torch.Tensor = field(default_factory=_zero)
+    sum_sq_dev_y: torch.Tensor = field(default_factory=_zero)
+    sum_product_of_devs: torch.Tensor = field(default_factory=_zero)
 
     @torch.no_grad()
     def update(self, batch_x: torch.Tensor, batch_y: torch.Tensor) -> None:
         """Fold a paired batch ``(x_i, y_i)`` into the running state.
 
-        ``batch_x`` and ``batch_y`` must have the same shape; both are
-        flattened internally and upcast to ``float64``.
+        ``batch_x`` and ``batch_y`` must have the same shape; the full
+        tensor is reduced as ``numel`` scalar samples.
         """
         if batch_x.shape != batch_y.shape:
             raise ValueError(
@@ -179,17 +158,17 @@ class WelfordCovariance:
         if batch_x.numel() == 0:
             return
 
-        x64 = batch_x.detach().to(dtype=torch.float64).flatten()
-        y64 = batch_y.detach().to(dtype=torch.float64).flatten()
-        n_b = x64.shape[0]
+        x = batch_x.detach()
+        y = batch_y.detach()
+        n_b = x.numel()
 
-        mean_x_b = x64.mean().to(self._device)
-        mean_y_b = y64.mean().to(self._device)
-        dx_b = x64 - mean_x_b
-        dy_b = y64 - mean_y_b
-        m2_x_b = dx_b.square().sum().to(self._device)
-        m2_y_b = dy_b.square().sum().to(self._device)
-        cxy_b = (dx_b * dy_b).sum().to(self._device)
+        mean_x_b = x.mean()
+        mean_y_b = y.mean()
+        dx_b = x - mean_x_b
+        dy_b = y - mean_y_b
+        m2_x_b = dx_b.square().sum()
+        m2_y_b = dy_b.square().sum()
+        cxy_b = (dx_b * dy_b).sum()
 
         if self.n_samples == 0:
             self.mean_x = mean_x_b
@@ -219,47 +198,45 @@ class WelfordCovariance:
             return
         if self.n_samples == 0:
             self.n_samples = other.n_samples
-            self.mean_x = other.mean_x.detach().clone().to(self._device)
-            self.mean_y = other.mean_y.detach().clone().to(self._device)
-            self.sum_sq_dev_x = other.sum_sq_dev_x.detach().clone().to(self._device)
-            self.sum_sq_dev_y = other.sum_sq_dev_y.detach().clone().to(self._device)
-            self.sum_product_of_devs = other.sum_product_of_devs.detach().clone().to(self._device)
+            self.mean_x = other.mean_x.detach().clone()
+            self.mean_y = other.mean_y.detach().clone()
+            self.sum_sq_dev_x = other.sum_sq_dev_x.detach().clone()
+            self.sum_sq_dev_y = other.sum_sq_dev_y.detach().clone()
+            self.sum_product_of_devs = other.sum_product_of_devs.detach().clone()
             return
         n_a = self.n_samples
         n_b = other.n_samples
         n_ab = n_a + n_b
         cross = n_a * n_b / n_ab
-        delta_x = other.mean_x.to(self._device) - self.mean_x
-        delta_y = other.mean_y.to(self._device) - self.mean_y
+        delta_x = other.mean_x - self.mean_x
+        delta_y = other.mean_y - self.mean_y
 
         self.mean_x = self.mean_x + delta_x * n_b / n_ab
         self.mean_y = self.mean_y + delta_y * n_b / n_ab
-        self.sum_sq_dev_x = self.sum_sq_dev_x + other.sum_sq_dev_x.to(self._device) + delta_x * delta_x * cross
-        self.sum_sq_dev_y = self.sum_sq_dev_y + other.sum_sq_dev_y.to(self._device) + delta_y * delta_y * cross
-        self.sum_product_of_devs = (
-            self.sum_product_of_devs + other.sum_product_of_devs.to(self._device) + delta_x * delta_y * cross
-        )
+        self.sum_sq_dev_x = self.sum_sq_dev_x + other.sum_sq_dev_x + delta_x * delta_x * cross
+        self.sum_sq_dev_y = self.sum_sq_dev_y + other.sum_sq_dev_y + delta_y * delta_y * cross
+        self.sum_product_of_devs = self.sum_product_of_devs + other.sum_product_of_devs + delta_x * delta_y * cross
         self.n_samples = n_ab
 
     @property
     def variance_x(self) -> torch.Tensor:
         """Population variance of ``x`` (divisor ``n``)."""
         if self.n_samples == 0:
-            return torch.tensor(0.0, dtype=torch.float64, device=self._device)
+            return torch.tensor(0.0)
         return torch.clamp(self.sum_sq_dev_x / self.n_samples, min=0.0)
 
     @property
     def variance_y(self) -> torch.Tensor:
         """Population variance of ``y`` (divisor ``n``)."""
         if self.n_samples == 0:
-            return torch.tensor(0.0, dtype=torch.float64, device=self._device)
+            return torch.tensor(0.0)
         return torch.clamp(self.sum_sq_dev_y / self.n_samples, min=0.0)
 
     @property
     def covariance(self) -> torch.Tensor:
         """Population covariance of ``(x, y)`` (divisor ``n``)."""
         if self.n_samples == 0:
-            return torch.tensor(0.0, dtype=torch.float64, device=self._device)
+            return torch.tensor(0.0)
         return self.sum_product_of_devs / self.n_samples
 
     def correlation(self, eps: float = 1e-8) -> torch.Tensor:

@@ -32,8 +32,10 @@ class TestWelfordVariance:
         assert ws.variance.item() == pytest.approx(float(data.var()), rel=1e-12)
 
     def test_multi_batch_matches_single_batch(self):
+        # Use float64 so the test exercises the algorithm rather than float32
+        # accumulation noise.
         rng = np.random.default_rng(1)
-        data = rng.standard_normal(1000).astype(np.float32)
+        data = rng.standard_normal(1000)
         data_t = torch.from_numpy(data)
 
         single = WelfordVariance()
@@ -85,7 +87,7 @@ class TestWelfordVariance:
     def test_numerical_stability_large_mean_float32(self):
         # The whole point of this helper: naive Σx^2 - (Σx)^2/n computed in
         # float32 catastrophically cancels at mean=1e6, returning ~0 variance
-        # (or even negative). Welford in float64 stays exact.
+        # (or even negative). Welford fed float64 inputs stays exact.
         rng = np.random.default_rng(4)
         true_std = 1.0
         data = rng.standard_normal(10_000).astype(np.float32) * true_std + 1e6
@@ -98,9 +100,10 @@ class TestWelfordVariance:
         # Use float64 ground truth so the assertion isn't measuring our own bug.
         true_var = float(np.var(data.astype(np.float64)))
 
-        # Welford in float64 should recover the true variance.
+        # The helper is dtype-agnostic; the caller is responsible for the
+        # float64 upcast. Verify the upcast path recovers the true variance.
         ws = WelfordVariance()
-        ws.update(data_t)
+        ws.update(data_t.to(torch.float64))
         assert ws.variance.item() == pytest.approx(true_var, rel=1e-6)
 
         # And the naive float32 formula must demonstrably fail on the same
@@ -124,20 +127,28 @@ class TestWelfordVariance:
         after = (ws.n_samples, ws.mean.item(), ws.variance.item())
         assert before == after
 
-    def test_reset(self):
+    def test_fresh_instance_has_zero_state(self):
+        # The dataclass starts empty; "reset" is just reconstruction. Verifies
+        # that the default factories produce an empty accumulator.
         ws = WelfordVariance()
-        ws.update(torch.randn(100))
-        ws.reset()
         assert ws.n_samples == 0
         assert ws.mean.item() == 0.0
         assert ws.sum_sq_dev_from_mean.item() == 0.0
 
-    def test_input_dtype_upcast_to_float64(self):
-        ws = WelfordVariance()
-        ws.update(torch.tensor([1, 2, 3, 4], dtype=torch.int32))
-        assert ws.mean.dtype == torch.float64
-        assert ws.mean.item() == pytest.approx(2.5)
-        assert ws.variance.item() == pytest.approx(1.25)
+    def test_state_dtype_follows_first_batch(self):
+        # The helper does not handle dtype itself; it takes whatever dtype
+        # the first batch arrives in and preserves it. The caller chooses.
+        ws_f32 = WelfordVariance()
+        ws_f32.update(torch.tensor([1.0, 2.0, 3.0, 4.0], dtype=torch.float32))
+        assert ws_f32.mean.dtype == torch.float32
+        assert ws_f32.mean.item() == pytest.approx(2.5)
+        assert ws_f32.variance.item() == pytest.approx(1.25)
+
+        ws_f64 = WelfordVariance()
+        ws_f64.update(torch.tensor([1.0, 2.0, 3.0, 4.0], dtype=torch.float64))
+        assert ws_f64.mean.dtype == torch.float64
+        assert ws_f64.mean.item() == pytest.approx(2.5)
+        assert ws_f64.variance.item() == pytest.approx(1.25)
 
 
 # ---------------------------------------------------------------------------
@@ -210,8 +221,8 @@ class TestWelfordCovariance:
 
     def test_numerical_stability_large_mean(self):
         # The Pearson-correlation regression case from issue #3662: mean=1e6,
-        # std=1 in float32 makes the naive E[X^2] - E[X]^2 formula return
-        # garbage. Welford with float64 internals recovers the true r.
+        # std=1 makes the naive E[X^2] - E[X]^2 formula return garbage in
+        # float32. Welford fed float64 inputs recovers the true r.
         rng = np.random.default_rng(8)
         n = 10_000
         x = rng.standard_normal(n).astype(np.float32) + 1e6
@@ -221,8 +232,9 @@ class TestWelfordCovariance:
         # Sanity: the constructed series really is highly correlated.
         assert true_r > 0.99
 
+        # Caller-side upcast to float64 (the helper preserves whatever it gets).
         wc = WelfordCovariance()
-        wc.update(torch.from_numpy(x), torch.from_numpy(y))
+        wc.update(torch.from_numpy(x).to(torch.float64), torch.from_numpy(y).to(torch.float64))
         assert wc.correlation().item() == pytest.approx(true_r, rel=1e-4)
 
     def test_shape_mismatch_raises(self):
@@ -247,10 +259,9 @@ class TestWelfordCovariance:
         assert r == 0.0
         assert not (r != r)  # not NaN
 
-    def test_reset(self):
+    def test_fresh_instance_has_zero_state(self):
+        # "Reset" is just reconstruction with this dataclass.
         wc = WelfordCovariance()
-        wc.update(torch.randn(50), torch.randn(50))
-        wc.reset()
         assert wc.n_samples == 0
         assert wc.covariance.item() == 0.0
 
