@@ -128,7 +128,7 @@ class Engine(Serializable):
 
     """
 
-    _state_dict_all_req_keys: tuple[str, ...] = ("epoch_length",)
+    _state_dict_all_req_keys: tuple[str, ...] = ("epoch_length", "iteration")
     _state_dict_one_of_opt_keys: tuple[tuple[str, ...], ...] = (("iteration", "epoch"), ("max_epochs", "max_iters"))
 
     # Flag to disable engine._internal_run as generator feature for BC
@@ -682,8 +682,9 @@ class Engine(Serializable):
         return self._state_dict_user_keys
 
     def state_dict(self) -> OrderedDict:
-        """Returns a dictionary containing engine's state: "epoch_length", "max_epochs" and "iteration" and
-        other state values defined by `engine.state_dict_user_keys`
+        """Returns a dictionary containing engine's state: ``"epoch_length"``, ``"iteration"``,
+        one of ``"max_epochs"`` or ``"max_iters"``, and other state values defined by
+        ``engine.state_dict_user_keys``.
 
         .. code-block:: python
 
@@ -712,8 +713,6 @@ class Engine(Serializable):
 
         """
         keys: tuple[str, ...] = self._state_dict_all_req_keys
-        # We add iteration by default to get exact measure of progress
-        keys += ("iteration",)
         # Include either max_epochs or max_iters based on which was originally set
         if self.state.max_iters is not None:
             keys += ("max_iters",)
