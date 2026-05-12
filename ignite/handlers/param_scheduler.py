@@ -1125,6 +1125,33 @@ def create_lr_scheduler_with_warmup(
             0.09223...
             0.09039...
 
+        The warm-up and post-warm-up schedulers can also be attached to different events by combining event filters.
+        For example, run the warm-up on iterations and the wrapped scheduler at the start of each later epoch:
+
+        .. code-block:: python
+
+            import torch
+            from ignite.engine import Engine, Events
+            from ignite.handlers import create_lr_scheduler_with_warmup
+            from torch.optim import SGD
+            from torch.optim.lr_scheduler import ExponentialLR
+
+            trainer = Engine(lambda engine, batch: None)
+            optimizer = SGD([torch.zeros(1, requires_grad=True)], lr=0.1)
+            torch_lr_scheduler = ExponentialLR(optimizer, gamma=0.5)
+            scheduler = create_lr_scheduler_with_warmup(
+                torch_lr_scheduler, warmup_start_value=0.0, warmup_duration=5
+            )
+
+            epoch_length = 8
+            combined_events = Events.ITERATION_STARTED(
+                event_filter=lambda engine, event: engine.state.iteration <= 5
+            )
+            combined_events |= Events.EPOCH_STARTED(
+                event_filter=lambda engine, event: engine.state.epoch > 1 + 5 / epoch_length
+            )
+            trainer.add_event_handler(combined_events, scheduler)
+
     .. versionadded:: 0.4.5
     """
     if not isinstance(lr_scheduler, (ParamScheduler, PyTorchLRScheduler)):
