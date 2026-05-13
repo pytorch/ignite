@@ -53,8 +53,7 @@ def _cohen_kappa_score(
     cm = ConfusionMatrix(num_classes=num_classes, device=y_pred.device)
     y_pred_oh = F.one_hot(y_pred.long(), num_classes).float()
     cm.update((y_pred_oh, y.long()))
-    double_dtype = torch.float32 if y_pred.device.type == "mps" else torch.float64
-    conf = cm.compute().to(dtype=double_dtype)
+    conf = cm.compute().to(dtype=cm._double_dtype)
 
     return _kappa_from_conf(conf, weights)
 

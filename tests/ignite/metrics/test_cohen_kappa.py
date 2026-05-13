@@ -21,6 +21,33 @@ def test_no_update():
         ck.compute()
 
 
+def test_input_types():
+    ck = CohenKappa()
+    ck.reset()
+    output1 = (torch.rand(10), torch.randint(0, 2, size=(10,), dtype=torch.long))
+    ck.update(output1)
+
+    with pytest.raises(ValueError, match=r"Incoherent types between input y_pred and stored predictions"):
+        ck.update((torch.randint(0, 5, size=(10,)), torch.randint(0, 2, size=(10,))))
+
+    with pytest.raises(ValueError, match=r"Incoherent types between input y and stored targets"):
+        ck.update((torch.rand(10), torch.randint(0, 2, size=(10,)).to(torch.int32)))
+
+
+def test_check_shape():
+    ck = CohenKappa()
+    impl = ck._impl
+
+    with pytest.raises(ValueError, match=r"Predictions should be of shape"):
+        impl._check_shape((torch.tensor(0), torch.tensor(0)))
+
+    with pytest.raises(ValueError, match=r"Predictions should be of shape"):
+        impl._check_shape((torch.rand(4, 3, 1), torch.rand(4, 3)))
+
+    with pytest.raises(ValueError, match=r"Targets should be of shape"):
+        impl._check_shape((torch.rand(4, 3), torch.rand(4, 3, 1)))
+
+
 def test_cohen_kappa_wrong_weights_type():
     with pytest.raises(ValueError, match=r"Kappa Weighting type must be"):
         ck = CohenKappa(weights=7)
