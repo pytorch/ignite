@@ -68,7 +68,7 @@ def test_state_dict_integration():
     [
         ("not a dict", TypeError, r"Argument state_dict should be a dictionary"),
         ({}, ValueError, r"Required state attribute 'epoch_length' is absent"),
-        ({"epoch_length": 100}, ValueError, r"state_dict should contain exactly one of"),
+        ({"epoch_length": 100}, ValueError, r"Required state attribute 'iteration' is absent"),
         (
             {"epoch_length": 100, "iteration": 10, "epoch": 1, "max_epochs": 5},
             ValueError,
@@ -90,6 +90,11 @@ def test_state_dict_integration():
             ValueError,
             r"Required user state attribute 'alpha'",
         ),
+        (
+            {"max_epochs": 100, "epoch": 2, "epoch_length": None},
+            ValueError,
+            r"If epoch is provided in the state dict, epoch_length should not be None",
+        ),
     ],
 )
 def test_load_state_dict_errors(state_dict, error_type, match):
@@ -98,10 +103,6 @@ def test_load_state_dict_errors(state_dict, error_type, match):
         engine.state_dict_user_keys.append("alpha")
     with pytest.raises(error_type, match=match):
         engine.load_state_dict(state_dict)
-
-    engine = Engine(lambda e, b: 1)
-    with pytest.raises(ValueError, match=r"If epoch is provided in the state dict, epoch_length should not be None"):
-        engine.load_state_dict({"max_epochs": 100, "epoch": 2, "epoch_length": None})
 
 
 def test_load_state_dict():

@@ -129,7 +129,7 @@ class Engine(Serializable):
     """
 
     _state_dict_all_req_keys: tuple[str, ...] = ("epoch_length", "iteration")
-    _state_dict_one_of_opt_keys: tuple[tuple[str, ...], ...] = (("iteration", "epoch"), ("max_epochs", "max_iters"))
+    _state_dict_one_of_opt_keys: tuple[tuple[str, ...], ...] = (("max_epochs", "max_iters"),)
 
     # Flag to disable engine._internal_run as generator feature for BC
     interrupt_resume_enabled = True
@@ -750,6 +750,21 @@ class Engine(Serializable):
             Added support for restoring from a state dict containing ``max_iters`` instead of ``max_epochs``.
 
         """
+        if "iteration" in state_dict and "epoch" in state_dict:
+            raise ValueError("state_dict should contain exactly one of '('iteration', 'epoch')' keys")
+
+        # if iteration is missing but epoch is present, calculate it
+        # so that validation in super().load_state_dict() passes.
+        if "iteration" not in state_dict and "epoch" in state_dict:
+            state_dict = dict(state_dict)
+            epoch_length = state_dict.get("epoch_length")
+            if epoch_length is None:
+                raise ValueError(
+                    "If epoch is provided in the state dict, epoch_length should not be None. "
+                    f"Input state_dict: {state_dict}"
+                )
+            state_dict["iteration"] = state_dict["epoch"] * epoch_length
+
         super().load_state_dict(state_dict)
 
         for k in self._state_dict_user_keys:
