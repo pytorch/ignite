@@ -1,17 +1,20 @@
 """Numerically stable running variance and covariance helpers.
 
-Shared by metrics that need to accumulate variance / covariance from
-streaming batches without falling into the catastrophic-cancellation
-trap of the naive ``E[X^2] - E[X]^2`` formula. Used by
-:class:`~ignite.metrics.regression.PearsonCorrelation` and
-:class:`~ignite.metrics.regression.R2Score`; new metrics with the same
-need should consume these helpers rather than rolling their own.
+Shared internal primitives for metrics that need to accumulate
+variance / covariance from streaming batches without falling into
+the catastrophic-cancellation trap of the naive ``E[X^2] - E[X]^2``
+formula. Intended consumers (in follow-up PRs of #3748): the
+``R2Score`` denominator and ``PearsonCorrelation`` cross-product —
+new metrics with the same need should consume these helpers rather
+than rolling their own.
 
-Both classes are tensor-type-agnostic dataclasses: callers supply
-tensors in whatever dtype and device they want, and the helper
-preserves both. For numerical stability under large means, callers
-should pre-cast inputs to ``float64`` (the consumer metric classes
-already do this in their own ``update`` methods).
+Both classes are dtype and device agnostic dataclasses: state takes
+the dtype and device of the first batch passed to :meth:`update`,
+and is preserved across subsequent updates and merges. The caller
+is responsible for upcasting inputs to ``float64`` when numerical
+stability under large means matters — the helper does not silently
+promote, because doing so would surprise callers that already work
+in the higher-precision dtype.
 
 Two operations matter: :meth:`merge`, which combines two accumulators
 into one via the Chan / Welford parallel formula (also the basis for
@@ -90,6 +93,7 @@ class WelfordVariance:
         )
         self.merge(batch_acc)
 
+    @torch.no_grad()
     def merge(self, other: "WelfordVariance") -> None:
         """Combine ``other`` into ``self`` using the Chan / Welford parallel formula.
 
@@ -213,6 +217,7 @@ class WelfordCovariance:
         )
         self.merge(batch_acc)
 
+    @torch.no_grad()
     def merge(self, other: "WelfordCovariance") -> None:
         """Combine ``other`` into ``self`` using the Chan / Welford parallel formula.
 
@@ -236,9 +241,6 @@ class WelfordCovariance:
         n_a = self.n_samples
         n_b = other.n_samples
         n_ab = n_a + n_b
-        # The correction-term coefficient n_a * n_b / n_ab shows up in
-        # every parallel-formula line below; compute it once.
-        cross_coef = n_a * n_b / n_ab
         delta_x = other.mean_x - self.mean_x
         delta_y = other.mean_y - self.mean_y
 
@@ -249,11 +251,20 @@ class WelfordCovariance:
         # Three parallel-formula combinations: variance of x, variance
         # of y, and covariance of (x, y). Each is M_self + M_other plus
         # a correction for the fact that the two batches had different
-        # local means.
-        self.sum_sq_dev_x = self.sum_sq_dev_x + other.sum_sq_dev_x + delta_x * delta_x * cross_coef
-        self.sum_sq_dev_y = self.sum_sq_dev_y + other.sum_sq_dev_y + delta_y * delta_y * cross_coef
+        # local means. The (n_a * n_b / n_ab) coefficient is inlined
+        # rather than precomputed as a Python float so the arithmetic
+        # stays on the same dtype/device as the M2 / cross-product
+        # tensors — mirrors WelfordVariance.merge.
+        self.sum_sq_dev_x = (
+            self.sum_sq_dev_x + other.sum_sq_dev_x + delta_x * delta_x * n_a * n_b / n_ab
+        )
+        self.sum_sq_dev_y = (
+            self.sum_sq_dev_y + other.sum_sq_dev_y + delta_y * delta_y * n_a * n_b / n_ab
+        )
         self.sum_product_of_devs = (
-            self.sum_product_of_devs + other.sum_product_of_devs + delta_x * delta_y * cross_coef
+            self.sum_product_of_devs
+            + other.sum_product_of_devs
+            + delta_x * delta_y * n_a * n_b / n_ab
         )
         self.n_samples = n_ab
 
