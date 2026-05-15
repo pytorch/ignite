@@ -31,6 +31,9 @@ concurrency:
   group: unit-tests-${{ github.ref_name }}-${{ !(github.ref_protected) || github.sha }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   cpu-tests:
     runs-on: ${{ matrix.os }}

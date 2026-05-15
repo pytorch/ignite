@@ -17,6 +17,9 @@ concurrency:
 
 # Cherry-picked from https://github.com/pytorch/test-infra/blob/main/.github/workflows/linux_job.yml
 
+permissions:
+  contents: read
+
 jobs:
   gpu-hvd-tests:
     strategy:

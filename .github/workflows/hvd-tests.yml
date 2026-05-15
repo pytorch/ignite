@@ -23,6 +23,9 @@ concurrency:
   group: hvd-tests-${{ github.ref_name }}-${{ !(github.ref_protected) || github.sha }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   horovod-tests:
     runs-on: ubuntu-latest

@@ -29,6 +29,9 @@ concurrency:
 # - https://github.com/pytorch/vision/blob/main/.github/workflows/tests.yml
 # - https://github.com/pytorch/test-infra/blob/main/.github/workflows/macos_job.yml
 
+permissions:
+  contents: read
+
 jobs:
   mps-tests:
     strategy:
