@@ -70,11 +70,6 @@ def test_state_dict_integration():
         ({}, ValueError, r"Required state attribute 'epoch_length' is absent"),
         ({"epoch_length": 100}, ValueError, r"Required state attribute 'iteration' is absent"),
         (
-            {"epoch_length": 100, "iteration": 10, "epoch": 1, "max_epochs": 5},
-            ValueError,
-            r"should contain exactly one of '\('iteration', 'epoch'\)'",
-        ),
-        (
             {"epoch_length": 100, "iteration": 10, "max_epochs": 5, "max_iters": 500},
             ValueError,
             r"should contain exactly one of '\('max_epochs', 'max_iters'\)'",
@@ -91,9 +86,24 @@ def test_state_dict_integration():
             r"Required user state attribute 'alpha'",
         ),
         (
+            {"iteration": 0, "epoch": 5, "epoch_length": None, "max_epochs": 10},
+            ValueError,
+            r"If one is zero, both must be zero",
+        ),
+        (
+            {"iteration": 50, "epoch": 1, "epoch_length": 100, "max_epochs": 10},
+            ValueError,
+            r"State dict contains both 'iteration' and 'epoch' but they are inconsistent",
+        ),
+        (
             {"max_epochs": 100, "epoch": 2, "epoch_length": None},
             ValueError,
-            r"If epoch is provided in the state dict, epoch_length should not be None",
+            r"epoch_length must be a positive integer to calculate iteration from epoch",
+        ),
+        (
+            {"max_epochs": 100, "iteration": 200, "epoch_length": 0},
+            ValueError,
+            r"epoch_length must be a positive integer to calculate epoch from iteration",
         ),
     ],
 )
