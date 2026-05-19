@@ -86,24 +86,19 @@ def test_state_dict_integration():
             r"Required user state attribute 'alpha'",
         ),
         (
-            {"iteration": 0, "epoch": 5, "epoch_length": None, "max_epochs": 10},
-            ValueError,
-            r"If one is zero, both must be zero",
-        ),
-        (
             {"iteration": 50, "epoch": 1, "epoch_length": 100, "max_epochs": 10},
             ValueError,
-            r"State dict contains both 'iteration' and 'epoch' but they are inconsistent",
+            r"State dictionary should contain only one of 'iteration' or 'epoch' keys",
         ),
         (
             {"max_epochs": 100, "epoch": 2, "epoch_length": None},
             ValueError,
-            r"epoch_length must be a positive integer to calculate iteration from epoch",
+            r"epoch_length must be a positive integer to calculate missing 'iteration' or 'epoch' key.",
         ),
         (
             {"max_epochs": 100, "iteration": 200, "epoch_length": 0},
             ValueError,
-            r"epoch_length must be a positive integer to calculate epoch from iteration",
+            r"epoch_length must be a positive integer to calculate missing 'iteration' or 'epoch' key.",
         ),
     ],
 )

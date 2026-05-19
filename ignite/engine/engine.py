@@ -751,57 +751,29 @@ class Engine(Serializable):
 
         """
         if "iteration" in state_dict and "epoch" in state_dict:
-            # Check consistency if both are provided
+            raise ValueError(
+                "State dictionary should contain only one of 'iteration' or 'epoch' keys. "
+                f"Found both: iteration={state_dict['iteration']}, epoch={state_dict['epoch']}."
+            )
+        elif "iteration" in state_dict or "epoch" in state_dict:
+            # calculate missing iteration or epoch so that validation in super().load_state_dict() passes.
+            state_dict = dict(state_dict)
             epoch_length = state_dict.get("epoch_length")
-            it = state_dict["iteration"]
-            ep = state_dict["epoch"]
 
-            # Zero-case consistency check (independent of epoch_length)
-            if (it == 0 and ep != 0) or (ep == 0 and it != 0):
-                raise ValueError(
-                    f"State dict contains inconsistent 'iteration' and 'epoch' values: "
-                    f"iteration={it}, epoch={ep}. If one is zero, both must be zero."
-                )
-
-            # Mathematical consistency check (requires epoch_length)
-            if epoch_length is not None and epoch_length > 0:
-                expected_iteration = ep * epoch_length
-                if it != expected_iteration:
+            if state_dict.get("epoch") == 0 or state_dict.get("iteration") == 0:
+                state_dict["epoch"] = 0
+                state_dict["iteration"] = 0
+            else:
+                if epoch_length is None or epoch_length <= 0:
                     raise ValueError(
-                        f"State dict contains both 'iteration' and 'epoch' but they are inconsistent. "
-                        f"With epoch_length={epoch_length}, epoch={ep} "
-                        f"should be iteration={expected_iteration}, but found iteration={it}."
+                        "epoch_length must be a positive integer to calculate missing 'iteration' or 'epoch' key. "
+                        f"Input state_dict: {state_dict}"
                     )
 
-        # if iteration is missing but epoch is present, calculate it
-        # so that validation in super().load_state_dict() passes.
-        if "iteration" not in state_dict and "epoch" in state_dict:
-            state_dict = dict(state_dict)
-            epoch_length = state_dict.get("epoch_length")
-            if state_dict["epoch"] == 0:
-                state_dict["iteration"] = 0
-            elif epoch_length is None or epoch_length == 0:
-                raise ValueError(
-                    "epoch_length must be a positive integer to calculate iteration from epoch. "
-                    f"Input state_dict: {state_dict}"
-                )
-            else:
-                state_dict["iteration"] = state_dict["epoch"] * epoch_length
-
-        # if epoch is missing but iteration is present, calculate it
-        # so that validation in super().load_state_dict() passes.
-        if "epoch" not in state_dict and "iteration" in state_dict:
-            state_dict = dict(state_dict)
-            epoch_length = state_dict.get("epoch_length")
-            if state_dict["iteration"] == 0:
-                state_dict["epoch"] = 0
-            elif epoch_length is None or epoch_length == 0:
-                raise ValueError(
-                    "epoch_length must be a positive integer to calculate epoch from iteration. "
-                    f"Input state_dict: {state_dict}"
-                )
-            else:
-                state_dict["epoch"] = state_dict["iteration"] // epoch_length
+                if "epoch" in state_dict:
+                    state_dict["iteration"] = state_dict["epoch"] * epoch_length
+                else:
+                    state_dict["epoch"] = state_dict["iteration"] // epoch_length
 
         super().load_state_dict(state_dict)
 
