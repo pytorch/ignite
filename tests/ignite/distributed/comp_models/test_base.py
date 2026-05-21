@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 import torch
 
@@ -57,6 +59,9 @@ def test__encode_input_data():
     encoded_msg = ComputationModel._encode_input_data("abc", is_src=True)
     assert encoded_msg == [2] + [-1] * 511
 
+    encoded_msg = ComputationModel._encode_input_data(Path("abc"), is_src=True)
+    assert encoded_msg == [3] + [-1] * 511
+
     t = torch.rand(2, 512, 32, 32, 64)
     encoded_msg = ComputationModel._encode_input_data(t, is_src=True)
     dtype_str = str(t.dtype)
@@ -94,6 +99,11 @@ def test__decode_as_placeholder():
     assert isinstance(res, str) and res == ""
 
     encoded_msg = [-1] * 512
+    encoded_msg[0] = 3
+    res = ComputationModel._decode_as_placeholder(encoded_msg, device)
+    assert isinstance(res, Path) and res == Path("")
+
+    encoded_msg = [-1] * 512
     encoded_msg[0] = 0
     encoded_msg[1 : 1 + 7] = [6, 2, 3, 4, 5, 6, 7]
     dtype_str = "torch.int64"
@@ -122,7 +132,7 @@ def test__setup_placeholder():
 
     from ignite.distributed.utils import _model
 
-    for t in [torch.rand(2, 3, 4), "abc", 123.45]:
+    for t in [torch.rand(2, 3, 4), "abc", Path("abc"), 123.45]:
         data = _model._setup_placeholder(t, device, True)
         assert isinstance(data, type(t))
         if isinstance(data, torch.Tensor):

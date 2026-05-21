@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import itertools
 import socket
+from pathlib import Path
 from collections.abc import Callable, Mapping, Sequence
 from contextlib import contextmanager
 from functools import wraps
@@ -432,12 +433,12 @@ def all_gather(
 
 
 def broadcast(
-    tensor: torch.Tensor | float | str | None, src: int = 0, safe_mode: bool = False
-) -> torch.Tensor | float | str:
+    tensor: torch.Tensor | float | str | Path | None, src: int = 0, safe_mode: bool = False
+) -> torch.Tensor | float | str | Path:
     """Helper method to perform broadcast operation.
 
     Args:
-        tensor: tensor or number or str to broadcast to participating processes.
+        tensor: tensor, number, str or pathlib.Path to broadcast to participating processes.
             Make sure to respect data type of torch tensor input for all processes, otherwise execution will crash.
             Can use None for non-source data with ``safe_mode=True``.
         src: source rank. Default, 0.
@@ -447,7 +448,7 @@ def broadcast(
             collectives before the broadcast, making it slower than without using this mode. Default, False.
 
     Returns:
-        torch.Tensor or string or number
+        torch.Tensor, string, pathlib.Path or number
 
     Examples:
         .. code-block:: python
