@@ -1,4 +1,4 @@
-""" ``ignite.contrib.handlers.wandb_logger`` was moved to ``ignite.handlers.wandb_logger``.
+"""``ignite.contrib.handlers.wandb_logger`` was moved to ``ignite.handlers.wandb_logger``.
 Note:
     ``ignite.contrib.handlers.wandb_logger`` was moved to ``ignite.handlers.wandb_logger``.
     Please refer to :mod:`~ignite.handlers.wandb_logger`.

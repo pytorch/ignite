@@ -1,4 +1,4 @@
-""" ``ignite.contrib.metrics.cohen_kappa`` was moved to ``ignite.metrics.cohen_kappa``.
+"""``ignite.contrib.metrics.cohen_kappa`` was moved to ``ignite.metrics.cohen_kappa``.
 Note:
     ``ignite.contrib.metrics.cohen_kappa`` was moved to ``ignite.metrics.cohen_kappa``.
     Please refer to :mod:`~ignite.metrics.cohen_kappa`.

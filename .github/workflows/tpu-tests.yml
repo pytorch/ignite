@@ -86,7 +86,7 @@ jobs:
           target_dir: /tmp
 
       - name: Run Tests
-        uses: nick-fields/retry@v3.0.2
+        uses: nick-fields/retry@v4.0.0
         with:
           max_attempts: 5
           timeout_minutes: 25
@@ -101,7 +101,7 @@ jobs:
           XRT_WORKERS: "localservice:0;grpc://localhost:40934"
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
           files: ./coverage.xml
           flags: tpu

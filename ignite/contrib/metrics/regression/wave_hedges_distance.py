@@ -1,4 +1,4 @@
-""" ``ignite.contrib.metrics.regression.wave_hedges_distance`` was moved to ``ignite.metrics.regression.wave_hedges_distance``. # noqa
+"""``ignite.contrib.metrics.regression.wave_hedges_distance`` was moved to ``ignite.metrics.regression.wave_hedges_distance``. # noqa
 Note:
     ``ignite.contrib.metrics.regression.wave_hedges_distance`` was moved to ``ignite.metrics.regression.wave_hedges_distance``. # noqa
     Please refer to :mod:`~ignite.metrics.regression.wave_hedges_distance`.

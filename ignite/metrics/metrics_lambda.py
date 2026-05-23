@@ -26,7 +26,7 @@ class MetricsLambda(Metric):
         args: Sequence of other metrics or something
             else that will be fed to ``f`` as arguments.
         skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
-            true for multi-output model, for example, if ``y_pred`` contains multi-ouput as ``(y_pred_a, y_pred_b)``
+            true for multi-output model, for example, if ``y_pred`` contains multi-output as ``(y_pred_a, y_pred_b)``
             Alternatively, ``output_transform`` can be used to handle this.
         metrics_result_mode: specifies how to put the computed metrics results into
             ``engine.state.metrics`` dictionary. Valid values are: "flatten", "named", "both".
@@ -172,13 +172,13 @@ class MetricsLambda(Metric):
     def detach(self, engine: Engine, usage: str | MetricUsage = EpochWise()) -> None:
         usage = self._check_usage(usage)
         # remove from engine
-        super(MetricsLambda, self).detach(engine, usage)
+        super().detach(engine, usage)
         self.engine = None
 
     def is_attached(self, engine: Engine, usage: str | MetricUsage = EpochWise()) -> bool:
         usage = self._check_usage(usage)
         # check recursively the dependencies
-        return super(MetricsLambda, self).is_attached(engine, usage) and self._internal_is_attached(engine, usage)
+        return super().is_attached(engine, usage) and self._internal_is_attached(engine, usage)
 
     def _internal_is_attached(self, engine: Engine, usage: MetricUsage) -> bool:
         # if no engine, metrics is not attached

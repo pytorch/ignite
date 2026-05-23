@@ -174,7 +174,6 @@ def test_distrib_integration(distributed, data_type, n_epochs):
         metric_devices.append(device)
 
     for metric_device in metric_devices:
-
         y_true_size = (
             (n_iters * batch_size, 3, 2) if data_type != "multilabel" else (n_iters * batch_size, n_classes, 3, 2)
         )

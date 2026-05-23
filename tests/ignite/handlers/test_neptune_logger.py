@@ -200,13 +200,13 @@ def test_output_handler_metric_names():
 
     wrapper(mock_engine, logger, Events.ITERATION_STARTED)
 
-    assert_logger_called_once_with(logger, "tag/a", 123),
-    assert_logger_called_once_with(logger, "tag/b/c/0", 2.34),
-    assert_logger_called_once_with(logger, "tag/b/c/1/d", 1),
-    assert_logger_called_once_with(logger, "tag/c/0", 22),
-    assert_logger_called_once_with(logger, "tag/c/1/0", 33),
-    assert_logger_called_once_with(logger, "tag/c/1/1", -5.5),
-    assert_logger_called_once_with(logger, "tag/c/2/e", 32.1),
+    assert_logger_called_once_with(logger, "tag/a", 123)
+    assert_logger_called_once_with(logger, "tag/b/c/0", 2.34)
+    assert_logger_called_once_with(logger, "tag/b/c/1/d", 1)
+    assert_logger_called_once_with(logger, "tag/c/0", 22)
+    assert_logger_called_once_with(logger, "tag/c/1/0", 33)
+    assert_logger_called_once_with(logger, "tag/c/1/1", -5.5)
+    assert_logger_called_once_with(logger, "tag/c/2/e", 32.1)
 
     logger.stop()
 
