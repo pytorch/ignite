@@ -23,15 +23,21 @@ accumulator state and merge pairwise::
     import ignite.distributed as idist
 
     def compute(self):
-        ws = self.welford
         if idist.get_world_size() > 1:
-            n = idist.all_gather(torch.tensor([ws.n_samples]))
-            m = idist.all_gather(ws.mean.reshape(1))
-            s = idist.all_gather(ws.sum_sq_dev_from_mean.reshape(1))
-            ws = WelfordVariance()
-            for i in range(len(n)):
-                ws.merge(WelfordVariance(int(n[i]), m[i], s[i]))
-        return ws.variance
+            collected = idist.all_gather(self.welford)
+            merged = WelfordVariance()
+            for item in collected:
+                merged.merge(item)
+            return merged.variance
+        return self.welford.variance
+
+``idist.all_gather`` of a dataclass instance routes through
+``_do_all_gather_object`` (pickle-backed, available for every backend
+including NCCL via a Gloo subgroup). Negligible overhead for the
+three small tensors carried by these accumulators. Consumers whose
+state is significantly larger than a few KB should pack into a flat
+tensor before ``all_gather`` and reconstruct on the other side, to
+skip the pickle hop.
 
 References:
     Welford, B. P. (1962). Technometrics 4(3), 419-420.
