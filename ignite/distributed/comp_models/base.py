@@ -279,12 +279,10 @@ class ComputationModel(metaclass=ABCMeta):
 
         if tensor_to_number:
             return tensor.item()
-        if tensor_to_str:
+        if tensor_to_str or tensor_to_path:
             list_str = self._decode_str(tensor)
-            return list_str[0]
-        if tensor_to_path:
-            list_str = self._decode_str(tensor)
-            return Path(list_str[0])
+            result = list_str[0]
+            return Path(result) if tensor_to_path else result
         return tensor
 
     @abstractmethod
