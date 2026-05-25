@@ -11,6 +11,24 @@ from ignite.exceptions import NotComputableError
 from ignite.metrics.clustering import CalinskiHarabaszScore
 
 
+@pytest.mark.parametrize("check_compute_fn", [True, False])
+@pytest.mark.parametrize(
+    "features, labels, desc",
+    [
+        (torch.randn(10, 5), torch.zeros(10, dtype=torch.long), "single cluster"),
+        (torch.randn(5, 3), torch.arange(5, dtype=torch.long), "each sample own cluster"),
+    ],
+)
+def test_invalid_cluster_count_returns_nan(features, labels, desc, check_compute_fn):
+    """CalinskiHarabaszScore should return NaN for invalid cluster counts ({desc})."""
+    import math
+
+    metric = CalinskiHarabaszScore(check_compute_fn=check_compute_fn)
+    metric.update((features, labels))
+    result = metric.compute()
+    assert math.isnan(result)
+
+
 def test_zero_sample():
     with pytest.raises(
         NotComputableError, match="CalinskiHarabaszScore must have at least one example before it can be computed"

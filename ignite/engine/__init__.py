@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
     # GradScaler is imported here rather than used as a string literal ("torch.amp.GradScaler")
@@ -47,7 +47,7 @@ __all__ = [
 def _prepare_batch(
     batch: Sequence[torch.Tensor], device: str | torch.device | None = None, non_blocking: bool = False
 ) -> tuple[torch.Tensor | Sequence | Mapping | str | bytes, ...]:
-    """Prepare batch for training or evaluation: pass to a device with options."""
+    """Prepare batch for training or evaluation by moving it to a device with options."""
     x, y = batch
     return (
         convert_tensor(x, device=device, non_blocking=non_blocking),
@@ -221,7 +221,7 @@ def supervised_training_step_amp(
             if gradient_accumulation_steps > 1:
                 loss = loss / gradient_accumulation_steps
         if scaler:
-            scaler.scale(loss).backward()
+            cast(torch.Tensor, scaler.scale(loss)).backward()
             if engine.state.iteration % gradient_accumulation_steps == 0:
                 scaler.step(optimizer)
                 scaler.update()

@@ -1,4 +1,4 @@
-""" ``ignite.contrib.metrics.regression.fractional_absolute_error`` was moved to ``ignite.metrics.regression.fractional_absolute_error``. # noqa
+"""``ignite.contrib.metrics.regression.fractional_absolute_error`` was moved to ``ignite.metrics.regression.fractional_absolute_error``. # noqa
 Note:
     ``ignite.contrib.metrics.regression.fractional_absolute_error`` was moved to ``ignite.metrics.regression.fractional_absolute_error``. # noqa
     Please refer to :mod:`~ignite.metrics.regression.fractional_absolute_error`.

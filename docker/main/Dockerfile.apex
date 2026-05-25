@@ -7,6 +7,10 @@ ARG PTH_VERSION
 FROM pytorch/pytorch:${PTH_VERSION}-devel AS apex-builder
 
 ENV CUDA_HOME=/usr/local/cuda
+# Set env vars to allow pip install
+ENV PIP_BREAK_SYSTEM_PACKAGES=1
+ENV PIP_ROOT_USER_ACTION=ignore
+
 
 # Install git
 RUN apt-get update && apt-get install -y --no-install-recommends git && \
@@ -23,6 +27,10 @@ RUN echo "Setup NVIDIA Apex" && \
 
 # 2/ Build the runtime image
 FROM pytorch/pytorch:${PTH_VERSION}-runtime
+
+# Set env vars to allow pip install
+ENV PIP_BREAK_SYSTEM_PACKAGES=1
+ENV PIP_ROOT_USER_ACTION=ignore
 
 COPY --from=apex-builder /tmp/apex/apex-*.whl /tmp/apex/
 RUN pip install --no-cache-dir /tmp/apex/apex-*.whl && \

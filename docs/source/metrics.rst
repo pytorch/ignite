@@ -390,8 +390,13 @@ Complete list of metrics
     clustering.SilhouetteScore
     clustering.DaviesBouldinScore
     clustering.CalinskiHarabaszScore
+    fairness.SubgroupAccuracyDifference
+    fairness.DemographicParityDifference
+    fairness.SelectionRate
+    fairness.SubgroupDifference
+    fairness.SubgroupMetric
     rec_sys.HitRate
-
+    rec_sys.NDCG
 
 .. note::
 

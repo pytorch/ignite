@@ -249,7 +249,7 @@ def distributed_context_single_node_gloo(local_rank, world_size):
         temp_file = tempfile.NamedTemporaryFile(delete=False)
         # can't use backslashes in f-strings
         backslash = "\\"
-        init_method = f'file:///{temp_file.name.replace(backslash, "/")}'
+        init_method = f"file:///{temp_file.name.replace(backslash, '/')}"
     else:
         free_port = _setup_free_port(local_rank)
         init_method = f"tcp://localhost:{free_port}"
@@ -470,7 +470,7 @@ def distributed(request, local_rank, world_size):
             temp_file = tempfile.NamedTemporaryFile(delete=False)
             # can't use backslashes in f-strings
             backslash = "\\"
-            init_method = f'file:///{temp_file.name.replace(backslash, "/")}'
+            init_method = f"file:///{temp_file.name.replace(backslash, '/')}"
         else:
             temp_file = None
             free_port = _setup_free_port(local_rank)

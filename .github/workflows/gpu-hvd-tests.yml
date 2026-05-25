@@ -163,7 +163,7 @@ jobs:
           docker exec -t pthd /bin/bash -c "${script}"
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
           files: ${{ github.repository }}/coverage.xml
           flags: gpu-2

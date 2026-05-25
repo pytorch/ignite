@@ -1,4 +1,4 @@
-""" ``ignite.contrib.metrics.regression.manhattan_distance`` was moved to ``ignite.metrics.regression.manhattan_distance``. # noqa
+"""``ignite.contrib.metrics.regression.manhattan_distance`` was moved to ``ignite.metrics.regression.manhattan_distance``. # noqa
 Note:
     ``ignite.contrib.metrics.regression.manhattan_distance`` was moved to ``ignite.metrics.regression.manhattan_distance``. # noqa
     Please refer to :mod:`~ignite.metrics.regression.manhattan_distance`.

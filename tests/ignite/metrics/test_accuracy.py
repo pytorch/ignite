@@ -211,9 +211,9 @@ class TestDistributed:
             y = torch.randint(0, 2, size=(4, 5, 8, 10), device=device).long()
             acc.update((y_pred, y))
 
-            assert (
-                acc._num_correct.device == metric_device
-            ), f"{type(acc._num_correct.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
+            assert acc._num_correct.device == metric_device, (
+                f"{type(acc._num_correct.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
+            )
 
             n = acc._num_examples
             assert n == y.numel() / y.size(dim=1)
@@ -236,9 +236,9 @@ class TestDistributed:
             y = torch.randint(0, 2, size=(4, 7, 10, 8), device=device).long()
             acc.update((y_pred, y))
 
-            assert (
-                acc._num_correct.device == metric_device
-            ), f"{type(acc._num_correct.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
+            assert acc._num_correct.device == metric_device, (
+                f"{type(acc._num_correct.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
+            )
 
             n = acc._num_examples
             assert n == y.numel() / y.size(dim=1)
@@ -274,9 +274,9 @@ class TestDistributed:
                 idx = i * batch_size
                 acc.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
 
-            assert (
-                acc._num_correct.device == metric_device
-            ), f"{type(acc._num_correct.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
+            assert acc._num_correct.device == metric_device, (
+                f"{type(acc._num_correct.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
+            )
 
             n = acc._num_examples
             assert n == y.numel() / y.size(dim=1)
@@ -329,9 +329,9 @@ class TestDistributed:
             y_true = idist.all_gather(y_true)
             y_preds = idist.all_gather(y_preds)
 
-            assert (
-                acc._num_correct.device == metric_device
-            ), f"{type(acc._num_correct.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
+            assert acc._num_correct.device == metric_device, (
+                f"{type(acc._num_correct.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
+            )
 
             assert "acc" in engine.state.metrics
             res = engine.state.metrics["acc"]
@@ -387,9 +387,9 @@ class TestDistributed:
             y_true = idist.all_gather(y_true)
             y_preds = idist.all_gather(y_preds)
 
-            assert (
-                acc._num_correct.device == metric_device
-            ), f"{type(acc._num_correct.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
+            assert acc._num_correct.device == metric_device, (
+                f"{type(acc._num_correct.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
+            )
 
             assert "acc" in engine.state.metrics
             res = engine.state.metrics["acc"]
@@ -409,17 +409,17 @@ class TestDistributed:
         for metric_device in metric_devices:
             acc = Accuracy(device=metric_device)
             assert acc._device == metric_device
-            assert (
-                acc._num_correct.device == metric_device
-            ), f"{type(acc._num_correct.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
+            assert acc._num_correct.device == metric_device, (
+                f"{type(acc._num_correct.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
+            )
 
             y_pred = torch.randint(0, 2, size=(10,), device=device, dtype=torch.long)
             y = torch.randint(0, 2, size=(10,), device=device, dtype=torch.long)
             acc.update((y_pred, y))
 
-            assert (
-                acc._num_correct.device == metric_device
-            ), f"{type(acc._num_correct.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
+            assert acc._num_correct.device == metric_device, (
+                f"{type(acc._num_correct.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
+            )
 
     @pytest.mark.parametrize("n_epochs", [1, 2])
     def test_integration_list_of_tensors_or_numbers(self, n_epochs):
@@ -456,9 +456,9 @@ class TestDistributed:
             y_true = idist.all_gather(y_true)
             y_preds = idist.all_gather(y_preds)
 
-            assert (
-                acc._num_correct.device == metric_device
-            ), f"{type(acc._num_correct.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
+            assert acc._num_correct.device == metric_device, (
+                f"{type(acc._num_correct.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
+            )
 
             assert "acc" in engine.state.metrics
             res = engine.state.metrics["acc"]

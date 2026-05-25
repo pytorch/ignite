@@ -1,4 +1,4 @@
-""" ``ignite.contrib.metrics.regression.mean_error`` was moved to ``ignite.metrics.regression.mean_error``. # noqa
+"""``ignite.contrib.metrics.regression.mean_error`` was moved to ``ignite.metrics.regression.mean_error``. # noqa
 Note:
     ``ignite.contrib.metrics.regression.mean_error`` was moved to ``ignite.metrics.regression.mean_error``. # noqa
     Please refer to :mod:`~ignite.metrics.regression.mean_error`.

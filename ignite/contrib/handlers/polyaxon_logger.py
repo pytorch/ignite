@@ -1,4 +1,4 @@
-""" ``ignite.contrib.handlers.polyaxon_logger`` was moved to ``ignite.handlers.polyaxon_logger``.
+"""``ignite.contrib.handlers.polyaxon_logger`` was moved to ``ignite.handlers.polyaxon_logger``.
 Note:
     ``ignite.contrib.handlers.polyaxon_logger`` was moved to ``ignite.handlers.polyaxon_logger``.
     Please refer to :mod:`~ignite.handlers.polyaxon_logger`.
