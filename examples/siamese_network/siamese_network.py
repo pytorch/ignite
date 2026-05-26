@@ -249,7 +249,7 @@ def run(args, model, device, optimizer, train_loader, test_loader, lr_scheduler)
     @trainer.on(Events.EPOCH_COMPLETED(every=args.log_interval))
     def test(engine):
         state = evaluator.run(test_loader)
-        print(f'Test Accuracy: {state.metrics["accuracy"]}')
+        print(f"Test Accuracy: {state.metrics['accuracy']}")
 
     # run the trainer
     trainer.run(train_loader, max_epochs=args.epochs)

@@ -1,15 +1,15 @@
 """
- MNIST example with training and validation monitoring using ClearML.
+MNIST example with training and validation monitoring using ClearML.
 
- Requirements:
-    ClearML: `pip install clearml`
+Requirements:
+   ClearML: `pip install clearml`
 
- Usage:
+Usage:
 
-    Run the example:
-    ```bash
-    python mnist_with_clearml_logger.py
-    ```
+   Run the example:
+   ```bash
+   python mnist_with_clearml_logger.py
+   ```
 """
 
 from argparse import ArgumentParser

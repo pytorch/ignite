@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """TQDM logger."""
+
 from collections import OrderedDict
 from collections.abc import Callable
 from typing import Any
@@ -128,8 +129,7 @@ class ProgressBar(BaseLogger):
             from tqdm.autonotebook import tqdm
         except ImportError:
             raise ModuleNotFoundError(
-                "This contrib module requires tqdm to be installed. "
-                "Please install it with command: \n pip install tqdm"
+                "This contrib module requires tqdm to be installed. Please install it with command: \n pip install tqdm"
             )
 
         self.pbar_cls = tqdm
@@ -219,7 +219,7 @@ class ProgressBar(BaseLogger):
             state_attributes=state_attributes,
         )
 
-        super(ProgressBar, self).attach(engine, log_handler, event_name)
+        super().attach(engine, log_handler, event_name)
         engine.add_event_handler(closing_event_name, self._close)
 
     def attach_opt_params_handler(

@@ -12,6 +12,11 @@ __all__ = ["CalinskiHarabaszScore"]
 def _calinski_harabasz_score(features: Tensor, labels: Tensor) -> float:
     from sklearn.metrics import calinski_harabasz_score
 
+    n_unique_labels = len(torch.unique(labels.detach()))
+    n_samples = len(labels)
+    if n_unique_labels < 2 or n_unique_labels >= n_samples:
+        return float("nan")
+
     np_features = features.cpu().numpy()
     np_labels = labels.cpu().numpy()
     score = calinski_harabasz_score(np_features, np_labels)
@@ -29,6 +34,9 @@ class CalinskiHarabaszScore(_ClusteringMetricBase):
 
     A higher Calinski-Harabasz score indicates that
     the clustering result is good (i.e., clusters are well-separated).
+
+    When the number of unique labels is less than 2, or equals the number of samples
+    (i.e., the index is undefined), ``float('nan')`` is returned.
 
     The computation of this metric is implemented with
     `sklearn.metrics.calinski_harabasz_score
@@ -54,7 +62,7 @@ class CalinskiHarabaszScore(_ClusteringMetricBase):
             metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
             non-blocking. By default, CPU.
         skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
-            true for multi-output model, for example, if ``y_pred`` contains multi-ouput as ``(y_pred_a, y_pred_b)``
+            true for multi-output model, for example, if ``y_pred`` contains multi-output as ``(y_pred_a, y_pred_b)``
             Alternatively, ``output_transform`` can be used to handle this.
 
     Examples:
