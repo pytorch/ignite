@@ -233,6 +233,30 @@ class Parallel:
                 if value is not None:
                     raise ValueError(f"If backend is None, argument '{name}' should be also None, but given {value}")
 
+        if init_method is not None and init_method.startswith("tcp://"):
+            from urllib.parse import urlparse
+
+            try:
+                parsed = urlparse(init_method)
+                host = parsed.hostname
+                port = parsed.port
+            except Exception:
+                host = None
+                port = None
+
+            host = host or "127.0.0.1"
+            port = port or 29500
+
+            raise ValueError(
+                f"init_method='{init_method}' is not supported by PyTorch. "
+                "To fix this, please configure a TCPStore and initialize the process group using the store instead. "
+                "For example:\n\n"
+                "    import torch.distributed as dist\n"
+                "    from datetime import timedelta\n\n"
+                f'    store = dist.TCPStore("{host}", {port}, world_size, is_master, timedelta(seconds=30))\n'
+                "    dist.init_process_group(backend, store=store, rank=rank, world_size=world_size)"
+            )
+
         self.backend = backend
         self._spawn_params = None
         self.init_method = init_method

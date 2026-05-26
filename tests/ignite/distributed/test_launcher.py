@@ -103,13 +103,6 @@ def _test_check_idist_parallel_torch_launch(init_method, fp, backend, nprocs):
     "init_method",
     [
         None,
-        pytest.param(
-            "tcp://0.0.0.0:29500",
-            marks=pytest.mark.skipif(
-                "dev" in torch.__version__,
-                reason="Skip tcp:// init_method with torchrun on nightly due to incompatibility",
-            ),
-        ),
         "FILE",
     ],
 )
@@ -241,7 +234,7 @@ def _test_func(index, ws, device, backend, true_init_method):
 @pytest.mark.distributed
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
-@pytest.mark.parametrize("init_method", ["env://", "tcp://0.0.0.0:29500", "FILE"])
+@pytest.mark.parametrize("init_method", ["env://", "FILE"])
 @pytest.mark.parametrize(
     "backend",
     ["gloo", pytest.param("nccl", marks=pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU"))],
@@ -259,7 +252,7 @@ def test_idist_parallel_spawn_n_procs_native(init_method, backend, dirname):
 @pytest.mark.distributed
 @pytest.mark.skipif("WORLD_SIZE" not in os.environ, reason="Skip if not launched as multiproc")
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
-@pytest.mark.parametrize("init_method", ["env://", "tcp://0.0.0.0:29500", "FILE"])
+@pytest.mark.parametrize("init_method", ["env://", "FILE"])
 @pytest.mark.parametrize(
     "backend",
     ["gloo", pytest.param("nccl", marks=pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU"))],
@@ -296,3 +289,9 @@ def test_idist_parallel_spawn_params_xla():
         res = parallel._spawn_params
         assert "nproc_per_node" in res and res["nproc_per_node"] == 8
         assert "start_method" in res and res["start_method"] == "fork"
+
+
+def test_idist_parallel_tcp_init_method_error():
+    with pytest.raises(ValueError, match="is not supported by PyTorch. To fix this, please configure a TCPStore"):
+        with idist.Parallel(backend="gloo", init_method="tcp://10.1.1.20:23456", nproc_per_node=1) as parallel:
+            pass
