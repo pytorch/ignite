@@ -122,6 +122,8 @@ class ComputationModel(metaclass=ABCMeta):
         elif isinstance(x, str):
             encoded_msg[0] = 2
         elif isinstance(x, Path):
+            # Keep a distinct tag so non-source ranks in safe mode can reconstruct
+            # Path placeholders and return Path values rather than strings.
             encoded_msg[0] = 3
         return encoded_msg
 
