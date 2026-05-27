@@ -229,14 +229,7 @@ class WelfordCovariance:
 
     @property
     def covariance(self) -> torch.Tensor:
-        """Population covariance of ``(x, y)``.
-
-        No ``torch.clamp`` here because covariance is legitimately signed
-        (negative correlation gives negative covariance). The variance
-        properties clamp at zero to guard against float rounding only;
-        applying the same clamp to covariance would silently bias
-        negatively-correlated pairs toward zero.
-        """
+        """Population covariance of ``(x, y)``."""
         if self.n_samples == 0:
             return torch.tensor(0.0)
         return self.sum_product_of_devs / self.n_samples
