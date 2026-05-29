@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 import torch
 import torch.distributed as dist
@@ -364,6 +366,11 @@ def _test_distrib_broadcast(device):
     _test("test-abcdefg", "", safe_mode=False)
     _test("test-abcdefg", None, safe_mode=True)
     _test("test-abcdefg", 1.2, safe_mode=True)
+
+    path = Path("tests/ignite/distributed/utils/test_horovod.py")
+    _test(path, Path(""), safe_mode=False)
+    _test(path, None, safe_mode=True)
+    _test(path, "", safe_mode=True)
 
     s = "tests/ignite/distributed/utils/test_horovod.py::test_idist_broadcast_hvd" * 200
     _test(s, "", safe_mode=False)
