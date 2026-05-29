@@ -307,7 +307,8 @@ def test_idist_parallel_tcp_init_method_error():
         ),
     ],
 )
-def test_idist_parallel_store_init(clean_env, backend):
+def test_idist_parallel_store_init(clean_env, monkeypatch, backend):
+    monkeypatch.setenv("USE_LIBUV", "0")
     store = torch.distributed.TCPStore("0.0.0.0", 2222, world_size=1, is_master=True)
     with idist.Parallel(backend=backend, store=store) as parallel:
         assert idist.backend() == backend
