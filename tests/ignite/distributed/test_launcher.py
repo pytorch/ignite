@@ -307,9 +307,13 @@ def test_idist_parallel_tcp_init_method_error():
         ),
     ],
 )
-def test_idist_parallel_store_init(clean_env, monkeypatch, backend):
-    monkeypatch.setenv("USE_LIBUV", "0")
-    store = torch.distributed.TCPStore("0.0.0.0", 2222, world_size=1, is_master=True)
+def test_idist_parallel_store_init(clean_env, backend):
+    try:
+        store = torch.distributed.TCPStore("0.0.0.0", 2222, world_size=1, is_master=True, use_libuv=False)
+    except TypeError:
+        # PyTorch < 2.4 doesn't support use_libuv
+        store = torch.distributed.TCPStore("0.0.0.0", 2222, world_size=1, is_master=True)
+
     with idist.Parallel(backend=backend, store=store) as parallel:
         assert idist.backend() == backend
         assert idist.get_world_size() == 1

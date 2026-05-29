@@ -743,9 +743,13 @@ def test__native_dist_model_tcp_init_method_error():
         ),
     ],
 )
-def test__native_dist_model_store_init(clean_env, monkeypatch, backend, device):
-    monkeypatch.setenv("USE_LIBUV", "0")
-    store = dist.TCPStore("0.0.0.0", 2222, world_size=1, is_master=True)
+def test__native_dist_model_store_init(clean_env, backend, device):
+    try:
+        store = dist.TCPStore("0.0.0.0", 2222, world_size=1, is_master=True, use_libuv=False)
+    except TypeError:
+        # PyTorch < 2.4 doesn't support use_libuv
+        store = dist.TCPStore("0.0.0.0", 2222, world_size=1, is_master=True)
+
     model = _NativeDistModel.create_from_backend(backend=backend, store=store, rank=0, world_size=1)
     assert model.backend() == backend
     assert model.get_world_size() == 1
