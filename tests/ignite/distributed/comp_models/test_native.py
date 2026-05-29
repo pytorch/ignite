@@ -728,5 +728,5 @@ def test__setup_ddp_vars_from_slurm_env_bad_configs():
 
 
 def test__native_dist_model_tcp_init_method_error():
-    with pytest.raises(ValueError, match="is not supported by PyTorch. To fix this, please configure a TCPStore"):
+    with pytest.raises(ValueError, match="will hang. To fix this, please configure a TCPStore"):
         _NativeDistModel.create_from_backend(backend="gloo", init_method="tcp://10.1.1.20:23456", rank=0, world_size=1)

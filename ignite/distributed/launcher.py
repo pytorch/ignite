@@ -238,17 +238,14 @@ class Parallel:
 
             try:
                 parsed = urlparse(init_method)
-                host = parsed.hostname
-                port = parsed.port
+                host = parsed.hostname or "127.0.0.1"
+                port = parsed.port or 29500
             except Exception:
-                host = None
-                port = None
-
-            host = host or "127.0.0.1"
-            port = port or 29500
+                host = "127.0.0.1"
+                port = 29500
 
             raise ValueError(
-                f"init_method='{init_method}' is not supported by PyTorch. "
+                f"TCP initialization via init_method='{init_method}' will hang. "
                 "To fix this, please configure a TCPStore and initialize the process group using the store instead. "
                 "For example:\n\n"
                 "    import torch.distributed as dist\n"
