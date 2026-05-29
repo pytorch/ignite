@@ -576,7 +576,7 @@ def initialize(backend: str, **kwargs: Any) -> None:
         kwargs: acceptable kwargs according to provided backend:
 
             - | "nccl" or "gloo" : ``timeout(=timedelta(minutes=30))``, ``init_method(=None)``,
-              | ``rank(=None)``, ``world_size(=None)``.
+              | ``rank(=None)``, ``world_size(=None)``, ``store(=None)``.
               | By default, ``init_method`` will be "env://". See more info about parameters: `torch_init`_.
 
             - | "horovod" : comm(=None), more info: `hvd_init`_.
@@ -604,6 +604,9 @@ def initialize(backend: str, **kwargs: Any) -> None:
             idist.initialize(backend)
             # or for torch native distributed on Windows:
             # idist.initialize("nccl", init_method="file://tmp/shared")
+            # or using store:
+            # store = dist.TCPStore("<master_addr>", <master_port>, world_size, is_master)
+            # idist.initialize("nccl", store=store)
             local_rank = idist.get_local_rank()
             train_fn(local_rank, a, b, c)
             idist.finalize()

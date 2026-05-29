@@ -132,11 +132,14 @@ class Parallel:
             with idist.Parallel(backend=backend, init_method='file:///d:/tmp/some_file', nproc_per_node=4) as parallel:
                 parallel.run(training, config, a=1, b=2)
 
-        Initializing the process using ``tcp://``
+        Initializing the process using ``store``
 
         .. code-block:: python
 
-            with idist.Parallel(backend=backend, init_method='tcp://10.1.1.20:23456', nproc_per_node=4) as parallel:
+            import torch.distributed as dist
+
+            store = dist.TCPStore("<master_addr>", <master_port>, world_size, is_master)
+            with idist.Parallel(backend=backend, store=store) as parallel:
                 parallel.run(training, config, a=1, b=2)
 
 
@@ -221,6 +224,7 @@ class Parallel:
         master_addr: str | None = None,
         master_port: int | None = None,
         init_method: str | None = None,
+        store: Any | None = None,
         **spawn_kwargs: Any,
     ) -> None:
         if backend is not None:
@@ -234,29 +238,21 @@ class Parallel:
                     raise ValueError(f"If backend is None, argument '{name}' should be also None, but given {value}")
 
         if init_method is not None and init_method.startswith("tcp://"):
-            from urllib.parse import urlparse
-
-            try:
-                parsed = urlparse(init_method)
-                host = parsed.hostname or "127.0.0.1"
-                port = parsed.port or 29500
-            except Exception:
-                host = "127.0.0.1"
-                port = 29500
-
             raise ValueError(
                 f"TCP initialization via init_method='{init_method}' will hang. "
-                "To fix this, please configure a TCPStore and initialize the process group using the store instead. "
-                "For example:\n\n"
+                "To fix this, please configure MASTER_ADDR and MASTER_PORT in the environment and "
+                "use 'env://' (or omit init_method). Alternatively, you can configure a TCPStore and "
+                "pass it using the 'store' argument. For example:\n\n"
                 "    import torch.distributed as dist\n"
-                "    from datetime import timedelta\n\n"
-                f'    store = dist.TCPStore("{host}", {port}, world_size, is_master, timedelta(seconds=30))\n'
-                "    dist.init_process_group(backend, store=store, rank=rank, world_size=world_size)"
+                '    store = dist.TCPStore("<master_addr>", <master_port>, world_size, is_master)\n'
+                "    # Then pass the store to idist.Parallel:\n"
+                "    # idist.Parallel(backend=backend, store=store, ...)"
             )
 
         self.backend = backend
         self._spawn_params = None
         self.init_method = init_method
+        self.store = store
 
         if self.backend is not None:
             if nproc_per_node is not None:
@@ -343,7 +339,7 @@ class Parallel:
 
     def __enter__(self) -> "Parallel":
         if self.backend is not None and self._spawn_params is None:
-            idist.initialize(self.backend, init_method=self.init_method)
+            idist.initialize(self.backend, init_method=self.init_method, store=self.store)
 
         # The logger can be setup from now since idist.initialize() has been called (if needed)
         self._logger = setup_logger(__name__ + "." + self.__class__.__name__)

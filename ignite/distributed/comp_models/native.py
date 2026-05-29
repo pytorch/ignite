@@ -54,6 +54,7 @@ if has_native_dist_support:
             init_method: str | None = None,
             world_size: int | None = None,
             rank: int | None = None,
+            store: Any | None = None,
             **kwargs: Any,
         ) -> _NativeDistModel:
             if backend not in _NativeDistModel.available_backends:
@@ -62,7 +63,7 @@ if has_native_dist_support:
             if dist.is_available() and dist.is_initialized():
                 raise RuntimeError("Can not create new distributed process group if default one is already initialized")
 
-            if init_method is None:
+            if init_method is None and store is None:
                 if world_size is not None or rank is not None:
                     raise ValueError("Arguments rank and world_size should be None if no init_method is provided")
             else:
@@ -72,7 +73,7 @@ if has_native_dist_support:
                     raise ValueError(f"Both rank and world_size should be provided, but given {rank} and {world_size}")
 
             return _NativeDistModel(
-                backend=backend, init_method=init_method, world_size=world_size, rank=rank, **kwargs
+                backend=backend, init_method=init_method, world_size=world_size, rank=rank, store=store, **kwargs
             )
 
         def __init__(
@@ -82,6 +83,7 @@ if has_native_dist_support:
             init_method: str | None = None,
             world_size: int | None = None,
             rank: int | None = None,
+            store: Any | None = None,
             **kwargs: Any,
         ) -> None:
             """This is a private method. Please, use `create_from_backend` or `create_from_context`"""
@@ -93,7 +95,13 @@ if has_native_dist_support:
             self._init_method: str | None = None
             if backend is not None:
                 self._create_from_backend(
-                    backend, timeout=timeout, init_method=init_method, world_size=world_size, rank=rank, **kwargs
+                    backend,
+                    timeout=timeout,
+                    init_method=init_method,
+                    world_size=world_size,
+                    rank=rank,
+                    store=store,
+                    **kwargs,
                 )
             else:
                 self._init_from_context()
@@ -105,27 +113,21 @@ if has_native_dist_support:
             init_method: str | None = None,
             world_size: int | None = None,
             rank: int | None = None,
+            store: Any | None = None,
             **kwargs: Any,
         ) -> None:
             if init_method is not None and init_method.startswith("tcp://"):
-                from urllib.parse import urlparse
-
-                try:
-                    parsed = urlparse(init_method)
-                    host = parsed.hostname or "127.0.0.1"
-                    port = parsed.port or 29500
-                except Exception:
-                    host = "127.0.0.1"
-                    port = 29500
-
                 raise ValueError(
                     f"TCP initialization via init_method='{init_method}' will hang. "
-                    "To fix this, please configure a TCPStore and initialize the process group using the store instead. "
-                    "For example:\n\n"
+                    "To fix this, please configure MASTER_ADDR and MASTER_PORT in the environment and "
+                    "use 'env://' (or omit init_method). Alternatively, you can configure a TCPStore and "
+                    "pass it using the 'store' argument. For example:\n\n"
                     "    import torch.distributed as dist\n"
-                    "    from datetime import timedelta\n\n"
-                    f'    store = dist.TCPStore("{host}", {port}, world_size, is_master, timedelta(seconds=30))\n'
-                    "    dist.init_process_group(backend, store=store, rank=rank, world_size=world_size)"
+                    '    store = dist.TCPStore("<master_addr>", <master_port>, world_size, is_master)\n'
+                    "    # Then pass the store to idist.initialize or idist.Parallel:\n"
+                    "    # idist.initialize(backend=backend, store=store, ...)\n"
+                    "    # or\n"
+                    "    # with idist.Parallel(backend=backend, store=store, ...) as parallel:\n"
                 )
 
             if backend == dist.Backend.NCCL and not torch.cuda.is_available():
@@ -137,15 +139,26 @@ if has_native_dist_support:
             if timeout is not None:
                 init_pg_kwargs["timeout"] = timeout
 
-            if init_method is None:
+            if init_method is None and store is None:
                 init_method = "env://"
 
-            if "env" not in init_method:
-                init_pg_kwargs["world_size"] = int(os.environ["WORLD_SIZE"])
-                init_pg_kwargs["rank"] = int(os.environ["RANK"])
-            self._init_method = init_method
+            if init_method is not None:
+                if "env" not in init_method:
+                    init_pg_kwargs["world_size"] = int(os.environ["WORLD_SIZE"])
+                    init_pg_kwargs["rank"] = int(os.environ["RANK"])
+                self._init_method = init_method
+                dist.init_process_group(backend, init_method=init_method, **init_pg_kwargs)
+            else:
+                if rank is not None:
+                    init_pg_kwargs["rank"] = rank
+                else:
+                    init_pg_kwargs["rank"] = int(os.environ.get("RANK", 0))
+                if world_size is not None:
+                    init_pg_kwargs["world_size"] = world_size
+                else:
+                    init_pg_kwargs["world_size"] = int(os.environ.get("WORLD_SIZE", 1))
 
-            dist.init_process_group(backend, init_method=init_method, **init_pg_kwargs)
+                dist.init_process_group(backend, store=store, **init_pg_kwargs)
 
             if torch.cuda.is_available():
                 torch.cuda.set_device(self._local_rank)

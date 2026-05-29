@@ -292,6 +292,24 @@ def test_idist_parallel_spawn_params_xla():
 
 
 def test_idist_parallel_tcp_init_method_error():
-    with pytest.raises(ValueError, match="will hang. To fix this, please configure a TCPStore"):
+    with pytest.raises(ValueError, match="will hang. To fix this, please configure MASTER_ADDR"):
         with idist.Parallel(backend="gloo", init_method="tcp://10.1.1.20:23456", nproc_per_node=1) as parallel:
             pass
+
+
+@pytest.mark.parametrize(
+    "backend",
+    [
+        "gloo",
+        pytest.param(
+            "nccl",
+            marks=pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU"),
+        ),
+    ],
+)
+def test_idist_parallel_store_init(clean_env, backend):
+    store = torch.distributed.TCPStore("0.0.0.0", 2222, world_size=1, is_master=True)
+    with idist.Parallel(backend=backend, store=store) as parallel:
+        assert idist.backend() == backend
+        assert idist.get_world_size() == 1
+        assert idist.get_rank() == 0

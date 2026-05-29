@@ -728,5 +728,25 @@ def test__setup_ddp_vars_from_slurm_env_bad_configs():
 
 
 def test__native_dist_model_tcp_init_method_error():
-    with pytest.raises(ValueError, match="will hang. To fix this, please configure a TCPStore"):
+    with pytest.raises(ValueError, match="will hang. To fix this, please configure MASTER_ADDR"):
         _NativeDistModel.create_from_backend(backend="gloo", init_method="tcp://10.1.1.20:23456", rank=0, world_size=1)
+
+
+@pytest.mark.parametrize(
+    "backend,device",
+    [
+        ("gloo", torch.device("cpu")),
+        pytest.param(
+            "nccl",
+            torch.device("cuda:0"),
+            marks=pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU"),
+        ),
+    ],
+)
+def test__native_dist_model_store_init(clean_env, backend, device):
+    store = dist.TCPStore("0.0.0.0", 2222, world_size=1, is_master=True)
+    model = _NativeDistModel.create_from_backend(backend=backend, store=store, rank=0, world_size=1)
+    assert model.backend() == backend
+    assert model.get_world_size() == 1
+    assert model.get_rank() == 0
+    dist.destroy_process_group()
