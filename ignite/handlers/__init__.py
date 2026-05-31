@@ -82,6 +82,7 @@ __all__ = [
     "MLflowLogger",
     "NeptuneLogger",
     "PolyaxonLogger",
+    "ProgressBar",
     "TensorboardLogger",
     "VertexAILogger",
     "VisdomLogger",
