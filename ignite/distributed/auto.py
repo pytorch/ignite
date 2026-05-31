@@ -28,10 +28,10 @@ def auto_dataloader(dataset: Dataset, **kwargs: Any) -> DataLoader | _MpDeviceLo
 
     - batch size is scaled by world size: ``batch_size / world_size`` if larger or equal world size.
     - number of workers is scaled by number of local processes: ``num_workers / nprocs`` if larger or equal world size.
-    - if no sampler provided by user, a `torch DistributedSampler`_ is setup.
-    - if a `torch DistributedSampler`_ is provided by user, it is used without wrapping it.
+    - if no sampler provided by user, a ``torch DistributedSampler``_ is setup.
+    - if a ``torch DistributedSampler``_ is provided by user, it is used without wrapping it.
     - if another sampler is provided, it is wrapped by :class:`~ignite.distributed.auto.DistributedProxySampler`.
-    - if the default device is 'cuda', `pin_memory` is automatically set to `True`.
+    - if the default device is 'cuda' or 'mps', ``pin_memory`` is automatically set to ``True``.
 
     .. warning::
 
@@ -39,18 +39,18 @@ def auto_dataloader(dataset: Dataset, **kwargs: Any) -> DataLoader | _MpDeviceLo
         sampler is compatible with distributed configuration.
 
     Args:
-        dataset: input torch dataset. If input dataset is `torch IterableDataset`_ then dataloader will be
+        dataset: input torch dataset. If input dataset is ``torch IterableDataset``_ then dataloader will be
             created without any distributed sampling. Please, make sure that the dataset itself produces
             different data on different ranks.
-        kwargs: keyword arguments for `torch DataLoader`_.
+        kwargs: keyword arguments for ``torch DataLoader``_.
 
     Returns:
-        `torch DataLoader`_ or `XLA MpDeviceLoader`_ for XLA devices
+        ``torch DataLoader``_ or ``XLA MpDeviceLoader``_ for XLA devices
 
     Examples:
         .. code-block:: python
 
-            import ignite.distribted as idist
+            import ignite.distributed as idist
 
             train_loader = idist.auto_dataloader(
                 train_dataset,
@@ -76,9 +76,9 @@ def auto_dataloader(dataset: Dataset, **kwargs: Any) -> DataLoader | _MpDeviceLo
         if "batch_size" in kwargs and kwargs["batch_size"] >= world_size:
             kwargs["batch_size"] //= world_size
 
-        nproc = idist.get_nproc_per_node()
-        if "num_workers" in kwargs and kwargs["num_workers"] >= nproc:
-            kwargs["num_workers"] = (kwargs["num_workers"] + nproc - 1) // nproc
+        nprocs = idist.get_nprocs_per_node()
+        if "num_workers" in kwargs and kwargs["num_workers"] >= nprocs:
+            kwargs["num_workers"] = (kwargs["num_workers"] + nprocs - 1) // nprocs
 
         if "batch_sampler" not in kwargs:
             if isinstance(dataset, IterableDataset):
@@ -118,7 +118,7 @@ def auto_dataloader(dataset: Dataset, **kwargs: Any) -> DataLoader | _MpDeviceLo
         )
         kwargs["pin_memory"] = False
     else:
-        kwargs["pin_memory"] = kwargs.get("pin_memory", "cuda" in idist.device().type)
+        kwargs["pin_memory"] = kwargs.get("pin_memory", "cuda" in idist.device().type or "mps" in idist.device().type)
 
     logger.info(f"Use data loader kwargs for dataset '{repr(dataset)[:20].strip()}': \n\t{kwargs}")
     dataloader = DataLoader(dataset, **kwargs)
@@ -148,16 +148,16 @@ def auto_model(model: nn.Module, sync_bn: bool = False, **kwargs: Any) -> nn.Mod
     Internally, we perform to following:
 
     - send model to current :meth:`~ignite.distributed.utils.device()` if model's parameters are not on the device.
-    - wrap the model to `torch DistributedDataParallel`_ for native torch distributed if world size is larger than 1.
-    - wrap the model to `torch DataParallel`_ if no distributed context found and more than one CUDA devices available.
+    - wrap the model to ``torch DistributedDataParallel``_ for native torch distributed if world size is larger than 1.
+    - wrap the model to ``torch DataParallel``_ if no distributed context found and more than one CUDA devices available.
     - broadcast the initial variable states from rank 0 to all other processes if Horovod distributed framework is used.
 
     Args:
         model: model to adapt.
-        sync_bn: if True, applies `torch convert_sync_batchnorm`_ to the model for native torch
-            distributed only. Default, False. Note, if using Nvidia/Apex, batchnorm conversion should be
+        sync_bn: if True, applies ``torch convert_sync_batchnorm``_ to the model for native torch
+            distributed only. Default, False. Note, if using Nvidia/apex, batchnorm conversion should be
             applied before calling ``amp.initialize``.
-        kwargs: kwargs to model's wrapping class: `torch DistributedDataParallel`_ or `torch DataParallel`_
+        kwargs: kwargs to model's wrapping class: ``torch DistributedDataParallel``_ or ``torch DataParallel``_
             if applicable. Please, make sure to use acceptable kwargs for given backend.
 
     Returns:
@@ -166,15 +166,15 @@ def auto_model(model: nn.Module, sync_bn: bool = False, **kwargs: Any) -> nn.Mod
     Examples:
         .. code-block:: python
 
-            import ignite.distribted as idist
+            import ignite.distributed as idist
 
             model = idist.auto_model(model)
 
-        In addition with NVidia/Apex, it can be used in the following way:
+        In addition with Nvidia/Apex, it can be used in the following way:
 
         .. code-block:: python
 
-            import ignite.distribted as idist
+            import ignite.distributed as idist
 
             model, optimizer = amp.initialize(model, optimizer, opt_level=opt_level)
             model = idist.auto_model(model)
@@ -242,7 +242,7 @@ def auto_optim(optimizer: Optimizer, **kwargs: Any) -> Optimizer:
     Internally, this method is no-op for non-distributed and torch native distributed configuration.
 
     For XLA distributed configuration, we create a new class that inherits from provided optimizer.
-    The goal is to override the `step()` method with specific `xm.optimizer_step`_ implementation.
+    The goal is to override the ``step()`` method with specific ``xm.optimizer_step``_ implementation.
 
     For Horovod distributed configuration, optimizer is wrapped with Horovod Distributed Optimizer and
     its state is broadcasted from rank 0 to all other processes.
@@ -285,7 +285,7 @@ def auto_optim(optimizer: Optimizer, **kwargs: Any) -> Optimizer:
 
 
 class DistributedProxySampler(DistributedSampler):
-    """Distributed sampler proxy to adapt user's sampler for distributed data parallelism configuration.
+    """Distributed sampler proxy to adapt user's sampler for distributed data paralellism configuration.
 
     Code is based on https://github.com/pytorch/pytorch/issues/23430#issuecomment-562350407
 
@@ -336,10 +336,10 @@ if idist.has_xla_support:
 
     class _MpDeviceLoader:
         # https://github.com/pytorch/xla/pull/2117
-        # From pytorch/xla if `torch_xla.distributed.parallel_loader.MpDeviceLoader` is not available
+        # From pytorch/xla if ``torch_xla.distributed.parallel_loader.MpDeviceLoader`` is not available
         def __init__(self, loader: Any, device: torch.device, **kwargs: Any) -> None:
             self._loader = loader
-            # pyrefly: ignore [read-only]
+            # pyrely: ignore [read-only]
             self._device = device
             self._parallel_loader_kwargs = kwargs
 
