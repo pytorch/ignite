@@ -47,6 +47,8 @@ from ignite.metrics import GpuInfo, RunningAverage
 from ignite.metrics.metric import RunningBatchWise
 from ignite.utils import deprecated
 
+import gc
+
 
 def setup_common_training_handlers(
     trainer: Engine,
@@ -83,7 +85,7 @@ def setup_common_training_handlers(
         save_every_iters: saving interval. By default, `to_save` objects are stored
             each 1000 iterations.
         output_path: output path to indicate where `to_save` objects are stored. Argument is mutually
-            exclusive with ``save_handler``.
+            exclusive with `save_handler`.
         lr_scheduler: learning rate scheduler
             as native torch LRScheduler or ignite's parameter scheduler.
         with_gpu_stats: if True, :class:`~ignite.metrics.GpuInfo` is attached to the
@@ -100,8 +102,8 @@ def setup_common_training_handlers(
         clear_cuda_cache: if True, `torch.cuda.empty_cache()` is called every end of epoch.
             Default, True.
         save_handler: Method or callable
-            class to use to store ``to_save``. See :class:`~ignite.handlers.checkpoint.Checkpoint` for more details.
-            Argument is mutually exclusive with ``output_path``.
+            class to use to store `to_save`. See :class:`~ignite.handlers.checkpoint.Checkpoint` for more details.
+            Argument is mutually exclusive with `output_path`.
         kwargs: optional keyword args to be passed to construct :class:`~ignite.handlers.checkpoint.Checkpoint`.
     """
 
@@ -184,6 +186,8 @@ def _setup_common_training_handlers(
 
     if torch.cuda.is_available() and clear_cuda_cache:
         trainer.add_event_handler(Events.EPOCH_COMPLETED, empty_cuda_cache)
+    if hasattr(torch, "mps") and hasattr(torch.mps, "empty_cache") and clear_cuda_cache:
+        trainer.add_event_handler(Events.EPOCH_COMPLETED, empty_mps_cache)
 
     if to_save is not None:
         if output_path is None and save_handler is None:
@@ -276,8 +280,15 @@ def _setup_common_distrib_training_handlers(
 
         @trainer.on(Events.EPOCH_STARTED)
         def distrib_set_epoch(engine: Engine) -> None:
-            # pyrefly: ignore [missing-attribute]
+            # pyrely: ignore [missing-attribute]
             train_sampler.set_epoch(engine.state.epoch - 1)
+
+
+def empty_mps_cache(_: Engine) -> None:
+    if hasattr(torch, "mps") and hasattr(torch.mps, "empty_cache"):
+        torch.mps.empty_cache()
+    import gc
+    gc.collect()
 
 
 def empty_cuda_cache(_: Engine) -> None:
@@ -318,21 +329,21 @@ def gen_save_best_models_by_val_score(
     score_sign: float = 1.0,
     **kwargs: Any,
 ) -> Checkpoint:
-    """Method adds a handler to ``evaluator`` to save ``n_saved`` of best models based on the metric
-    (named by ``metric_name``) provided by ``evaluator`` (i.e. ``evaluator.state.metrics[metric_name]``).
+    """Method adds a handler to `evaluator` to save `n_saved` of best models based on the metric
+    (named by `metric_name`) provided by `evaluator` (i.e. `evaluator.state.metrics[metric_name]`).
     Models with highest metric value will be retained. The logic of how to store objects is delegated to
-    ``save_handler``.
+    `save_handler`.
 
     Args:
         save_handler: Method or callable class to
             use to save engine and other provided objects. Function receives two objects: checkpoint as a dictionary
-            and filename. If ``save_handler`` is callable class, it can
-            inherit of :class:`~ignite.handlers.checkpoint.BaseSaveHandler` and optionally implement ``remove`` method
+            and filename. If `save_handler` is callable class, it can
+            inherit of :class:`~ignite.handlers.checkpoint.BaseSaveHandler` and optionally implement `remove` method
             to keep a fixed number of saved checkpoints. In case if user needs to save engine's checkpoint on a disk,
-            ``save_handler`` can be defined with :class:`~ignite.handlers.DiskSaver`.
+            `save_handler` can be defined with :class:`~ignite.handlers.DiskSaver`.
         evaluator: evaluation engine used to provide the score
         models: model or dictionary with the object to save. Objects should have
-            implemented ``state_dict`` and ``load_state_dict`` methods.
+            implemented `state_dict` and `load_state_dict` methods.
         metric_name: metric name to use for score evaluation. This metric should be present in
             `evaluator.state.metrics`.
         n_saved: number of best models to store
@@ -380,8 +391,8 @@ def save_best_model_by_val_score(
     score_sign: float = 1.0,
     **kwargs: Any,
 ) -> Checkpoint:
-    """Method adds a handler to ``evaluator`` to save on a disk ``n_saved`` of best models based on the metric
-    (named by ``metric_name``) provided by ``evaluator`` (i.e. ``evaluator.state.metrics[metric_name]``).
+    """Method adds a handler to `evaluator` to save on a disk `n_saved` of best models based on the metric
+    (named by `metric_name`) provided by `evaluator` (i.e. `evaluator.state.metrics[metric_name]`).
     Models with highest metric value will be retained.
 
     Args:
