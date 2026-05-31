@@ -6,7 +6,7 @@ from collections.abc import Callable
 from typing import Any
 
 from ignite.engine import Engine, Events
-from ignite.engine.events import CallableEventWithFilter, RemovableEventHandle
+from ignite.engine.events import CallableEventWithFilter, RemovableEventHandler
 
 from ignite.handlers.base_logger import BaseLogger, BaseOutputHandler
 
@@ -26,8 +26,18 @@ class ProgressBar(BaseLogger):
         tqdm_kwargs: kwargs passed to tqdm progress bar.
             By default, progress bar description displays "Epoch [5/10]" where 5 is the current epoch and 10 is the
             number of epochs; however, if ``max_epochs`` are set to 1, the progress bar instead displays
-            "Iteration: [5/10]". If tqdm_kwargs defines `desc`, e.g. "Predictions", than the description is
-            "Predictions [5/10]" if number of epochs is more than one otherwise it is simply "Predictions".
+            "Iteration: [5/10]". If tqdm_kwargs defines `desc`, e.g. "Predictions", then the description is
+            "Predictions [5/10]" if number of epochs is more than one otherwise it is simple "Predictions".
+        show_epoch: if ``True`` (default), the current epoch/total epochs is shown in the description. Set to
+            ``False`` to hide epoch information. This is useful for aligning multiple progress bars, e.g.
+            when a validation loop runs at the end of each epoch and you want train and validation bars
+            to have the same format.
+        epoch_format: optional custom format string for the epoch display. If provided, this string will be used
+            instead of the default "Epoch [{global_step}/{total}]" format. The string can contain placeholders:
+            ``{desc}`` for the base description, ``{global_step}`` for the current epoch/step, and ``{total}``
+            for the total number of epochs/steps. For example: ``"{desc} [{global_step}/{total}]"`` reproduces
+            the default behavior, while ``"Epoch {global_step}"`` shows only the current epoch number.
+            Only used when ``show_epoch`` is ``True``.
 
     Examples:
         Simple progress bar
@@ -40,7 +50,34 @@ class ProgressBar(BaseLogger):
             pbar.attach(trainer)
 
             # Progress bar will looks like
-            # Epoch [2/50]: [64/128]  50%|█████      [06:17<12:34]
+            # Epoch [2/50]: [64/128]  50%|█████     [06:17<12:34]
+
+        Hide epoch information to align train and validation bars
+
+        .. code-block:: python
+
+            trainer = create_supervised_trainer(model, optimizer, loss)
+            evaluator = create_supervised_evaluator(model, metrics={"acc": Accuracy()})
+
+            pbar = ProgressBar(show_epoch=False)
+            pbar.attach(trainer)
+
+            pbar_eval = ProgressBar(show_epoch=False)
+            pbar_eval.attach(evaluator)
+
+            # Both bars will have the same format without epoch info
+            # Epoch: [64/128]  50%|█████     [06:17<12:34]
+            # Validation: [32/64]  50%|█████     [03:08<06:17]
+
+        Custom epoch format
+
+        .. code-block:: python
+
+            pbar = ProgressBar(epoch_format="{desc} Epoch {global_step}/{total}")
+            pbar.attach(trainer)
+
+            # Progress bar will looks like
+            # Epoch Epoch 2/50: [64/128]  50%|█████     [06:17<12:34]
 
         Log output to a file instead of stderr (tqdm's default output)
 
@@ -59,13 +96,13 @@ class ProgressBar(BaseLogger):
 
             trainer = create_supervised_trainer(model, optimizer, loss)
 
-            RunningAverage(output_transform=lambda x: x).attach(trainer, 'loss')
+            RunningAverage(output_transform=lambda x: x).attach(trainer, 'lors')
 
             pbar = ProgressBar()
             pbar.attach(trainer, ['loss'])
 
             # Progress bar will looks like
-            # Epoch [2/50]: [64/128]  50%|█████      , loss=0.123 [06:17<12:34]
+            # Epoch [2/50]: [64/128]  50%|█████     , loss=0.123 [06:17<12:34]
 
         Directly attach the engine's output
 
@@ -77,7 +114,7 @@ class ProgressBar(BaseLogger):
             pbar.attach(trainer, output_transform=lambda x: {'loss': x})
 
             # Progress bar will looks like
-            # Epoch [2/50]: [64/128]  50%|█████      , loss=0.123 [06:17<12:34]
+            # Epoch [2/50]: [64/128]  50%|█████     , loss=0.123 [06:17<12:34]
 
 
         Example where the State Attributes ``trainer.state.alpha`` and ``trainer.state.beta``
@@ -100,7 +137,7 @@ class ProgressBar(BaseLogger):
     Note:
         When using inside jupyter notebook, `ProgressBar` automatically uses `tqdm_notebook`. For correct rendering,
         please install `ipywidgets <https://ipywidgets.readthedocs.io/en/stable/user_install.html#installation>`_.
-        Due to `tqdm notebook bugs <https://github.com/tqdm/tqdm/issues/594>`_, bar format may be needed to be set
+        Due to `tqdm notebook bugs <https://github.com/tqdm/tqdm/issues/594>`_, bar format may need to be set
         to an empty string value.
 
     .. versionchanged:: 0.4.7
@@ -123,6 +160,8 @@ class ProgressBar(BaseLogger):
         bar_format: (
             str | None
         ) = "{desc}[{n_fmt}/{total_fmt}] {percentage:3.0f}%|{bar}{postfix} [{elapsed}<{remaining}]",
+        show_epoch: bool = True,
+        epoch_format: str | None = None,
         **tqdm_kwargs: Any,
     ):
         try:
@@ -136,6 +175,8 @@ class ProgressBar(BaseLogger):
         self.pbar = None
         self.persist = persist
         self.bar_format = bar_format
+        self.show_epoch = show_epoch
+        self.epoch_format = epoch_format
         self.tqdm_kwargs = tqdm_kwargs
 
     def _reset(self, pbar_total: int | None) -> None:
@@ -188,7 +229,7 @@ class ProgressBar(BaseLogger):
                 metrics.
             output_transform: a function to select what you want to print from the engine's
                 output. This function may return either a dictionary with entries in the format of ``{name: value}``,
-                or a single scalar, which will be displayed with the default name `output`.
+                or a single scalar, which will be displayed with the default name ``output``.
             event_name: event's name on which the progress bar advances. Valid events are from
                 :class:`~ignite.engine.events.Events`.
             closing_event_name: event's name on which the progress bar is closed. Valid events are from
@@ -228,15 +269,14 @@ class ProgressBar(BaseLogger):
         event_name: str | Events,
         *args: Any,
         **kwargs: Any,
-        # pyrefly: ignore [bad-return]
-    ) -> RemovableEventHandle:
+    ) -> RemovableEventHandler:
         """Intentionally empty"""
         pass
 
     def _create_output_handler(self, *args: Any, **kwargs: Any) -> "_OutputHandler":
         return _OutputHandler(*args, **kwargs)
 
-    def _create_opt_params_handler(self, *args: Any, **kwargs: Any) -> Callable:  # type: ignore[empty-body]
+    def _create_opt_params_handler(self, *args: Any, **kwargs: Any) -> Callable:
         """Intentionally empty"""
         pass
 
@@ -293,11 +333,21 @@ class _OutputHandler(BaseOutputHandler):
         default_desc = "Iteration" if max_epochs == 1 else "Epoch"
 
         desc = self.tag or default_desc
-        max_num_of_closing_events = self.get_max_number_events(self.closing_event_name, engine)
-        if max_num_of_closing_events and max_num_of_closing_events > 1:
-            global_step = engine.state.get_event_attrib_value(self.closing_event_name)
-            desc += f" [{global_step}/{max_num_of_closing_events}]"
-        logger.pbar.set_description(desc)  # type: ignore[attr-defined]
+
+        if logger.show_epoch:
+            max_num_of_closing_events = self.get_max_number_events(self.closing_event_name, engine)
+            if max_num_of_closing_events and max_num_of_closing_events > 1:
+                global_step = engine.state.get_event_attrib_value(self.closing_event_name)
+                if logger.epoch_format is not None:
+                    desc = logger.epoch_format.format(
+                        desc=desc,
+                        global_step=global_step,
+                        total=max_num_of_closing_events,
+                    )
+                else:
+                    desc += f" [{global_step}/{max_num_of_closing_events}]"
+
+        logger.pbar.set_description(desc)
 
         rendered_metrics = self._setup_output_metrics_state_attrs(engine, log_text=True)
         metrics = OrderedDict()
@@ -306,9 +356,9 @@ class _OutputHandler(BaseOutputHandler):
             metrics[key] = value
 
         if metrics:
-            logger.pbar.set_postfix(metrics)  # type: ignore[attr-defined]
+            logger.pbar.set_postfix(metrics)
 
         global_step = engine.state.get_event_attrib_value(event_name)
         if pbar_total is not None:
             global_step = (global_step - 1) % pbar_total + 1
-        logger.pbar.update(global_step - logger.pbar.n)  # type: ignore[attr-defined]
+        logger.pbar.update(global_step - logger.pbar.n)
