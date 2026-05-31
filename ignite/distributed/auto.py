@@ -50,7 +50,7 @@ def auto_dataloader(dataset: Dataset, **kwargs: Any) -> DataLoader | _MpDeviceLo
     Examples:
         .. code-block:: python
 
-            import ignite.distribted as idist
+            import ignite.distributed as idist
 
             train_loader = idist.auto_dataloader(
                 train_dataset,
@@ -155,8 +155,8 @@ def auto_model(model: nn.Module, sync_bn: bool = False, **kwargs: Any) -> nn.Mod
     Args:
         model: model to adapt.
         sync_bn: if True, applies `torch convert_sync_batchnorm`_ to the model for native torch
-            distributed only. Default, False. Note, if using Nvidia/Apex, batchnorm conversion should be
-            applied before calling ``amp.initialize``.
+            distributed only. Default, False. Note, if using Nvidia/Apex, batch norm conversion should be
+            applied before calling `amp.initialize`.
         kwargs: kwargs to model's wrapping class: `torch DistributedDataParallel`_ or `torch DataParallel`_
             if applicable. Please, make sure to use acceptable kwargs for given backend.
 
@@ -166,15 +166,15 @@ def auto_model(model: nn.Module, sync_bn: bool = False, **kwargs: Any) -> nn.Mod
     Examples:
         .. code-block:: python
 
-            import ignite.distribted as idist
+            import ignite.distributed as idist
 
             model = idist.auto_model(model)
 
-        In addition with NVidia/Apex, it can be used in the following way:
+        In addition with Nvidia/Apex, it can be used in the following way:
 
         .. code-block:: python
 
-            import ignite.distribted as idist
+            import ignite.distributed as idist
 
             model, optimizer = amp.initialize(model, optimizer, opt_level=opt_level)
             model = idist.auto_model(model)
@@ -188,10 +188,10 @@ def auto_model(model: nn.Module, sync_bn: bool = False, **kwargs: Any) -> nn.Mod
     .. versionchanged:: 0.4.2
 
         - Added Horovod distributed framework.
-        - Added ``sync_bn`` argument.
+        - Added `sync_bn` argument.
 
     .. versionchanged:: 0.4.3
-        Added kwargs to ``idist.auto_model``.
+        Added kwargs to `idist.auto_model`.
     """
     logger = setup_logger(__name__ + ".auto_model")
 
@@ -242,7 +242,7 @@ def auto_optim(optimizer: Optimizer, **kwargs: Any) -> Optimizer:
     Internally, this method is no-op for non-distributed and torch native distributed configuration.
 
     For XLA distributed configuration, we create a new class that inherits from provided optimizer.
-    The goal is to override the `step()` method with specific `xm.optimizer_step`_ implementation.
+    The goal is to override the ``step()`` method with specific `xm.optimizer_step` implementation.
 
     For Horovod distributed configuration, optimizer is wrapped with Horovod Distributed Optimizer and
     its state is broadcasted from rank 0 to all other processes.
@@ -267,7 +267,7 @@ def auto_optim(optimizer: Optimizer, **kwargs: Any) -> Optimizer:
         Added Horovod distributed optimizer.
 
     .. versionchanged:: 0.4.7
-        Added kwargs to ``idist.auto_optim``.
+        Added kwargs to `idist.auto_optim`.
     """
     bnd = idist.backend()
     if idist.has_xla_support and bnd == idist_xla.XLA_TPU:
@@ -339,7 +339,7 @@ if idist.has_xla_support:
         # From pytorch/xla if `torch_xla.distributed.parallel_loader.MpDeviceLoader` is not available
         def __init__(self, loader: Any, device: torch.device, **kwargs: Any) -> None:
             self._loader = loader
-            # pyrefly: ignore [read-only]
+            # pyrely: ignore [read-only]
             self._device = device
             self._parallel_loader_kwargs = kwargs
 
