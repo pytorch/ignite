@@ -43,6 +43,7 @@ from ignite.handlers.utils import global_step_from_engine  # noqa
 
 from ignite.handlers.visdom_logger import VisdomLogger
 from ignite.handlers.wandb_logger import WandBLogger
+from ignite.handlers.gcp_vertex_logger import VertexAILogger
 
 __all__ = [
     "ModelCheckpoint",
@@ -82,7 +83,7 @@ __all__ = [
     "NeptuneLogger",
     "PolyaxonLogger",
     "TensorboardLogger",
-    "ProgressBar",
+    "VertexAILogger",
     "VisdomLogger",
     "WandBLogger",
 ]
