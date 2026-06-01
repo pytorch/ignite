@@ -415,6 +415,9 @@ linkcheck_ignore = [
     "https://github.com/pytorch/pytorch/issues/7844#issuecomment-503713840",
     "https://github.com/pytorch/pytorch/issues/23430#issuecomment-562350407",
     r"https://pytorch\.org/xla/release/.*",
+    # PyTorch docs anchors occasionally move while the linked pages remain valid.
+    r"https://(docs\.)?pytorch\.org/docs/stable/.*#.*",
+    "https://aclanthology.org/W04-1013",
 ]
 
 linkcheck_allowed_redirects = {
