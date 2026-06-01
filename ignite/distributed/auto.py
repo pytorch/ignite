@@ -27,7 +27,7 @@ def auto_dataloader(dataset: Dataset, **kwargs: Any) -> DataLoader | _MpDeviceLo
     Internally, we create a dataloader with provided kwargs while applying the following updates:
 
     - batch size is scaled by world size: ``batch_size / world_size`` if larger or equal world size.
-    - number of workers is scaled by number of local processes: ``num_workers / nprocs`` if larger or equal world size.
+    - number of workers is scaled by number of local processes: ``num_workers / nprocsc` if larger or equal world size.
     - if no sampler provided by user, a `torch DistributedSampler`_ is setup.
     - if a `torch DistributedSampler`_ is provided by user, it is used without wrapping it.
     - if another sampler is provided, it is wrapped by :class:`~ignite.distributed.auto.DistributedProxySampler`.
@@ -76,10 +76,10 @@ def auto_dataloader(dataset: Dataset, **kwargs: Any) -> DataLoader | _MpDeviceLo
         if "batch_size" in kwargs and kwargs["batch_size"] >= world_size:
             kwargs["batch_size"] //= world_size
 
-        nproc = idist.get_nproc_per_node()
+        nproc = idist.get_nprocs_per_node()
         if "num_workers" in kwargs and kwargs["num_workers"] >= nproc:
             kwargs["num_workers"] = (kwargs["num_workers"] + nproc - 1) // nproc
-
+        
         if "batch_sampler" not in kwargs:
             if isinstance(dataset, IterableDataset):
                 logger.info(
@@ -203,157 +203,4 @@ def auto_model(model: nn.Module, sync_bn: bool = False, **kwargs: Any) -> nn.Mod
     # distributed data parallel model
     if idist.get_world_size() > 1:
         bnd = idist.backend()
-        if idist.has_native_dist_support and bnd in (idist_native.NCCL, idist_native.GLOO, idist_native.MPI):
-            if sync_bn:
-                logger.info("Convert batch norm to sync batch norm")
-                model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
-
-            if torch.cuda.is_available():
-                if "device_ids" in kwargs:
-                    raise ValueError(f"Argument kwargs should not contain 'device_ids', but got {kwargs}")
-
-                lrank = idist.get_local_rank()
-                logger.info(f"Apply torch DistributedDataParallel on model, device id: {lrank}")
-                kwargs["device_ids"] = [
-                    lrank,
-                ]
-            else:
-                logger.info("Apply torch DistributedDataParallel on model")
-
-            model = torch.nn.parallel.DistributedDataParallel(model, **kwargs)
-        elif idist.has_hvd_support and bnd == idist_hvd.HOROVOD:
-            import horovod.torch as hvd
-
-            logger.info("Broadcast the initial variable states from rank 0 to all other processes")
-            hvd.broadcast_parameters(model.state_dict(), root_rank=0)
-
-    # not distributed but multiple GPUs reachable so data parallel model
-    elif torch.cuda.device_count() > 1 and "cuda" in idist.device().type:
-        logger.info("Apply torch DataParallel on model")
-        model = torch.nn.parallel.DataParallel(model, **kwargs)
-
-    return model
-
-
-def auto_optim(optimizer: Optimizer, **kwargs: Any) -> Optimizer:
-    """Helper method to adapt optimizer for non-distributed and distributed configurations (supporting
-    all available backends from :meth:`~ignite.distributed.utils.available_backends()`).
-
-    Internally, this method is no-op for non-distributed and torch native distributed configuration.
-
-    For XLA distributed configuration, we create a new class that inherits from provided optimizer.
-    The goal is to override the `step()` method with specific `xm.optimizer_step`_ implementation.
-
-    For Horovod distributed configuration, optimizer is wrapped with Horovod Distributed Optimizer and
-    its state is broadcasted from rank 0 to all other processes.
-
-    Args:
-        optimizer: input torch optimizer
-        kwargs: kwargs to Horovod backend's DistributedOptimizer.
-
-    Returns:
-        Optimizer
-
-    Examples:
-        .. code-block:: python
-
-            import ignite.distributed as idist
-
-            optimizer = idist.auto_optim(optimizer)
-
-    .. _xm.optimizer_step: https://pytorch.org/xla/release/1.5/index.html#torch_xla.core.xla_model.optimizer_step
-
-    .. versionchanged:: 0.4.2
-        Added Horovod distributed optimizer.
-
-    .. versionchanged:: 0.4.7
-        Added kwargs to ``idist.auto_optim``.
-    """
-    bnd = idist.backend()
-    if idist.has_xla_support and bnd == idist_xla.XLA_TPU:
-        cls = type(optimizer.__class__.__name__, (optimizer.__class__,), dict(_XLADistributedOptimizer.__dict__))
-        return cls(optimizer)
-
-    if idist.has_hvd_support and bnd == idist_hvd.HOROVOD:
-        import horovod.torch as hvd
-
-        optimizer = hvd.DistributedOptimizer(optimizer, **kwargs)
-        hvd.broadcast_optimizer_state(optimizer, root_rank=0)
-        return optimizer
-
-    return optimizer
-
-
-class DistributedProxySampler(DistributedSampler):
-    """Distributed sampler proxy to adapt user's sampler for distributed data parallelism configuration.
-
-    Code is based on https://github.com/pytorch/pytorch/issues/23430#issuecomment-562350407
-
-    Args:
-        sampler: Input torch data sampler.
-        num_replicas: Number of processes participating in distributed training.
-        rank: Rank of the current process within ``num_replicas``.
-
-    .. note::
-        Input sampler is assumed to have a constant size.
-    """
-
-    def __init__(self, sampler: Sampler, num_replicas: int | None = None, rank: int | None = None) -> None:
-        if not isinstance(sampler, Sampler):
-            raise TypeError(f"Argument sampler should be instance of torch Sampler, but given: {type(sampler)}")
-
-        if isinstance(sampler, DistributedSampler):
-            raise TypeError("Argument sampler must not be a distributed sampler already")
-
-        if not hasattr(sampler, "__len__"):
-            raise TypeError("Argument sampler should have length")
-
-        super().__init__(sampler, num_replicas=num_replicas, rank=rank, shuffle=False)  # type: ignore[arg-type]
-        self.sampler = sampler
-
-    def __iter__(self) -> Iterator:
-        # deterministically shuffle based on epoch
-        torch.manual_seed(self.epoch)
-
-        indices: list = []
-        while len(indices) < self.total_size:
-            indices += list(self.sampler)
-
-        if len(indices) > self.total_size:
-            indices = indices[: self.total_size]
-
-        # subsample
-        indices = indices[self.rank : self.total_size : self.num_replicas]
-        if len(indices) != self.num_samples:
-            raise RuntimeError(f"{len(indices)} vs {self.num_samples}")
-
-        return iter(indices)
-
-
-if idist.has_xla_support:
-    import torch_xla.core.xla_model as xm
-    from torch_xla.distributed.parallel_loader import ParallelLoader
-
-    class _MpDeviceLoader:
-        # https://github.com/pytorch/xla/pull/2117
-        # From pytorch/xla if `torch_xla.distributed.parallel_loader.MpDeviceLoader` is not available
-        def __init__(self, loader: Any, device: torch.device, **kwargs: Any) -> None:
-            self._loader = loader
-            # pyrefly: ignore [read-only]
-            self._device = device
-            self._parallel_loader_kwargs = kwargs
-
-        def __iter__(self) -> Iterator:
-            parallel_loader = ParallelLoader(self._loader, [self._device], **self._parallel_loader_kwargs)
-            return parallel_loader.per_device_loader(self._device)
-
-        def __len__(self) -> int:
-            return len(self._loader)
-
-    class _XLADistributedOptimizer(Optimizer):
-        def __init__(self, optimizer: Optimizer) -> None:
-            super().__init__(optimizer.param_groups)  # type: ignore[call-arg]
-            self.wrapped_optimizer = optimizer
-
-        def step(self, closure: Any = None) -> Any:
-            xm.optimizer_step(self.wrapped_optimizer, barrier=True)
+        if idist.has_native_dist_support and bnd in (idist_native.NCCL, creturn model
