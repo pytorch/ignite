@@ -185,6 +185,9 @@ def _setup_common_training_handlers(
     if torch.cuda.is_available() and clear_cuda_cache:
         trainer.add_event_handler(Events.EPOCH_COMPLETED, empty_cuda_cache)
 
+    if hasattr(torch, "mps") and hasattr(torch.mps, "empty_cache") and clear_cuda_cache:
+        trainer.add_event_handler(Events.EPOCH_COMPLETED, empty_mps_cache)
+
     if to_save is not None:
         if output_path is None and save_handler is None:
             raise ValueError(
@@ -287,12 +290,18 @@ def empty_cuda_cache(_: Engine) -> None:
     gc.collect()
 
 
+def empty_mps_cache(_: Engine) -> None:
+    if hasattr(torch, "mps") and hasattr(torch.mps, "empty_cache"):
+        torch.mps.empty_cache()
+    import gc
+    gc.collect()
+
+
 @deprecated(
     "0.4.0",
     "0.6.0",
     ("Please use instead: setup_tb_logging, setup_visdom_logging or setup_mlflow_logging etc.",),
-    raise_exception=True,
-)
+    raise_exception=True,)
 def setup_any_logging(
     logger: BaseLogger,
     logger_module: Any,
@@ -327,12 +336,12 @@ def gen_save_best_models_by_val_score(
         save_handler: Method or callable class to
             use to save engine and other provided objects. Function receives two objects: checkpoint as a dictionary
             and filename. If ``save_handler`` is callable class, it can
-            inherit of :class:`~ignite.handlers.checkpoint.BaseSaveHandler` and optionally implement ``remove`` method
+            inherit of :class:`~ignite.handlers.checkpoint.BaseSaveHandler` and optionally implement `remove` method
             to keep a fixed number of saved checkpoints. In case if user needs to save engine's checkpoint on a disk,
             ``save_handler`` can be defined with :class:`~ignite.handlers.DiskSaver`.
         evaluator: evaluation engine used to provide the score
         models: model or dictionary with the object to save. Objects should have
-            implemented ``state_dict`` and ``load_state_dict`` methods.
+            implemented ``state_dict` and ``load_state_dict` methods.
         metric_name: metric name to use for score evaluation. This metric should be present in
             `evaluator.state.metrics`.
         n_saved: number of best models to store
