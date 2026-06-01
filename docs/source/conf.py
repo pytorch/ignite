@@ -384,8 +384,6 @@ nitpick_aliases = {
     "ignite.metrics.metrics_lambda.MetricsLambda": "ignite.metrics.MetricsLambda",
     "ignite.metrics.precision.Precision": "ignite.metrics.Precision",
     "ignite.metrics.recall.Recall": "ignite.metrics.Recall",
-    "ignite.metrics.rec_sys.HitRate": "ignite.metrics.HitRate",
-    "ignite.metrics.rec_sys.NDCG": "ignite.metrics.NDCG",
     "ignite.metrics.vision.object_detection_average_precision_recall.coco_tensor_list_to_dict_list": (
         "ignite.metrics.coco_tensor_list_to_dict_list"
     ),

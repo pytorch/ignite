@@ -395,8 +395,8 @@ Complete list of metrics
     fairness.SelectionRate
     fairness.SubgroupDifference
     fairness.SubgroupMetric
-    HitRate
-    NDCG
+    rec_sys.HitRate
+    rec_sys.NDCG
 
 .. note::
 
