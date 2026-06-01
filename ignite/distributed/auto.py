@@ -20,7 +20,7 @@ from ignite.utils import setup_logger
 __all__ = ["auto_dataloader", "auto_model", "auto_optim", "DistributedProxySampler"]
 
 
-def auto_dataloader(dataset: Dataset, **kwargs: Any) -> DataLoader | _MpDeviceLoader:
+def auto_dataloader(dataset: Dataset, *kwargs: Any) -> DataLoader | _MpDeviceLoader:
     """Helper method to create a dataloader adapted for non-distributed and distributed configurations (supporting
     all available backends from :meth:`~ignite.distributed.utils.available_backends()`).
 
@@ -28,7 +28,7 @@ def auto_dataloader(dataset: Dataset, **kwargs: Any) -> DataLoader | _MpDeviceLo
 
     - batch size is scaled by world size: ``batch_size / world_size`` if larger or equal world size.
     - number of workers is scaled by number of local processes: ``num_workers / nprocs`` if larger or equal world size.
-    - if no sampler provided by user, a `torch DistributedSampler`_ is setup.
+    - if no sampler provided by user, a `torch DistributedSampler`_ is set up.
     - if a `torch DistributedSampler`_ is provided by user, it is used without wrapping it.
     - if another sampler is provided, it is wrapped by :class:`~ignite.distributed.auto.DistributedProxySampler`.
     - if the default device is 'cuda', `pin_memory` is automatically set to `True`.
@@ -50,7 +50,7 @@ def auto_dataloader(dataset: Dataset, **kwargs: Any) -> DataLoader | _MpDeviceLo
     Examples:
         .. code-block:: python
 
-            import ignite.distribted as idist
+            import ignite.distributed as idist
 
             train_loader = idist.auto_dataloader(
                 train_dataset,
@@ -76,9 +76,9 @@ def auto_dataloader(dataset: Dataset, **kwargs: Any) -> DataLoader | _MpDeviceLo
         if "batch_size" in kwargs and kwargs["batch_size"] >= world_size:
             kwargs["batch_size"] //= world_size
 
-        nproc = idist.get_nproc_per_node()
-        if "num_workers" in kwargs and kwargs["num_workers"] >= nproc:
-            kwargs["num_workers"] = (kwargs["num_workers"] + nproc - 1) // nproc
+        nprocs = idist.get_nprocs_per_node()
+        if "num_workers" in kwargs and kwargs["num_workers"] >= nprocs:
+            kwargs["num_workers"] = (kwargs["num_workers"] + nprocs - 1) // nprocs
 
         if "batch_sampler" not in kwargs:
             if isinstance(dataset, IterableDataset):
@@ -166,15 +166,15 @@ def auto_model(model: nn.Module, sync_bn: bool = False, **kwargs: Any) -> nn.Mod
     Examples:
         .. code-block:: python
 
-            import ignite.distribted as idist
+            import ignite.distributed as idist
 
             model = idist.auto_model(model)
 
-        In addition with NVidia/Apex, it can be used in the following way:
+        In addition with Nvidia/Apex, it can be used in the following way:
 
         .. code-block:: python
 
-            import ignite.distribted as idist
+            import ignite.distributed as idist
 
             model, optimizer = amp.initialize(model, optimizer, opt_level=opt_level)
             model = idist.auto_model(model)
@@ -182,8 +182,8 @@ def auto_model(model: nn.Module, sync_bn: bool = False, **kwargs: Any) -> nn.Mod
     .. _torch DistributedDataParallel: https://pytorch.org/docs/stable/generated/torch.nn.parallel.
         DistributedDataParallel.html
     .. _torch DataParallel: https://pytorch.org/docs/stable/generated/torch.nn.DataParallel.html
-    .. _torch convert_sync_batchnorm: https://pytorch.org/docs/stable/generated/torch.nn.SyncBatchNorm.html#
-        torch.nn.SyncBatchNorm.convert_sync_batchnorm
+    .. _torch convert_sync_batchnorm: https://pytorch.org/docs/stable/generated/torch.nn.
+        SyncBatchNorm.convert_sync_batchnorm.html
 
     .. versionchanged:: 0.4.2
 
@@ -285,7 +285,7 @@ def auto_optim(optimizer: Optimizer, **kwargs: Any) -> Optimizer:
 
 
 class DistributedProxySampler(DistributedSampler):
-    """Distributed sampler proxy to adapt user's sampler for distributed data parallelism configuration.
+    """Distributed sampler proxy to adapt user's sampler for distributed data parallelization configuration.
 
     Code is based on https://github.com/pytorch/pytorch/issues/23430#issuecomment-562350407
 
@@ -339,7 +339,7 @@ if idist.has_xla_support:
         # From pytorch/xla if `torch_xla.distributed.parallel_loader.MpDeviceLoader` is not available
         def __init__(self, loader: Any, device: torch.device, **kwargs: Any) -> None:
             self._loader = loader
-            # pyrefly: ignore [read-only]
+            # pyrely: ignore [read-only]
             self._device = device
             self._parallel_loader_kwargs = kwargs
 
