@@ -50,7 +50,7 @@ def auto_dataloader(dataset: Dataset, **kwargs: Any) -> DataLoader | _MpDeviceLo
     Examples:
         .. code-block:: python
 
-            import ignite.distribted as idist
+            import ignite.distributed as idist
 
             train_loader = idist.auto_dataloader(
                 train_dataset,
@@ -64,8 +64,7 @@ def auto_dataloader(dataset: Dataset, **kwargs: Any) -> DataLoader | _MpDeviceLo
     .. _torch DataLoader: https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader
     .. _XLA MpDeviceLoader:
         https://pytorch.org/xla/release/2.0/index.html#running-on-multiple-xla-devices-with-multi-processing
-    .. _torch DistributedSampler:
-        https://pytorch.org/docs/stable/data.html#torch.utils.data.distributed.DistributedSampler
+    .. _torch DistributedSampler: https://pytorch.org/docs/stable/generated/torch.utils.data.distributed.DistributedSampler.html
     .. _torch IterableDataset: https://pytorch.org/docs/stable/data.html#torch.utils.data.IterableDataset
     """
     rank = idist.get_rank()
@@ -76,9 +75,9 @@ def auto_dataloader(dataset: Dataset, **kwargs: Any) -> DataLoader | _MpDeviceLo
         if "batch_size" in kwargs and kwargs["batch_size"] >= world_size:
             kwargs["batch_size"] //= world_size
 
-        nproc = idist.get_nproc_per_node()
-        if "num_workers" in kwargs and kwargs["num_workers"] >= nproc:
-            kwargs["num_workers"] = (kwargs["num_workers"] + nproc - 1) // nproc
+        nprocs = idist.get_nproc_per_node()
+        if "num_workers" in kwargs and kwargs["num_workers"] >= nprocs:
+            kwargs["num_workers"] = (kwargs["num_workers"] + nprocs - 1) // nprocs
 
         if "batch_sampler" not in kwargs:
             if isinstance(dataset, IterableDataset):
@@ -118,7 +117,7 @@ def auto_dataloader(dataset: Dataset, **kwargs: Any) -> DataLoader | _MpDeviceLo
         )
         kwargs["pin_memory"] = False
     else:
-        kwargs["pin_memory"] = kwargs.get("pin_memory", "cuda" in idist.device().type)
+        kwargs["pin_memory"] = kwargs.get("pin_memory", "cuda" in idist.device().type or "mps" in idist.device().type)
 
     logger.info(f"Use data loader kwargs for dataset '{repr(dataset)[:20].strip()}': \n\t{kwargs}")
     dataloader = DataLoader(dataset, **kwargs)
@@ -170,11 +169,11 @@ def auto_model(model: nn.Module, sync_bn: bool = False, **kwargs: Any) -> nn.Mod
 
             model = idist.auto_model(model)
 
-        In addition with NVidia/Apex, it can be used in the following way:
+        In addition with Nvidia/Apex, it can be used in the following way:
 
         .. code-block:: python
 
-            import ignite.distribted as idist
+            import ignite.distributed as idist
 
             model, optimizer = amp.initialize(model, optimizer, opt_level=opt_level)
             model = idist.auto_model(model)
@@ -339,7 +338,7 @@ if idist.has_xla_support:
         # From pytorch/xla if `torch_xla.distributed.parallel_loader.MpDeviceLoader` is not available
         def __init__(self, loader: Any, device: torch.device, **kwargs: Any) -> None:
             self._loader = loader
-            # pyrefly: ignore [read-only]
+            # pyrely: ignore [read-only]
             self._device = device
             self._parallel_loader_kwargs = kwargs
 
