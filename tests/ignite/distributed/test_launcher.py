@@ -297,6 +297,7 @@ def test_idist_parallel_tcp_init_method_error():
             pass
 
 
+@pytest.mark.distributed
 @pytest.mark.parametrize(
     "backend",
     [
