@@ -54,7 +54,6 @@ if has_native_dist_support:
             init_method: str | None = None,
             world_size: int | None = None,
             rank: int | None = None,
-            store: Any | None = None,
             **kwargs: Any,
         ) -> _NativeDistModel:
             if backend not in _NativeDistModel.available_backends:
@@ -63,6 +62,7 @@ if has_native_dist_support:
             if dist.is_available() and dist.is_initialized():
                 raise RuntimeError("Can not create new distributed process group if default one is already initialized")
 
+            store = kwargs.get("store", None)
             if init_method is None and store is None:
                 if world_size is not None or rank is not None:
                     raise ValueError("Arguments rank and world_size should be None if no init_method is provided")
@@ -73,7 +73,7 @@ if has_native_dist_support:
                     raise ValueError(f"Both rank and world_size should be provided, but given {rank} and {world_size}")
 
             return _NativeDistModel(
-                backend=backend, init_method=init_method, world_size=world_size, rank=rank, store=store, **kwargs
+                backend=backend, init_method=init_method, world_size=world_size, rank=rank, **kwargs
             )
 
         def __init__(
@@ -83,7 +83,6 @@ if has_native_dist_support:
             init_method: str | None = None,
             world_size: int | None = None,
             rank: int | None = None,
-            store: Any | None = None,
             **kwargs: Any,
         ) -> None:
             """This is a private method. Please, use `create_from_backend` or `create_from_context`"""
@@ -100,7 +99,6 @@ if has_native_dist_support:
                     init_method=init_method,
                     world_size=world_size,
                     rank=rank,
-                    store=store,
                     **kwargs,
                 )
             else:
@@ -113,9 +111,9 @@ if has_native_dist_support:
             init_method: str | None = None,
             world_size: int | None = None,
             rank: int | None = None,
-            store: Any | None = None,
             **kwargs: Any,
         ) -> None:
+            store = kwargs.pop("store", None)
             if init_method is not None and init_method.startswith("tcp://"):
                 raise ValueError(
                     f"TCP initialization via init_method='{init_method}' will hang. "

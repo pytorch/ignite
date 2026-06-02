@@ -224,7 +224,6 @@ class Parallel:
         master_addr: str | None = None,
         master_port: int | None = None,
         init_method: str | None = None,
-        store: Any | None = None,
         **spawn_kwargs: Any,
     ) -> None:
         if backend is not None:
@@ -252,7 +251,7 @@ class Parallel:
         self.backend = backend
         self._spawn_params = None
         self.init_method = init_method
-        self.store = store
+        self.store = spawn_kwargs.pop("store", None)
 
         if self.backend is not None:
             if nproc_per_node is not None:

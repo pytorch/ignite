@@ -35,8 +35,6 @@ jobs:
   cpu-tests:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 85
-    env:
-      USE_LIBUV: "0"
     defaults:
       run:
         shell: bash
