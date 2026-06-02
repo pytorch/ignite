@@ -1,4 +1,5 @@
 import os
+import sys
 
 import pytest
 import torch
@@ -732,7 +733,7 @@ def test__native_dist_model_tcp_init_method_error():
         _NativeDistModel.create_from_backend(backend="gloo", init_method="tcp://10.1.1.20:23456", rank=0, world_size=1)
 
 
-@pytest.mark.distributed
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows due to TCPStore libuv bugs")
 @pytest.mark.parametrize(
     "backend,device",
     [

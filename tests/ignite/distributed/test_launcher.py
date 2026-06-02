@@ -297,7 +297,7 @@ def test_idist_parallel_tcp_init_method_error():
             pass
 
 
-@pytest.mark.distributed
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows due to TCPStore libuv bugs")
 @pytest.mark.parametrize(
     "backend",
     [
