@@ -45,6 +45,7 @@ def pytest_configure(config):
     This function is a pytest hook (due to its name) and is run after command
     line parsing is complete in order to configure the test session.
     """
+    os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")
     config.addinivalue_line("markers", "distributed: run distributed")
     config.addinivalue_line("markers", "multinode_distributed: distributed")
     config.addinivalue_line("markers", "tpu: run on tpu")
