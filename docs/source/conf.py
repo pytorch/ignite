@@ -367,6 +367,46 @@ nitpick_ignore = [
     ("py:class", "DataLoader"),
 ]
 
+nitpick_aliases = {
+    "ignite.handlers.checkpoint.Checkpoint": "ignite.handlers.Checkpoint",
+    "ignite.handlers.checkpoint.ModelCheckpoint": "ignite.handlers.ModelCheckpoint",
+    "ignite.handlers.ema_handler.EMAHandler": "ignite.handlers.EMAHandler",
+    "ignite.handlers.early_stopping.EarlyStopping": "ignite.handlers.EarlyStopping",
+    "ignite.handlers.lr_finder.FastaiLRFinder": "ignite.handlers.FastaiLRFinder",
+    "ignite.handlers.stores.EpochOutputStore": "ignite.handlers.EpochOutputStore",
+    "ignite.handlers.terminate_on_nan.TerminateOnNan": "ignite.handlers.TerminateOnNan",
+    "ignite.handlers.time_profilers.BasicTimeProfiler": "ignite.handlers.BasicTimeProfiler",
+    "ignite.handlers.time_profilers.HandlersTimeProfiler": "ignite.handlers.HandlersTimeProfiler",
+    "ignite.handlers.timing.Timer": "ignite.handlers.Timer",
+    "ignite.metrics.confusion_matrix.ConfusionMatrix": "ignite.metrics.ConfusionMatrix",
+    "ignite.metrics.metric.Metric": "ignite.metrics.Metric",
+    "ignite.metrics.metric_group.MetricGroup": "ignite.metrics.MetricGroup",
+    "ignite.metrics.metrics_lambda.MetricsLambda": "ignite.metrics.MetricsLambda",
+    "ignite.metrics.precision.Precision": "ignite.metrics.Precision",
+    "ignite.metrics.recall.Recall": "ignite.metrics.Recall",
+    "ignite.metrics.vision.object_detection_average_precision_recall.coco_tensor_list_to_dict_list": (
+        "ignite.metrics.coco_tensor_list_to_dict_list"
+    ),
+    "metrics.precision.Precision": "ignite.metrics.Precision",
+}
+
+
+def _resolve_nitpick_aliases(app, env, node, contnode):
+    target = node.get("reftarget")
+    if node.get("refdomain") != "py" or not isinstance(target, str):
+        return None
+
+    for source, alias in nitpick_aliases.items():
+        if target == source or target.startswith(f"{source}."):
+            ref_type = node["reftype"]
+            target = f"{alias}{target[len(source) :]}"
+            return app.env.domains["py"].resolve_xref(
+                env, node["refdoc"], app.builder, ref_type, target, node, contnode
+            )
+
+    return None
+
+
 linkcheck_ignore = [
     "https://github.com/fossasia/visdom#visdom-arguments-python-only",
     "https://github.com/pytorch/ignite/tree/master/examples/cifar10#check-resume-training",
@@ -391,3 +431,4 @@ linkcheck_allowed_redirects = {
 
 def setup(app):
     app.add_directive("autosummary", AutolistAutosummary, override=True)
+    app.connect("missing-reference", _resolve_nitpick_aliases)
