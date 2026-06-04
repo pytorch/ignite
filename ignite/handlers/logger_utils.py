@@ -29,6 +29,8 @@ __all__ = [
     "setup_trains_logging",
 ]
 
+_MetricNames = str | list[str]
+
 
 def _setup_logging(
     logger: BaseLogger,
@@ -36,6 +38,9 @@ def _setup_logging(
     optimizers: Optimizer | dict[str, Optimizer] | dict[None, Optimizer] | None,
     evaluators: Engine | dict[str, Engine] | None,
     log_every_iters: int,
+    *,
+    trainer_metric_names: _MetricNames = "all",
+    evaluator_metric_names: _MetricNames = "all",
 ) -> None:
     if optimizers is not None:
         if not isinstance(optimizers, (Optimizer, Mapping)):
@@ -49,7 +54,10 @@ def _setup_logging(
         log_every_iters = 1
 
     logger.attach_output_handler(
-        trainer, event_name=Events.ITERATION_COMPLETED(every=log_every_iters), tag="training", metric_names="all"
+        trainer,
+        event_name=Events.ITERATION_COMPLETED(every=log_every_iters),
+        tag="training",
+        metric_names=trainer_metric_names,
     )
 
     if optimizers is not None:
@@ -71,7 +79,11 @@ def _setup_logging(
         gst = global_step_from_engine(trainer, custom_event_name=event_name)
         for k, evaluator in evaluators.items():
             logger.attach_output_handler(
-                evaluator, event_name=Events.COMPLETED, tag=k, metric_names="all", global_step_transform=gst
+                evaluator,
+                event_name=Events.COMPLETED,
+                tag=k,
+                metric_names=evaluator_metric_names,
+                global_step_transform=gst,
             )
 
 
@@ -81,6 +93,9 @@ def setup_tb_logging(
     optimizers: Optimizer | dict[str, Optimizer] | None = None,
     evaluators: Engine | dict[str, Engine] | None = None,
     log_every_iters: int = 100,
+    *,
+    trainer_metric_names: _MetricNames = "all",
+    evaluator_metric_names: _MetricNames = "all",
     **kwargs: Any,
 ) -> TensorboardLogger:
     """Method to setup TensorBoard logging on trainer and a list of evaluators. Logged metrics are:
@@ -98,7 +113,12 @@ def setup_tb_logging(
             keys are used as tags arguments for logging.
         log_every_iters: interval for loggers attached to iteration events. To log every iteration,
             value can be set to 1 or None.
+        trainer_metric_names: list of trainer metric names to plot or a string "all" to plot all available metrics.
+        evaluator_metric_names: list of evaluator metric names to plot or a string "all" to plot all available metrics.
         kwargs: optional keyword args to be passed to construct the logger.
+
+    .. versionchanged:: 0.6.0
+        Added ``trainer_metric_names`` and ``evaluator_metric_names`` parameters.
 
     Returns:
         :class:`~ignite.handlers.tensorboard_logger.TensorboardLogger`
@@ -120,7 +140,15 @@ def setup_tb_logging(
             tb_logger.close()
     """
     logger = TensorboardLogger(log_dir=output_path, **kwargs)
-    _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
+    _setup_logging(
+        logger,
+        trainer,
+        optimizers,
+        evaluators,
+        log_every_iters,
+        trainer_metric_names=trainer_metric_names,
+        evaluator_metric_names=evaluator_metric_names,
+    )
     return logger
 
 
@@ -129,6 +157,9 @@ def setup_visdom_logging(
     optimizers: Optimizer | dict[str, Optimizer] | None = None,
     evaluators: Engine | dict[str, Engine] | None = None,
     log_every_iters: int = 100,
+    *,
+    trainer_metric_names: _MetricNames = "all",
+    evaluator_metric_names: _MetricNames = "all",
     **kwargs: Any,
 ) -> VisdomLogger:
     """Method to setup Visdom logging on trainer and a list of evaluators. Logged metrics are:
@@ -150,7 +181,12 @@ def setup_visdom_logging(
             keys are used as tags arguments for logging.
         log_every_iters: interval for loggers attached to iteration events. To log every iteration,
             value can be set to 1 or None.
+        trainer_metric_names: list of trainer metric names to plot or a string "all" to plot all available metrics.
+        evaluator_metric_names: list of evaluator metric names to plot or a string "all" to plot all available metrics.
         kwargs: optional keyword args to be passed to construct the logger.
+
+    .. versionchanged:: 0.6.0
+        Added ``trainer_metric_names`` and ``evaluator_metric_names`` parameters.
 
     Returns:
         :class:`~ignite.handlers.visdom_logger.VisdomLogger`
@@ -171,7 +207,15 @@ def setup_visdom_logging(
             vd_logger.close()
     """
     logger = VisdomLogger(**kwargs)
-    _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
+    _setup_logging(
+        logger,
+        trainer,
+        optimizers,
+        evaluators,
+        log_every_iters,
+        trainer_metric_names=trainer_metric_names,
+        evaluator_metric_names=evaluator_metric_names,
+    )
     return logger
 
 
@@ -180,6 +224,9 @@ def setup_mlflow_logging(
     optimizers: Optimizer | dict[str, Optimizer] | None = None,
     evaluators: Engine | dict[str, Engine] | None = None,
     log_every_iters: int = 100,
+    *,
+    trainer_metric_names: _MetricNames = "all",
+    evaluator_metric_names: _MetricNames = "all",
     **kwargs: Any,
 ) -> MLflowLogger:
     """Method to setup MLflow logging on trainer and a list of evaluators. Logged metrics are:
@@ -196,7 +243,12 @@ def setup_mlflow_logging(
             keys are used as tags arguments for logging.
         log_every_iters: interval for loggers attached to iteration events. To log every iteration,
             value can be set to 1 or None.
+        trainer_metric_names: list of trainer metric names to plot or a string "all" to plot all available metrics.
+        evaluator_metric_names: list of evaluator metric names to plot or a string "all" to plot all available metrics.
         kwargs: optional keyword args to be passed to construct the logger.
+
+    .. versionchanged:: 0.6.0
+        Added ``trainer_metric_names`` and ``evaluator_metric_names`` parameters.
 
     Returns:
         :class:`~ignite.handlers.mlflow_logger.MLflowLogger`
@@ -217,7 +269,15 @@ def setup_mlflow_logging(
             mlflow_logger.close()
     """
     logger = MLflowLogger(**kwargs)
-    _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
+    _setup_logging(
+        logger,
+        trainer,
+        optimizers,
+        evaluators,
+        log_every_iters,
+        trainer_metric_names=trainer_metric_names,
+        evaluator_metric_names=evaluator_metric_names,
+    )
     return logger
 
 
@@ -226,6 +286,9 @@ def setup_neptune_logging(
     optimizers: Optimizer | dict[str, Optimizer] | None = None,
     evaluators: Engine | dict[str, Engine] | None = None,
     log_every_iters: int = 100,
+    *,
+    trainer_metric_names: _MetricNames = "all",
+    evaluator_metric_names: _MetricNames = "all",
     **kwargs: Any,
 ) -> NeptuneLogger:
     """Method to setup Neptune logging on trainer and a list of evaluators. Logged metrics are:
@@ -242,7 +305,12 @@ def setup_neptune_logging(
             keys are used as tags arguments for logging.
         log_every_iters: interval for loggers attached to iteration events. To log every iteration,
             value can be set to 1 or None.
+        trainer_metric_names: list of trainer metric names to plot or a string "all" to plot all available metrics.
+        evaluator_metric_names: list of evaluator metric names to plot or a string "all" to plot all available metrics.
         kwargs: optional keyword args to be passed to construct the logger.
+
+    .. versionchanged:: 0.6.0
+        Added ``trainer_metric_names`` and ``evaluator_metric_names`` parameters.
 
     Returns:
         :class:`~ignite.handlers.neptune_logger.NeptuneLogger`
@@ -263,7 +331,15 @@ def setup_neptune_logging(
             neptune_logger.close()
     """
     logger = NeptuneLogger(**kwargs)
-    _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
+    _setup_logging(
+        logger,
+        trainer,
+        optimizers,
+        evaluators,
+        log_every_iters,
+        trainer_metric_names=trainer_metric_names,
+        evaluator_metric_names=evaluator_metric_names,
+    )
     return logger
 
 
@@ -272,6 +348,9 @@ def setup_wandb_logging(
     optimizers: Optimizer | dict[str, Optimizer] | None = None,
     evaluators: Engine | dict[str, Engine] | None = None,
     log_every_iters: int = 100,
+    *,
+    trainer_metric_names: _MetricNames = "all",
+    evaluator_metric_names: _MetricNames = "all",
     **kwargs: Any,
 ) -> WandBLogger:
     """Method to setup WandB logging on trainer and a list of evaluators. Logged metrics are:
@@ -288,7 +367,12 @@ def setup_wandb_logging(
             keys are used as tags arguments for logging.
         log_every_iters: interval for loggers attached to iteration events. To log every iteration,
             value can be set to 1 or None.
+        trainer_metric_names: list of trainer metric names to plot or a string "all" to plot all available metrics.
+        evaluator_metric_names: list of evaluator metric names to plot or a string "all" to plot all available metrics.
         kwargs: optional keyword args to be passed to construct the logger.
+
+    .. versionchanged:: 0.6.0
+        Added ``trainer_metric_names`` and ``evaluator_metric_names`` parameters.
 
     Returns:
         :class:`~ignite.handlers.wandb_logger.WandBLogger`
@@ -309,7 +393,15 @@ def setup_wandb_logging(
             wandb_logger.close()
     """
     logger = WandBLogger(**kwargs)
-    _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
+    _setup_logging(
+        logger,
+        trainer,
+        optimizers,
+        evaluators,
+        log_every_iters,
+        trainer_metric_names=trainer_metric_names,
+        evaluator_metric_names=evaluator_metric_names,
+    )
     return logger
 
 
@@ -318,6 +410,9 @@ def setup_plx_logging(
     optimizers: Optimizer | dict[str, Optimizer] | None = None,
     evaluators: Engine | dict[str, Engine] | None = None,
     log_every_iters: int = 100,
+    *,
+    trainer_metric_names: _MetricNames = "all",
+    evaluator_metric_names: _MetricNames = "all",
     **kwargs: Any,
 ) -> PolyaxonLogger:
     """Method to setup Polyaxon logging on trainer and a list of evaluators. Logged metrics are:
@@ -334,7 +429,12 @@ def setup_plx_logging(
             keys are used as tags arguments for logging.
         log_every_iters: interval for loggers attached to iteration events. To log every iteration,
             value can be set to 1 or None.
+        trainer_metric_names: list of trainer metric names to plot or a string "all" to plot all available metrics.
+        evaluator_metric_names: list of evaluator metric names to plot or a string "all" to plot all available metrics.
         kwargs: optional keyword args to be passed to construct the logger.
+
+    .. versionchanged:: 0.6.0
+        Added ``trainer_metric_names`` and ``evaluator_metric_names`` parameters.
 
     Returns:
         :class:`~ignite.handlers.polyaxon_logger.PolyaxonLogger`
@@ -355,7 +455,15 @@ def setup_plx_logging(
             plx_logger.close()
     """
     logger = PolyaxonLogger(**kwargs)
-    _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
+    _setup_logging(
+        logger,
+        trainer,
+        optimizers,
+        evaluators,
+        log_every_iters,
+        trainer_metric_names=trainer_metric_names,
+        evaluator_metric_names=evaluator_metric_names,
+    )
     return logger
 
 
@@ -364,6 +472,9 @@ def setup_clearml_logging(
     optimizers: Optimizer | dict[str, Optimizer] | None = None,
     evaluators: Engine | dict[str, Engine] | None = None,
     log_every_iters: int = 100,
+    *,
+    trainer_metric_names: _MetricNames = "all",
+    evaluator_metric_names: _MetricNames = "all",
     **kwargs: Any,
 ) -> ClearMLLogger:
     """Method to setup ClearML logging on trainer and a list of evaluators. Logged metrics are:
@@ -380,7 +491,12 @@ def setup_clearml_logging(
             keys are used as tags arguments for logging.
         log_every_iters: interval for loggers attached to iteration events. To log every iteration,
             value can be set to 1 or None.
+        trainer_metric_names: list of trainer metric names to plot or a string "all" to plot all available metrics.
+        evaluator_metric_names: list of evaluator metric names to plot or a string "all" to plot all available metrics.
         kwargs: optional keyword args to be passed to construct the logger.
+
+    .. versionchanged:: 0.6.0
+        Added ``trainer_metric_names`` and ``evaluator_metric_names`` parameters.
 
     Returns:
         :class:`~ignite.handlers.clearml_logger.ClearMLLogger`
@@ -401,7 +517,15 @@ def setup_clearml_logging(
             clearml_logger.close()
     """
     logger = ClearMLLogger(**kwargs)
-    _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
+    _setup_logging(
+        logger,
+        trainer,
+        optimizers,
+        evaluators,
+        log_every_iters,
+        trainer_metric_names=trainer_metric_names,
+        evaluator_metric_names=evaluator_metric_names,
+    )
     return logger
 
 
@@ -410,8 +534,23 @@ def setup_trains_logging(
     optimizers: Optimizer | dict[str, Optimizer] | None = None,
     evaluators: Engine | dict[str, Engine] | None = None,
     log_every_iters: int = 100,
+    *,
+    trainer_metric_names: _MetricNames = "all",
+    evaluator_metric_names: _MetricNames = "all",
     **kwargs: Any,
 ) -> ClearMLLogger:
-    """``setup_trains_logging`` was renamed to :func:`~ignite.handlers.logger_utils.setup_clearml_logging`."""
+    """``setup_trains_logging`` was renamed to :func:`~ignite.handlers.logger_utils.setup_clearml_logging`.
+
+    .. versionchanged:: 0.6.0
+        Added ``trainer_metric_names`` and ``evaluator_metric_names`` parameters.
+    """
     warnings.warn("setup_trains_logging was renamed to setup_clearml_logging.")
-    return setup_clearml_logging(trainer, optimizers, evaluators, log_every_iters, **kwargs)
+    return setup_clearml_logging(
+        trainer,
+        optimizers,
+        evaluators,
+        log_every_iters,
+        trainer_metric_names=trainer_metric_names,
+        evaluator_metric_names=evaluator_metric_names,
+        **kwargs,
+    )

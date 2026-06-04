@@ -3,6 +3,7 @@ from __future__ import annotations
 from abc import ABCMeta, abstractmethod
 from collections.abc import Callable
 from numbers import Number
+from pathlib import Path
 from typing import Any, cast
 
 import torch
@@ -105,7 +106,7 @@ class ComputationModel(metaclass=ABCMeta):
         return cast(int, size.item())
 
     @staticmethod
-    def _encode_input_data(x: torch.Tensor | float | str | None, is_src: bool) -> list[int]:
+    def _encode_input_data(x: torch.Tensor | float | str | Path | None, is_src: bool) -> list[int]:
         encoded_msg = [-1] * 512
         if not is_src:
             # Discard input type if not source
@@ -120,10 +121,14 @@ class ComputationModel(metaclass=ABCMeta):
             encoded_msg[0] = 1
         elif isinstance(x, str):
             encoded_msg[0] = 2
+        elif isinstance(x, Path):
+            # Keep a distinct tag so non-source ranks in safe mode can reconstruct
+            # Path placeholders and return Path values rather than strings.
+            encoded_msg[0] = 3
         return encoded_msg
 
     @staticmethod
-    def _decode_as_placeholder(encoded_msg: list[int], device: torch.device) -> torch.Tensor | float | str:
+    def _decode_as_placeholder(encoded_msg: list[int], device: torch.device) -> torch.Tensor | float | str | Path:
         if encoded_msg[0] == 0:
             len_shape = encoded_msg[1]
             le = 2 + len_shape
@@ -136,12 +141,14 @@ class ComputationModel(metaclass=ABCMeta):
             return 0.0
         elif encoded_msg[0] == 2:
             return ""
+        elif encoded_msg[0] == 3:
+            return Path("")
         else:
             raise RuntimeError(f"Internal error: unhandled dtype {encoded_msg[0]}, encoded_msg={encoded_msg}")
 
     def _setup_placeholder(
-        self, x: torch.Tensor | float | str | None, device: torch.device, is_src: bool
-    ) -> torch.Tensor | float | str:
+        self, x: torch.Tensor | float | str | Path | None, device: torch.device, is_src: bool
+    ) -> torch.Tensor | float | str | Path:
         encoded_msg_per_rank = self._encode_input_data(x, is_src)
         encoded_msg_all_ranks = self._do_all_reduce(torch.tensor(encoded_msg_per_rank, device=device), op="MAX")
 
@@ -233,9 +240,9 @@ class ComputationModel(metaclass=ABCMeta):
             raise ValueError("Argument ranks should be list of int")
 
     def broadcast(
-        self, tensor: torch.Tensor | float | str | None, src: int = 0, safe_mode: bool = False
-    ) -> torch.Tensor | float | str:
-        if not (isinstance(tensor, (torch.Tensor, Number, str)) or tensor is None):
+        self, tensor: torch.Tensor | float | str | Path | None, src: int = 0, safe_mode: bool = False
+    ) -> torch.Tensor | float | str | Path:
+        if not (isinstance(tensor, (torch.Tensor, Number, str, Path)) or tensor is None):
             raise TypeError(f"Unhandled input type {type(tensor)}")
 
         rank = self.get_rank()
@@ -246,7 +253,7 @@ class ComputationModel(metaclass=ABCMeta):
                 raise ValueError("Argument safe_mode should be True if None is passed for non src rank")
 
         device = self.device()
-        tensor_to_number = tensor_to_str = False
+        tensor_to_number = tensor_to_str = tensor_to_path = False
 
         if safe_mode:
             tensor = self._setup_placeholder(tensor, device, rank == src)
@@ -260,21 +267,24 @@ class ComputationModel(metaclass=ABCMeta):
                 tensor = torch.empty(1, device=device, dtype=torch.float)
             else:
                 tensor = torch.tensor([tensor], device=device, dtype=torch.float)
-        elif isinstance(tensor, str):
-            tensor_to_str = True
-            max_length = self._get_max_length(tensor, device)
+        elif isinstance(tensor, (str, Path)):
+            tensor_to_str = isinstance(tensor, str)
+            tensor_to_path = isinstance(tensor, Path)
+            tensor_str = str(tensor)
+            max_length = self._get_max_length(tensor_str, device)
             if rank != src:
                 tensor = torch.empty(1, max_length + 1, device=device, dtype=torch.long)
             else:
-                tensor = self._encode_str(tensor, device, size=max_length)
+                tensor = self._encode_str(tensor_str, device, size=max_length)
 
         tensor = self._apply_op(tensor, device, self._do_broadcast, src)
 
         if tensor_to_number:
             return tensor.item()
-        if tensor_to_str:
+        if tensor_to_str or tensor_to_path:
             list_str = self._decode_str(tensor)
-            return list_str[0]
+            result = list_str[0]
+            return Path(result) if tensor_to_path else result
         return tensor
 
     @abstractmethod
@@ -374,8 +384,8 @@ class _SerialModel(ComputationModel):
         return cast(list[float] | list[str] | list[Any], [tensor])
 
     def broadcast(
-        self, tensor: torch.Tensor | float | str | None, src: int = 0, safe_mode: bool = False
-    ) -> torch.Tensor | float | str:
+        self, tensor: torch.Tensor | float | str | Path | None, src: int = 0, safe_mode: bool = False
+    ) -> torch.Tensor | float | str | Path:
         if tensor is None:
             raise ValueError("Argument tensor should not be None")
         return tensor
