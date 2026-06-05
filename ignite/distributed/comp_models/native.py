@@ -107,6 +107,13 @@ if has_native_dist_support:
             rank: int | None = None,
             **kwargs: Any,
         ) -> None:
+            if init_method is not None and init_method.startswith("tcp://"):
+                raise ValueError(
+                    f"TCP initialization via init_method='{init_method}' will hang. "
+                    "To fix this, please configure MASTER_ADDR and MASTER_PORT in the environment and "
+                    "use 'env://' (or omit init_method)."
+                )
+
             if backend == dist.Backend.NCCL and not torch.cuda.is_available():
                 raise RuntimeError("Nccl backend is required but no cuda capable devices")
             self._backend = backend
