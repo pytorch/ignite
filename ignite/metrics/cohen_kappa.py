@@ -37,10 +37,8 @@ def _kappa_from_conf(conf: torch.Tensor, weights: Literal["linear", "quadratic"]
         expected = row.unsqueeze(1) * col.unsqueeze(0) / n
         p_e = 1 - (w * expected).sum() / n
 
-    if (1 - p_e).abs() < 1e-9:
-        return 1.0 if (p_o - p_e).abs() < 1e-9 else float("nan")
-
-    return ((p_o - p_e) / (1 - p_e)).item()
+    epsilon = 1e-9
+    return ((p_o - p_e) / (1 - p_e).clamp(min=epsilon)).item()
 
 
 def _cohen_kappa_score(
@@ -48,6 +46,9 @@ def _cohen_kappa_score(
     y: torch.Tensor,
     weights: Literal["linear", "quadratic"] | None,
 ) -> float:
+    if y_pred.ndim > 1 or y.ndim > 1:
+        raise ValueError("multilabel-indicator is not supported")
+
     num_classes = int(max(y_pred.max().item(), y.max().item())) + 1
 
     cm = ConfusionMatrix(num_classes=num_classes, device=y_pred.device)
@@ -85,16 +86,7 @@ class _CohenKappaEpochMetric(EpochMetric):
         if y.ndim == 2 and y.shape[1] == 1:
             y = y.squeeze(dim=-1)
 
-        if y_pred.ndim > 1 or y.ndim > 1:
-            raise ValueError("multilabel-indicator is not supported")
-
         super().update((y_pred, y))
-
-    def compute(self) -> float:
-        try:
-            return super().compute()
-        except NotComputableError:
-            raise NotComputableError("CohenKappa must have at least one example before it can be computed.")
 
 
 class _CohenKappaConfusionMatrix(Metric):
@@ -142,8 +134,6 @@ class _CohenKappaConfusionMatrix(Metric):
         self._cm.update((y_pred_oh, y.long().to(self._device)))
 
     def compute(self) -> float:
-        if self._cm.confusion_matrix.sum() == 0:
-            raise NotComputableError("CohenKappa must have at least one example before it can be computed.")
         conf = self._cm.compute().to(dtype=self._double_dtype)
         return _kappa_from_conf(conf, self._weights)
 

@@ -16,7 +16,7 @@ def test_no_update():
     ck = CohenKappa()
 
     with pytest.raises(
-        NotComputableError, match=r"CohenKappa must have at least one example before it can be computed"
+        NotComputableError, match=r"_CohenKappaEpochMetric must have at least one example before it can be computed"
     ):
         ck.compute()
 
@@ -24,14 +24,17 @@ def test_no_update():
 def test_input_types():
     ck = CohenKappa()
     ck.reset()
-    output1 = (torch.rand(10), torch.randint(0, 2, size=(10,), dtype=torch.long))
+    output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
     ck.update(output1)
 
     with pytest.raises(ValueError, match=r"Incoherent types between input y_pred and stored predictions"):
-        ck.update((torch.randint(0, 5, size=(10,)), torch.randint(0, 2, size=(10,))))
+        ck.update((torch.randint(0, 5, size=(4, 3)), torch.randint(0, 2, size=(4, 3))))
 
     with pytest.raises(ValueError, match=r"Incoherent types between input y and stored targets"):
-        ck.update((torch.rand(10), torch.randint(0, 2, size=(10,)).to(torch.int32)))
+        ck.update((torch.rand(4, 3), torch.randint(0, 2, size=(4, 3)).to(torch.int32)))
+
+    with pytest.raises(ValueError, match=r"Incoherent types between input y_pred and stored predictions"):
+        ck.update((torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10, 5)).long()))
 
 
 def test_check_shape():
@@ -322,7 +325,7 @@ def test_distrib_xla_nprocs(xmp_executor):
 def test_num_classes_no_update():
     ck = CohenKappa(num_classes=3)
     with pytest.raises(
-        NotComputableError, match=r"CohenKappa must have at least one example before it can be computed"
+        NotComputableError, match=r"Confusion matrix must have at least one example before it can be computed"
     ):
         ck.compute()
 
