@@ -1,4 +1,4 @@
-""" ``ignite.contrib.handlers.tqdm_logger`` was moved to ``ignite.handlers.tqdm_logger``.
+"""``ignite.contrib.handlers.tqdm_logger`` was moved to ``ignite.handlers.tqdm_logger``.
 Note:
     ``ignite.contrib.handlers.tqdm_logger`` was moved to ``ignite.handlers.tqdm_logger``.
     Please refer to :mod:`~ignite.handlers.tqdm_logger`.

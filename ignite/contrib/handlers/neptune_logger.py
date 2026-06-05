@@ -1,4 +1,4 @@
-""" ``ignite.contrib.handlers.neptune_logger`` was moved to ``ignite.handlers.neptune_logger``.
+"""``ignite.contrib.handlers.neptune_logger`` was moved to ``ignite.handlers.neptune_logger``.
 Note:
     ``ignite.contrib.handlers.neptune_logger`` was moved to ``ignite.handlers.neptune_logger``.
     Please refer to :mod:`~ignite.handlers.neptune_logger`.

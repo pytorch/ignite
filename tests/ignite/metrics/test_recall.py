@@ -263,7 +263,6 @@ def to_numpy_multilabel(y):
 @pytest.mark.parametrize("n_times", range(3))
 @pytest.mark.parametrize("average", [None, False, "macro", "micro", "weighted", "samples"])
 def test_multilabel_input(n_times, available_device, average, test_data_multilabel):
-
     re = Recall(average=average, is_multilabel=True, device=available_device)
     assert re._device == torch.device(available_device)
     assert re._updated is False
@@ -459,15 +458,15 @@ class TestDistributed:
 
             assert re._updated is True
 
-            assert (
-                re._numerator.device == metric_device
-            ), f"{type(re._numerator.device)}:{re._numerator.device} vs {type(metric_device)}:{metric_device}"
+            assert re._numerator.device == metric_device, (
+                f"{type(re._numerator.device)}:{re._numerator.device} vs {type(metric_device)}:{metric_device}"
+            )
 
             if average != "samples":
                 # For average='samples', `_denominator` is of type `int` so it has not `device` member.
-                assert (
-                    re._denominator.device == metric_device
-                ), f"{type(re._denominator.device)}:{re._denominator.device} vs {type(metric_device)}:{metric_device}"
+                assert re._denominator.device == metric_device, (
+                    f"{type(re._denominator.device)}:{re._denominator.device} vs {type(metric_device)}:{metric_device}"
+                )
 
             if average == "weighted":
                 assert re._weight.device == metric_device, f"{type(re._weight.device)}:{re._weight.device} vs "
@@ -493,15 +492,15 @@ class TestDistributed:
 
             assert re._updated is True
 
-            assert (
-                re._numerator.device == metric_device
-            ), f"{type(re._numerator.device)}:{re._numerator.device} vs {type(metric_device)}:{metric_device}"
+            assert re._numerator.device == metric_device, (
+                f"{type(re._numerator.device)}:{re._numerator.device} vs {type(metric_device)}:{metric_device}"
+            )
 
             if average != "samples":
                 # For average='samples', `_denominator` is of type `int` so it has not `device` member.
-                assert (
-                    re._denominator.device == metric_device
-                ), f"{type(re._denominator.device)}:{re._denominator.device} vs {type(metric_device)}:{metric_device}"
+                assert re._denominator.device == metric_device, (
+                    f"{type(re._denominator.device)}:{re._denominator.device} vs {type(metric_device)}:{metric_device}"
+                )
 
             if average == "weighted":
                 assert re._weight.device == metric_device, f"{type(re._weight.device)}:{re._weight.device} vs "

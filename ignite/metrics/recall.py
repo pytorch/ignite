@@ -1,4 +1,4 @@
-from typing import Sequence
+from collections.abc import Sequence
 
 import torch
 
@@ -27,7 +27,7 @@ class Recall(_BasePrecisionRecall):
         average: available options are
 
             False
-              default option. For multicalss and multilabel inputs, per class and per label
+              default option. For multiclass and multilabel inputs, per class and per label
               metric is returned respectively.
 
             None
@@ -41,7 +41,7 @@ class Recall(_BasePrecisionRecall):
                   \text{Micro Recall} = \frac{\sum_{k=1}^C TP_k}{\sum_{k=1}^C TP_k+FN_k}
 
               where :math:`C` is the number of classes/labels (2 in binary case). :math:`k` in
-              :math:`TP_k` and :math:`FN_k`means that the measures are computed for class/label :math:`k` (in
+              :math:`TP_k` and :math:`FN_k` means that the measures are computed for class/label :math:`k` (in
               a one-vs-rest sense in multiclass case).
 
               For binary and multiclass inputs, this is equivalent with accuracy,
@@ -95,7 +95,7 @@ class Recall(_BasePrecisionRecall):
             device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
             default, CPU.
         skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
-            true for multi-output model, for example, if ``y_pred`` contains multi-ouput as ``(y_pred_a, y_pred_b)``
+            true for multi-output model, for example, if ``y_pred`` contains multi-output as ``(y_pred_a, y_pred_b)``
             Alternatively, ``output_transform`` can be used to handle this.
 
     Examples:
@@ -234,7 +234,7 @@ class Recall(_BasePrecisionRecall):
         elif self._average == "micro":
             self._denominator += y.sum()
             self._numerator += correct.sum()
-        else:  # _average in [False, 'macro', 'weighted']
+        else:  # _average in [False, None, 'macro', 'weighted']
             self._denominator += y.sum(dim=0)
             self._numerator += correct.sum(dim=0)
 

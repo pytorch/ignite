@@ -37,7 +37,7 @@ class Score(NamedTuple):
 
 def compute_ngram_scores(candidate: Sequence[Any], reference: Sequence[Any], n: int = 4) -> Score:
     """
-    Compute the score based on ngram co-occurence of sequences of items
+    Compute the score based on ngram co-occurrence of sequences of items
 
     Args:
         candidate: candidate sequence of items
@@ -45,7 +45,7 @@ def compute_ngram_scores(candidate: Sequence[Any], reference: Sequence[Any], n: 
         n: ngram order
 
     Returns:
-        The score containing the number of ngram co-occurences
+        The score containing the number of ngram co-occurrences
 
     .. versionadded:: 0.4.5
     """
@@ -54,7 +54,7 @@ def compute_ngram_scores(candidate: Sequence[Any], reference: Sequence[Any], n: 
     candidate_counter = ngrams(candidate, n)
     # ngrams of the references
     reference_counter = ngrams(reference, n)
-    # ngram co-occurences in the candidate and the references
+    # ngram co-occurrences in the candidate and the references
     match_counters = candidate_counter & reference_counter
 
     # the score is defined using Fraction
@@ -191,7 +191,7 @@ class _BaseRouge(Metric):
 class RougeN(_BaseRouge):
     r"""Calculates the Rouge-N score.
 
-    The Rouge-N is based on the ngram co-occurences of candidates and references.
+    The Rouge-N is based on the ngram co-occurrences of candidates and references.
 
     More details can be found in `Lin 2004`__.
 

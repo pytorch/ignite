@@ -1,5 +1,6 @@
 import warnings
-from typing import Callable, cast, List, Optional, Tuple, Union
+from collections.abc import Callable
+from typing import cast
 
 import torch
 
@@ -77,7 +78,7 @@ class EpochMetric(Metric):
         compute_fn: Callable[[torch.Tensor, torch.Tensor], float],
         output_transform: Callable = lambda x: x,
         check_compute_fn: bool = True,
-        device: Union[str, torch.device] = torch.device("cpu"),
+        device: str | torch.device = torch.device("cpu"),
         skip_unrolling: bool = False,
     ) -> None:
         if not callable(compute_fn):
@@ -90,11 +91,11 @@ class EpochMetric(Metric):
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._predictions: List[torch.Tensor] = []
-        self._targets: List[torch.Tensor] = []
-        self._result: Optional[float] = None
+        self._predictions: list[torch.Tensor] = []
+        self._targets: list[torch.Tensor] = []
+        self._result: float | None = None
 
-    def _check_shape(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
+    def _check_shape(self, output: tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output
         if y_pred.ndimension() not in (1, 2):
             raise ValueError("Predictions should be of shape (batch_size, n_targets) or (batch_size, ).")
@@ -102,7 +103,7 @@ class EpochMetric(Metric):
         if y.ndimension() not in (1, 2):
             raise ValueError("Targets should be of shape (batch_size, n_targets) or (batch_size, ).")
 
-    def _check_type(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
+    def _check_type(self, output: tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output
         if len(self._predictions) < 1:
             return
@@ -117,7 +118,7 @@ class EpochMetric(Metric):
             raise ValueError(f"Incoherent types between input y and stored targets: {dtype_targets} vs {y.dtype}")
 
     @reinit__is_reduced
-    def update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
+    def update(self, output: tuple[torch.Tensor, torch.Tensor]) -> None:
         self._check_shape(output)
         y_pred, y = output[0].detach(), output[1].detach()
 

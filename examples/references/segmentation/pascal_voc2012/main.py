@@ -79,7 +79,7 @@ def training(local_rank, config, logger, with_clearml):
     val_interval = config.get("val_interval", 1)
 
     # Run validation on every val_interval epoch, in the end of the training
-    # and in the begining if config.start_by_validation is True
+    # and in the beginning if config.start_by_validation is True
     event = Events.EPOCH_COMPLETED(every=val_interval)
     if config.num_epochs % val_interval != 0:
         event |= Events.COMPLETED

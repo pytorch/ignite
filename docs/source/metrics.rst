@@ -321,7 +321,7 @@ Complete list of metrics
     GeometricAverage
     VariableAccumulation
     Accuracy
-    confusion_matrix.ConfusionMatrix
+    ConfusionMatrix
     ClassificationReport
     DiceCoefficient
     JaccardIndex
@@ -335,17 +335,17 @@ Complete list of metrics
     MeanAveragePrecision
     MeanPairwiseDistance
     MeanSquaredError
-    metric.Metric
-    metric_group.MetricGroup
-    metrics_lambda.MetricsLambda
+    Metric
+    MetricGroup
+    MetricsLambda
     MultiLabelConfusionMatrix
     MutualInformation
     ObjectDetectionAvgPrecisionRecall
     CommonObjectDetectionMetrics
-    vision.object_detection_average_precision_recall.coco_tensor_list_to_dict_list
-    precision.Precision
+    coco_tensor_list_to_dict_list
+    Precision
     PSNR
-    recall.Recall
+    Recall
     RootMeanSquaredError
     RunningAverage
     SSIM
@@ -390,8 +390,13 @@ Complete list of metrics
     clustering.SilhouetteScore
     clustering.DaviesBouldinScore
     clustering.CalinskiHarabaszScore
+    fairness.SubgroupAccuracyDifference
+    fairness.DemographicParityDifference
+    fairness.SelectionRate
+    fairness.SubgroupDifference
+    fairness.SubgroupMetric
     rec_sys.HitRate
-
+    rec_sys.NDCG
 
 .. note::
 

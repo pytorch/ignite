@@ -45,6 +45,7 @@ def pytest_configure(config):
     This function is a pytest hook (due to its name) and is run after command
     line parsing is complete in order to configure the test session.
     """
+    os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")
     config.addinivalue_line("markers", "distributed: run distributed")
     config.addinivalue_line("markers", "multinode_distributed: distributed")
     config.addinivalue_line("markers", "tpu: run on tpu")
@@ -230,15 +231,19 @@ def _setup_free_port(local_rank):
 @pytest.fixture()
 def distributed_context_single_node_nccl(local_rank, world_size):
     free_port = _setup_free_port(local_rank)
+    os.environ["MASTER_ADDR"] = "localhost"
+    os.environ["MASTER_PORT"] = str(free_port)
 
     dist_info = {
         "backend": "nccl",
         "world_size": world_size,
         "rank": local_rank,
-        "init_method": f"tcp://localhost:{free_port}",
+        "init_method": "env://",
     }
     yield _create_dist_context(dist_info, local_rank)
     _destroy_dist_context()
+    os.environ.pop("MASTER_ADDR", None)
+    os.environ.pop("MASTER_PORT", None)
 
 
 @pytest.fixture()
@@ -249,11 +254,13 @@ def distributed_context_single_node_gloo(local_rank, world_size):
         temp_file = tempfile.NamedTemporaryFile(delete=False)
         # can't use backslashes in f-strings
         backslash = "\\"
-        init_method = f'file:///{temp_file.name.replace(backslash, "/")}'
+        init_method = f"file:///{temp_file.name.replace(backslash, '/')}"
     else:
         free_port = _setup_free_port(local_rank)
-        init_method = f"tcp://localhost:{free_port}"
+        init_method = "env://"
         temp_file = None
+        os.environ["MASTER_ADDR"] = "localhost"
+        os.environ["MASTER_PORT"] = str(free_port)
 
     dist_info = {
         "backend": "gloo",
@@ -266,6 +273,9 @@ def distributed_context_single_node_gloo(local_rank, world_size):
     _destroy_dist_context()
     if temp_file:
         temp_file.close()
+    else:
+        os.environ.pop("MASTER_ADDR", None)
+        os.environ.pop("MASTER_PORT", None)
 
 
 @pytest.fixture()
@@ -470,11 +480,13 @@ def distributed(request, local_rank, world_size):
             temp_file = tempfile.NamedTemporaryFile(delete=False)
             # can't use backslashes in f-strings
             backslash = "\\"
-            init_method = f'file:///{temp_file.name.replace(backslash, "/")}'
+            init_method = f"file:///{temp_file.name.replace(backslash, '/')}"
         else:
             temp_file = None
             free_port = _setup_free_port(local_rank)
-            init_method = f"tcp://localhost:{free_port}"
+            init_method = "env://"
+            os.environ["MASTER_ADDR"] = "localhost"
+            os.environ["MASTER_PORT"] = str(free_port)
 
         dist_info = {
             "world_size": world_size,
@@ -493,6 +505,9 @@ def distributed(request, local_rank, world_size):
         _destroy_dist_context()
         if temp_file:
             temp_file.close()
+        else:
+            os.environ.pop("MASTER_ADDR", None)
+            os.environ.pop("MASTER_PORT", None)
 
     elif request.param == "horovod":
         request.node.stash[is_horovod_stash_key] = True

@@ -48,11 +48,14 @@ def execute(cmd, env=None):
     env = dict(os.environ) if env is None else env
     env["PYTHONPATH"] = f"{os.path.dirname(ignite.__path__[0])}"
     process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
-    process.wait()
+    stdout, stderr = process.communicate()
+    stdout_str = stdout.decode("utf-8", errors="replace") if stdout else ""
+    stderr_str = stderr.decode("utf-8", errors="replace") if stderr else ""
+
     if process.returncode != 0:
-        print(str(process.stdout.read()) + str(process.stderr.read()))
-        raise subprocess.CalledProcessError(returncode=process.returncode, cmd=cmd, stderr=process.stderr.read())
-    return str(process.stdout.read()) + str(process.stderr.read())
+        print(stdout_str + stderr_str)
+        raise subprocess.CalledProcessError(returncode=process.returncode, cmd=cmd, stderr=stderr_str)
+    return stdout_str + stderr_str
 
 
 @pytest.mark.skipif(not is_mps_available_and_functional(), reason="Skip if MPS not functional")
@@ -96,7 +99,13 @@ def _test_check_idist_parallel_torch_launch(init_method, fp, backend, nprocs):
 @pytest.mark.distributed
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip because test uses torch launch")
-@pytest.mark.parametrize("init_method", [None, "tcp://0.0.0.0:29500", "FILE"])
+@pytest.mark.parametrize(
+    "init_method",
+    [
+        None,
+        "FILE",
+    ],
+)
 @pytest.mark.parametrize(
     "backend",
     ["gloo", pytest.param("nccl", marks=pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU"))],
@@ -225,7 +234,7 @@ def _test_func(index, ws, device, backend, true_init_method):
 @pytest.mark.distributed
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
-@pytest.mark.parametrize("init_method", ["env://", "tcp://0.0.0.0:29500", "FILE"])
+@pytest.mark.parametrize("init_method", ["env://", "FILE"])
 @pytest.mark.parametrize(
     "backend",
     ["gloo", pytest.param("nccl", marks=pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU"))],
@@ -243,7 +252,7 @@ def test_idist_parallel_spawn_n_procs_native(init_method, backend, dirname):
 @pytest.mark.distributed
 @pytest.mark.skipif("WORLD_SIZE" not in os.environ, reason="Skip if not launched as multiproc")
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
-@pytest.mark.parametrize("init_method", ["env://", "tcp://0.0.0.0:29500", "FILE"])
+@pytest.mark.parametrize("init_method", ["env://", "FILE"])
 @pytest.mark.parametrize(
     "backend",
     ["gloo", pytest.param("nccl", marks=pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU"))],
@@ -280,3 +289,9 @@ def test_idist_parallel_spawn_params_xla():
         res = parallel._spawn_params
         assert "nproc_per_node" in res and res["nproc_per_node"] == 8
         assert "start_method" in res and res["start_method"] == "fork"
+
+
+def test_idist_parallel_tcp_init_method_error():
+    with pytest.raises(ValueError, match="will hang. To fix this, please configure MASTER_ADDR"):
+        with idist.Parallel(backend="gloo", init_method="tcp://10.1.1.20:23456", nproc_per_node=1) as parallel:
+            pass
