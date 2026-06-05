@@ -49,14 +49,14 @@ jobs:
           echo "::endgroup::"
 
       - name: Checkout repository (pytorch/test-infra)
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           # Support the use case where we need to checkout someone's fork
           repository: pytorch/test-infra
           path: test-infra
 
       - name: Checkout repository (${{ github.repository }})
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           # Support the use case where we need to checkout someone's fork
           repository: ${{ github.repository }}
@@ -135,7 +135,7 @@ jobs:
           SKIP_DISTRIB_TESTS=${{ matrix.skip-distrib-tests }} bash tests/run_cpu_tests.sh
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6
+        uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6.0.1
         with:
           files: ${{ github.repository }}/coverage.xml
           flags: mps
