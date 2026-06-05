@@ -33,9 +33,9 @@ jobs:
         xla-version: [nightly]
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
       - name: Set up Python 3.10
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: "3.10"
           architecture: "x64"
@@ -52,7 +52,7 @@ jobs:
           echo "pip_cache=$(pip cache dir)" >> $GITHUB_OUTPUT
         shell: bash -l {0}
 
-      - uses: actions/cache@v5
+      - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: |
             ${{ steps.pip-cache.outputs.pip_cache }}
@@ -81,12 +81,12 @@ jobs:
       # Download MNIST: https://github.com/pytorch/ignite/issues/1737
       # to "/tmp" for tpu tests
       - name: Download MNIST
-        uses: pytorch-ignite/download-mnist-github-action@master
+        uses: pytorch-ignite/download-mnist-github-action@622fc8c4ff50b24322819f54f48624f26932892b # master
         with:
           target_dir: /tmp
 
       - name: Run Tests
-        uses: nick-fields/retry@v4.0.0
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
         with:
           max_attempts: 5
           timeout_minutes: 25
@@ -101,7 +101,7 @@ jobs:
           XRT_WORKERS: "localservice:0;grpc://localhost:40934"
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6
         with:
           files: ./coverage.xml
           flags: tpu
