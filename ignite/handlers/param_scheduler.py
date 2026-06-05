@@ -1139,16 +1139,17 @@ def create_lr_scheduler_with_warmup(
             trainer = Engine(lambda engine, batch: None)
             optimizer = SGD([torch.zeros(1, requires_grad=True)], lr=0.1)
             torch_lr_scheduler = ExponentialLR(optimizer, gamma=0.5)
+            warmup_duration = 5
             scheduler = create_lr_scheduler_with_warmup(
-                torch_lr_scheduler, warmup_start_value=0.0, warmup_duration=5
+                torch_lr_scheduler, warmup_start_value=0.0, warmup_duration=warmup_duration
             )
 
             epoch_length = 8
             combined_events = Events.ITERATION_STARTED(
-                event_filter=lambda engine, event: engine.state.iteration <= 5
+                event_filter=lambda engine, event: event <= warmup_duration
             )
             combined_events |= Events.EPOCH_STARTED(
-                event_filter=lambda engine, event: engine.state.epoch > 1 + 5 / epoch_length
+                event_filter=lambda engine, event: event > 1 + warmup_duration / epoch_length
             )
             trainer.add_event_handler(combined_events, scheduler)
 
