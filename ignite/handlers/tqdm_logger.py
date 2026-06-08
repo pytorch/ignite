@@ -17,12 +17,15 @@ class ProgressBar(BaseLogger):
 
     Args:
         persist: set to ``True`` to persist the progress bar after completion (default = ``False``)
-        bar_format : Specify a custom bar string formatting. May impact performance.
+        bar_format: Specify a custom bar string formatting. May impact performance.
             [default: '{desc}[{n_fmt}/{total_fmt}] {percentage:3.0f}%|{bar}{postfix} [{elapsed}<{remaining}]'].
             Set to ``None`` to use ``tqdm`` default bar formatting: '{l_bar}{bar}{r_bar}', where
             l_bar='{desc}: {percentage:3.0f}%|' and
             r_bar='| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}{postfix}]'. For more details on the
             formatting, see `tqdm docs <https://tqdm.github.io/docs/tqdm/>`_.
+        show_epoch: if ``True``, always display epoch information in the progress bar description.
+            If ``False``, never display epoch information. If ``None``, preserve the existing
+            behavior and display epoch information only when the number of epochs is greater than one.
         tqdm_kwargs: kwargs passed to tqdm progress bar.
             By default, progress bar description displays "Epoch [5/10]" where 5 is the current epoch and 10 is the
             number of epochs; however, if ``max_epochs`` are set to 1, the progress bar instead displays
@@ -91,7 +94,6 @@ class ProgressBar(BaseLogger):
                 state_attributes=["alpha", "beta"],
             )
 
-
     Note:
         When attaching the progress bar to an engine, it is recommended that you replace
         every print operation in the engine's handlers triggered every iteration with
@@ -106,6 +108,8 @@ class ProgressBar(BaseLogger):
     .. versionchanged:: 0.4.7
         `attach` now accepts an optional list of `state_attributes`
 
+    .. versionchanged:: 0.6.0
+        Added ``show_epoch`` parameter to control epoch information in the progress bar description.
     """
 
     _events_order: list[Events | CallableEventWithFilter] = [
@@ -123,6 +127,7 @@ class ProgressBar(BaseLogger):
         bar_format: (
             str | None
         ) = "{desc}[{n_fmt}/{total_fmt}] {percentage:3.0f}%|{bar}{postfix} [{elapsed}<{remaining}]",
+        show_epoch: bool | None = None,
         **tqdm_kwargs: Any,
     ):
         try:
@@ -136,6 +141,7 @@ class ProgressBar(BaseLogger):
         self.pbar = None
         self.persist = persist
         self.bar_format = bar_format
+        self.show_epoch = show_epoch
         self.tqdm_kwargs = tqdm_kwargs
 
     def _reset(self, pbar_total: int | None) -> None:
@@ -217,6 +223,7 @@ class ProgressBar(BaseLogger):
             output_transform,
             closing_event_name=closing_event_name,
             state_attributes=state_attributes,
+            show_epoch=self.show_epoch,
         )
 
         super().attach(engine, log_handler, event_name)
@@ -244,7 +251,6 @@ class ProgressBar(BaseLogger):
 class _OutputHandler(BaseOutputHandler):
     """Helper handler to log engine's output and/or metrics
 
-        pbar = ProgressBar()
     Args:
         description: progress bar description.
         metric_names: list of metric names to plot or a string "all" to plot all available
@@ -267,6 +273,7 @@ class _OutputHandler(BaseOutputHandler):
         output_transform: Callable | None = None,
         closing_event_name: Events | CallableEventWithFilter = Events.EPOCH_COMPLETED,
         state_attributes: list[str] | None = None,
+        show_epoch: bool | None = None,
     ):
         if metric_names is None and output_transform is None:
             # This helps to avoid 'Either metric_names or output_transform should be defined' of BaseOutputHandler
@@ -275,6 +282,7 @@ class _OutputHandler(BaseOutputHandler):
             description, metric_names, output_transform, global_step_transform=None, state_attributes=state_attributes
         )
         self.closing_event_name = closing_event_name
+        self.show_epoch = show_epoch
 
     @staticmethod
     def get_max_number_events(event_name: str | Events | CallableEventWithFilter, engine: Engine) -> int | None:
@@ -290,13 +298,31 @@ class _OutputHandler(BaseOutputHandler):
             logger._reset(pbar_total=pbar_total)
 
         max_epochs = engine.state.max_epochs
-        default_desc = "Iteration" if max_epochs == 1 else "Epoch"
 
-        desc = self.tag or default_desc
-        max_num_of_closing_events = self.get_max_number_events(self.closing_event_name, engine)
-        if max_num_of_closing_events and max_num_of_closing_events > 1:
-            global_step = engine.state.get_event_attrib_value(self.closing_event_name)
-            desc += f" [{global_step}/{max_num_of_closing_events}]"
+        if self.show_epoch is None:
+            default_desc = "Iteration" if max_epochs == 1 else "Epoch"
+            desc = self.tag or default_desc
+
+            max_num_of_closing_events = self.get_max_number_events(self.closing_event_name, engine)
+            if max_num_of_closing_events and max_num_of_closing_events > 1:
+                global_step = engine.state.get_event_attrib_value(self.closing_event_name)
+                desc += f" [{global_step}/{max_num_of_closing_events}]"
+        else:
+            default_desc = "Epoch" if self.show_epoch else "Iteration"
+            desc = self.tag or default_desc
+
+            max_num_of_closing_events = self.get_max_number_events(self.closing_event_name, engine)
+            is_epoch_closing_event = self.closing_event_name in (Events.EPOCH_STARTED, Events.EPOCH_COMPLETED)
+
+            if (
+                self.show_epoch
+                and is_epoch_closing_event
+                and max_num_of_closing_events is not None
+                and max_num_of_closing_events > 0
+            ):
+                global_step = engine.state.get_event_attrib_value(self.closing_event_name)
+                desc += f" [{global_step}/{max_num_of_closing_events}]"
+
         logger.pbar.set_description(desc)  # type: ignore[attr-defined]
 
         rendered_metrics = self._setup_output_metrics_state_attrs(engine, log_text=True)

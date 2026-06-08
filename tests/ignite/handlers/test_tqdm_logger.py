@@ -557,3 +557,41 @@ def test_tqdm_logger_iter_without_epoch_length(capsys):
     actual = err[-1]
     expected = "Epoch [5/5]: [11/11] 100%|████████████████████████████████████████ [00:00<00:00]"
     assert actual == expected
+
+
+def test_pbar_show_epoch_true_on_evaluator(capsys):
+    loader = [1, 2, 3]
+    engine = Engine(update_fn)
+
+    pbar = ProgressBar(ncols=80, show_epoch=True)
+    pbar.attach(engine)
+    engine.run(loader, max_epochs=1)
+
+    captured = capsys.readouterr()
+    err = captured.err.split("\r")
+    err = list(map(lambda x: x.strip(), err))
+    err = list(filter(None, err))
+    actual = err[-1]
+
+    desc_part = actual.split(":")[0]
+    assert desc_part.startswith("Epoch")
+    assert "[1/1]" in desc_part
+
+
+def test_pbar_show_epoch_false_on_trainer(capsys):
+    loader = [1, 2]
+    engine = Engine(update_fn)
+
+    pbar = ProgressBar(ncols=80, show_epoch=False)
+    pbar.attach(engine)
+    engine.run(loader, max_epochs=3)
+
+    captured = capsys.readouterr()
+    err = captured.err.split("\r")
+    err = list(map(lambda x: x.strip(), err))
+    err = list(filter(None, err))
+    actual = err[-1]
+
+    desc_part = actual.split(":")[0]
+    assert desc_part.startswith("Iteration")
+    assert "[" not in desc_part
