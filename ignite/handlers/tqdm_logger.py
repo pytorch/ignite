@@ -17,7 +17,7 @@ class ProgressBar(BaseLogger):
 
     Args:
         persist: set to ``True`` to persist the progress bar after completion (default = ``False``)
-        bar_format : Specify a custom bar string format. May impact performance.
+        bar_format : Specify a custom bar string formating. May impact performance.
             [default: '{desc}[{n_fmt}/{total_fmt}] {percentage:3.0f}%|{bar}{postfix} [{elapsed}<{remaining}]'].
             Set to ``None`` to use the default ``tqdm`` bar format: '{l_bar}{bar}{r_bar}', where
             l_bar = '{desc}: {percentage:3.0f}%|' and
