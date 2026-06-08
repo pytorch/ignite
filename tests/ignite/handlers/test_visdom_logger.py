@@ -1,559 +1,1049 @@
-# -*- coding: utf-8 -*-
 import sys
-import time
-from argparse import Namespace
-from unittest.mock import patch
+from unittest.mock import ANY, call, MagicMock, patch
 
-import numpy as np
 import pytest
 import torch
-from packaging.version import Version
 
-from ignite.engine import Engine, Events
+from ignite.engine import Engine, Events, State
 
-from ignite.handlers import ProgressBar, TerminateOnNan
-from ignite.metrics import RunningAverage
+from ignite.handlers.visdom_logger import (
+    _DummyExecutor,
+    global_step_from_engine,
+    GradsScalarHandler,
+    OptimizerParamsHandler,
+    OutputHandler,
+    VisdomLogger,
+    WeightsScalarHandler,
+)
 
-if sys.platform.startswith("win"):
-    pytest.skip("Skip on Windows", allow_module_level=True)
-
-
-def get_tqdm_version():
-    import tqdm
-
-    return Version(tqdm.__version__)
-
-
-def update_fn(engine, batch):
-    a = 1
-    engine.state.metrics["a"] = a
-    return a
+# Skip all tests in this module: visdom is unmaintained and cannot be installed with modern packages
+pytestmark = [
+    pytest.mark.skip(reason="Visdom is unmaintained and cannot be installed with modern packages"),
+    pytest.mark.timeout(30),
+    pytest.mark.xdist_group(name="visdom"),
+]
 
 
-def test_pbar_errors():
-    with pytest.raises(ModuleNotFoundError, match=r"This contrib module requires tqdm to be installed"):
-        with patch.dict("sys.modules", {"tqdm.autonotebook": None}):
-            ProgressBar(ncols=80)
-
-    pbar = ProgressBar(ncols=80)
-    with pytest.raises(ValueError, match=r"Logging event abc is not in allowed"):
-        pbar.attach(Engine(lambda e, b: None), event_name=Namespace(name="abc"))
-
-
-def test_pbar(capsys):
-    n_epochs = 2
-    loader = [1, 2]
-    engine = Engine(update_fn)
-
-    pbar = ProgressBar(ncols=80)
-    pbar.attach(engine, ["a"])
-
-    engine.run(loader, max_epochs=n_epochs)
-
-    captured = capsys.readouterr()
-    err = captured.err.split("\r")
-    err = list(map(lambda x: x.strip(), err))
-    err = list(filter(None, err))
-    if get_tqdm_version() < Version("4.49.0"):
-        expected = "Epoch 8 -*-     , a=1 [00:00<00:00]"
-    else:
-        expected = "Epoch [2/2]: [1/2]  50%|████████████████████▌                    , a=1 [00:00<?]"
-    assert err[-1] == expected
-
-
-def test_pbar_file(tmp_path):
-    n_epochs = 2
-    loader = [1, 2]
-    engine = Engine(update_fn)
-
-    file_path = tmp_path / "temp.txt"
-    file = open(str(file_path), "w+")
-
-    pbar = ProgressBar(file=file, ncols=80)
-    pbar.attach(engine, ["a"])
-    engine.run(loader, max_epochs=n_epochs)
-
-    file.close()  # Force a flush of the buffer. file.flush() does not work.
-
-    file = open(str(file_path), "r")
-    lines = file.readlines()
-
-    if get_tqdm_version() < Version("4.49.0"):
-        expected = "Epoch [2/2]: [1/2]  50%|█████     , a=1 [00:00<00:00]\n"
-    else:
-        expected = "Epoch [2/2]: [1/2]  50%|████████████████████▌                    , a=1 [00:00<?]\n"
-    assert lines[-2] == expected
-
-
-def test_pbar_log_message(capsys):
-    pbar = ProgressBar(ncols=80)
-
-    pbar.log_message("test")
-
-    captured = capsys.readouterr()
-    out = captured.out.split("\r")
-    out = list(map(lambda x: x.strip(), out))
-    out = list(filter(None, out))
-    expected = "test"
-    assert out[-1] == expected
-
-
-def test_pbar_log_message_file(tmp_path):
-    file_path = tmp_path / "temp.txt"
-    file = open(str(file_path), "w+")
-
-    pbar = ProgressBar(file=file, ncols=80)
-    pbar.log_message("test")
-
-    file.close()  # Force a flush of the buffer. file.flush() does not work.
-
-    file = open(str(file_path), "r")
-    lines = file.readlines()
-
-    expected = "test\n"
-    assert lines[0] == expected
-
-
-def test_attach_fail_with_string():
-    engine = Engine(update_fn)
-    pbar = ProgressBar(ncols=80)
-
+def test_optimizer_params_handler_wrong_setup():
     with pytest.raises(TypeError):
-        pbar.attach(engine, "a")
+        OptimizerParamsHandler(optimizer=None)
+
+    optimizer = MagicMock(spec=torch.optim.Optimizer)
+    handler = OptimizerParamsHandler(optimizer=optimizer)
+
+    mock_logger = MagicMock()
+    mock_engine = MagicMock()
+    with pytest.raises(RuntimeError, match="Handler OptimizerParamsHandler works only with VisdomLogger"):
+        handler(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
-def test_pbar_batch_indeces(capsys):
-    engine = Engine(lambda e, b: time.sleep(0.1))
+def test_optimizer_params():
+    optimizer = torch.optim.SGD([torch.tensor(0.0)], lr=0.01)
+    wrapper = OptimizerParamsHandler(optimizer=optimizer, param_name="lr")
+    mock_logger = MagicMock(spec=VisdomLogger)
+    mock_logger.vis = MagicMock()
+    mock_logger.executor = _DummyExecutor()
+    mock_engine = MagicMock()
+    mock_engine.state = State()
+    mock_engine.state.iteration = 123
 
-    @engine.on(Events.ITERATION_STARTED)
-    def print_iter(_):
-        print("iteration: ", engine.state.iteration)
+    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
-    ProgressBar(persist=True, ncols=80).attach(engine)
-    engine.run(list(range(4)), max_epochs=1)
+    # mock_logger.vis.line.assert_called_once_with("lr/group_0", 0.01, 123)
+    assert len(wrapper.windows) == 1 and "lr/group_0" in wrapper.windows
+    assert wrapper.windows["lr/group_0"]["win"] is not None
 
-    captured = capsys.readouterr()
-    err = captured.err.split("\r")
-    err = list(map(lambda x: x.strip(), err))
-    err = list(filter(None, err))
-    printed_batch_indeces = set(map(lambda x: int(x.split("/")[0][-1]), err))
-    expected_batch_indeces = list(range(1, 5))
-    assert sorted(list(printed_batch_indeces)) == expected_batch_indeces
+    mock_logger.vis.line.assert_called_once_with(
+        X=[123],
+        Y=[0.01],
+        env=mock_logger.vis.env,
+        win=None,
+        update=None,
+        opts=wrapper.windows["lr/group_0"]["opts"],
+        name="lr/group_0",
+    )
 
+    wrapper = OptimizerParamsHandler(optimizer=optimizer, param_name="lr", tag="generator")
+    mock_logger = MagicMock(spec=VisdomLogger)
+    mock_logger.vis = MagicMock()
+    mock_logger.executor = _DummyExecutor()
 
-def test_pbar_with_metric(capsys):
-    n_iters = 2
-    data = list(range(n_iters))
-    loss_values = iter(range(n_iters))
+    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
-    def step(engine, batch):
-        loss_value = next(loss_values)
-        return loss_value
+    assert len(wrapper.windows) == 1 and "generator/lr/group_0" in wrapper.windows
+    assert wrapper.windows["generator/lr/group_0"]["win"] is not None
 
-    trainer = Engine(step)
-
-    RunningAverage(alpha=0.5, output_transform=lambda x: x).attach(trainer, "batchloss")
-
-    pbar = ProgressBar(ncols=80)
-    pbar.attach(trainer, metric_names=["batchloss"])
-
-    trainer.run(data=data, max_epochs=1)
-
-    captured = capsys.readouterr()
-    err = captured.err.split("\r")
-    err = list(map(lambda x: x.strip(), err))
-    err = list(filter(None, err))
-    actual = err[-1]
-    if get_tqdm_version() < Version("4.49.0"):
-        expected = "Iteration: [1/2]  50%|██████     , batchloss=0.5 [00:00<00:00]"
-    else:
-        expected = "Iteration: [1/2]  50%|████████████████▌                , batchloss=0.5 [00:00<?]"
-    assert actual == expected
+    mock_logger.vis.line.assert_called_once_with(
+        X=[123],
+        Y=[0.01],
+        env=mock_logger.vis.env,
+        win=None,
+        update=None,
+        opts=wrapper.windows["generator/lr/group_0"]["opts"],
+        name="generator/lr/group_0",
+    )
 
 
-def test_pbar_with_all_metric(capsys):
-    n_iters = 2
-    data = list(range(n_iters))
-    loss_values = iter(range(n_iters))
-    another_loss_values = iter(range(1, n_iters + 1))
+def test_output_handler_with_wrong_logger_type():
+    wrapper = OutputHandler("tag", output_transform=lambda x: x)
 
-    def step(engine, batch):
-        loss_value = next(loss_values)
-        another_loss_value = next(another_loss_values)
-        return loss_value, another_loss_value
-
-    trainer = Engine(step)
-
-    RunningAverage(alpha=0.5, output_transform=lambda x: x[0]).attach(trainer, "batchloss")
-    RunningAverage(alpha=0.5, output_transform=lambda x: x[1]).attach(trainer, "another batchloss")
-
-    pbar = ProgressBar(ncols=80)
-    pbar.attach(trainer, metric_names="all")
-
-    trainer.run(data=data, max_epochs=1)
-
-    captured = capsys.readouterr()
-    err = captured.err.split("\r")
-    err = list(map(lambda x: x.strip(), err))
-    err = list(filter(None, err))
-    actual = err[-1]
-    if get_tqdm_version() < Version("4.49.0"):
-        expected = "Iteration: [1/2]  50%|███   , batchloss=0.5, another batchloss=1.5 [00:00<00:00]"
-    else:
-        expected = "Iteration: [1/2]  50%|█████     , batchloss=0.5, another batchloss=1.5 [00:00<?]"
-    assert actual == expected
+    mock_logger = MagicMock()
+    mock_engine = MagicMock()
+    with pytest.raises(RuntimeError, match="Handler 'OutputHandler' works only with VisdomLogger"):
+        wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
-def test_pbar_with_state_attrs(capsys):
-    n_iters = 2
-    data = list(range(n_iters))
-    loss_values = iter(range(n_iters))
+def test_output_handler_output_transform(dirname):
+    wrapper = OutputHandler("tag", output_transform=lambda x: x)
+    mock_logger = MagicMock(spec=VisdomLogger)
+    mock_logger.vis = MagicMock()
+    mock_logger.executor = _DummyExecutor()
 
-    def step(engine, batch):
-        loss_value = next(loss_values)
-        return loss_value
+    mock_engine = MagicMock()
+    mock_engine.state = State()
+    mock_engine.state.output = 12345
+    mock_engine.state.iteration = 123
 
-    trainer = Engine(step)
-    trainer.state.alpha = 3.899
-    trainer.state.beta = torch.tensor(12.21)
-    trainer.state.gamma = torch.tensor([21.0, 6.0])
+    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
-    RunningAverage(alpha=0.5, output_transform=lambda x: x).attach(trainer, "batchloss")
+    assert len(wrapper.windows) == 1 and "tag/output" in wrapper.windows
+    assert wrapper.windows["tag/output"]["win"] is not None
 
-    pbar = ProgressBar(ncols=80)
-    pbar.attach(trainer, metric_names=["batchloss"], state_attributes=["alpha", "beta", "gamma"])
+    mock_logger.vis.line.assert_called_once_with(
+        X=[123],
+        Y=[12345],
+        env=mock_logger.vis.env,
+        win=None,
+        update=None,
+        opts=wrapper.windows["tag/output"]["opts"],
+        name="tag/output",
+    )
 
-    trainer.run(data=data, max_epochs=1)
+    wrapper = OutputHandler("another_tag", output_transform=lambda x: {"loss": x})
+    mock_logger = MagicMock(spec=VisdomLogger)
+    mock_logger.vis = MagicMock()
+    mock_logger.executor = _DummyExecutor()
 
-    captured = capsys.readouterr()
-    err = captured.err.split("\r")
-    err = list(map(lambda x: x.strip(), err))
-    err = list(filter(None, err))
-    actual = err[-1]
-    if get_tqdm_version() < Version("4.49.0"):
-        expected = (
-            "Iteration: [1/2]  50%|█████     , batchloss=0.5, alpha=3.9, beta=12.2, gamma_0=21, gamma_1=6 [00:00<00:00]"
+    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+
+    assert len(wrapper.windows) == 1 and "another_tag/loss" in wrapper.windows
+    assert wrapper.windows["another_tag/loss"]["win"] is not None
+
+    mock_logger.vis.line.assert_called_once_with(
+        X=[123],
+        Y=[12345],
+        env=mock_logger.vis.env,
+        win=None,
+        update=None,
+        opts=wrapper.windows["another_tag/loss"]["opts"],
+        name="another_tag/loss",
+    )
+
+
+def test_output_handler_metric_names(dirname):
+    wrapper = OutputHandler("tag", metric_names=["a", "b"])
+    mock_logger = MagicMock(spec=VisdomLogger)
+    mock_logger.vis = MagicMock()
+    mock_logger.executor = _DummyExecutor()
+
+    mock_engine = MagicMock()
+    mock_engine.state = State(metrics={"a": 12.23, "b": 23.45})
+    mock_engine.state.iteration = 5
+
+    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+
+    assert len(wrapper.windows) == 2 and "tag/a" in wrapper.windows and "tag/b" in wrapper.windows
+    assert wrapper.windows["tag/a"]["win"] is not None
+    assert wrapper.windows["tag/b"]["win"] is not None
+
+    assert mock_logger.vis.line.call_count == 2
+    mock_logger.vis.line.assert_has_calls(
+        [
+            call(
+                X=[5],
+                Y=[12.23],
+                env=mock_logger.vis.env,
+                win=None,
+                update=None,
+                opts=wrapper.windows["tag/a"]["opts"],
+                name="tag/a",
+            ),
+            call(
+                X=[5],
+                Y=[23.45],
+                env=mock_logger.vis.env,
+                win=None,
+                update=None,
+                opts=wrapper.windows["tag/b"]["opts"],
+                name="tag/b",
+            ),
+        ],
+        any_order=True,
+    )
+
+    wrapper = OutputHandler("tag", metric_names=["a"])
+
+    mock_engine = MagicMock()
+    mock_engine.state = State(metrics={"a": torch.tensor([0.0, 1.0, 2.0, 3.0])})
+    mock_engine.state.iteration = 5
+
+    mock_logger = MagicMock(spec=VisdomLogger)
+    mock_logger.vis = MagicMock()
+    mock_logger.executor = _DummyExecutor()
+
+    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+
+    assert len(wrapper.windows) == 4 and all([f"tag/a/{i}" in wrapper.windows for i in range(4)])
+    assert wrapper.windows["tag/a/0"]["win"] is not None
+    assert wrapper.windows["tag/a/1"]["win"] is not None
+    assert wrapper.windows["tag/a/2"]["win"] is not None
+    assert wrapper.windows["tag/a/3"]["win"] is not None
+
+    assert mock_logger.vis.line.call_count == 4
+    mock_logger.vis.line.assert_has_calls(
+        [
+            call(
+                X=[5],
+                Y=[0.0],
+                env=mock_logger.vis.env,
+                win=None,
+                update=None,
+                opts=wrapper.windows["tag/a/0"]["opts"],
+                name="tag/a/0",
+            ),
+            call(
+                X=[5],
+                Y=[1.0],
+                env=mock_logger.vis.env,
+                win=None,
+                update=None,
+                opts=wrapper.windows["tag/a/1"]["opts"],
+                name="tag/a/1",
+            ),
+            call(
+                X=[5],
+                Y=[2.0],
+                env=mock_logger.vis.env,
+                win=None,
+                update=None,
+                opts=wrapper.windows["tag/a/2"]["opts"],
+                name="tag/a/2",
+            ),
+            call(
+                X=[5],
+                Y=[3.0],
+                env=mock_logger.vis.env,
+                win=None,
+                update=None,
+                opts=wrapper.windows["tag/a/3"]["opts"],
+                name="tag/a/3",
+            ),
+        ],
+        any_order=True,
+    )
+
+    wrapper = OutputHandler("tag", metric_names=["a", "c"])
+
+    mock_engine = MagicMock()
+    mock_engine.state = State(metrics={"a": 55.56, "c": "Some text"})
+    mock_engine.state.iteration = 7
+
+    mock_logger = MagicMock(spec=VisdomLogger)
+    mock_logger.vis = MagicMock()
+    mock_logger.executor = _DummyExecutor()
+
+    with pytest.warns(UserWarning):
+        wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+
+    assert len(wrapper.windows) == 1 and "tag/a" in wrapper.windows
+    assert wrapper.windows["tag/a"]["win"] is not None
+
+    assert mock_logger.vis.line.call_count == 1
+    mock_logger.vis.line.assert_has_calls(
+        [
+            call(
+                X=[7],
+                Y=[55.56],
+                env=mock_logger.vis.env,
+                win=None,
+                update=None,
+                opts=wrapper.windows["tag/a"]["opts"],
+                name="tag/a",
+            ),
+        ],
+        any_order=True,
+    )
+
+    # all metrics
+    wrapper = OutputHandler("tag", metric_names="all")
+    mock_logger = MagicMock(spec=VisdomLogger)
+    mock_logger.vis = MagicMock()
+    mock_logger.executor = _DummyExecutor()
+
+    mock_engine = MagicMock()
+    mock_engine.state = State(metrics={"a": 12.23, "b": 23.45})
+    mock_engine.state.iteration = 5
+
+    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+
+    assert len(wrapper.windows) == 2 and "tag/a" in wrapper.windows and "tag/b" in wrapper.windows
+    assert wrapper.windows["tag/a"]["win"] is not None
+    assert wrapper.windows["tag/b"]["win"] is not None
+
+    assert mock_logger.vis.line.call_count == 2
+    mock_logger.vis.line.assert_has_calls(
+        [
+            call(
+                X=[5],
+                Y=[12.23],
+                env=mock_logger.vis.env,
+                win=None,
+                update=None,
+                opts=wrapper.windows["tag/a"]["opts"],
+                name="tag/a",
+            ),
+            call(
+                X=[5],
+                Y=[23.45],
+                env=mock_logger.vis.env,
+                win=None,
+                update=None,
+                opts=wrapper.windows["tag/b"]["opts"],
+                name="tag/b",
+            ),
+        ],
+        any_order=True,
+    )
+
+    # all metrics
+    wrapper = OutputHandler("tag", metric_names="all")
+    mock_logger = MagicMock(spec=VisdomLogger)
+    mock_logger.vis = MagicMock()
+    mock_logger.executor = _DummyExecutor()
+
+    mock_engine = MagicMock()
+    mock_engine.state = State(
+        metrics={
+            "a": 123,
+            "b": {"c": [2.34, {"d": 1}]},
+            "c": (22, [33, -5.5], {"e": 32.1}),
+        }
+    )
+    mock_engine.state.iteration = 5
+
+    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+
+    expected_metrics = {
+        "tag/a": 123,
+        "tag/b/c/0": 2.34,
+        "tag/b/c/1/d": 1,
+        "tag/c/0": 22,
+        "tag/c/1/0": 33,
+        "tag/c/1/1": -5.5,
+        "tag/c/2/e": 32.1,
+    }
+
+    assert len(wrapper.windows) == len(expected_metrics)
+    for key in expected_metrics:
+        assert key in wrapper.windows
+        assert wrapper.windows[key]["win"] is not None
+    assert mock_logger.vis.line.call_count == len(expected_metrics)
+    mock_logger.vis.line.assert_has_calls(
+        [
+            call(
+                X=[5],
+                Y=[value],
+                env=mock_logger.vis.env,
+                win=None,
+                update=None,
+                opts=wrapper.windows[key]["opts"],
+                name=key,
+            )
+            for key, value in expected_metrics.items()
+        ],
+        any_order=True,
+    )
+
+
+def test_output_handler_both(dirname):
+    wrapper = OutputHandler("tag", metric_names=["a", "b"], output_transform=lambda x: {"loss": x})
+    mock_logger = MagicMock(spec=VisdomLogger)
+    mock_logger.vis = MagicMock()
+    mock_logger.executor = _DummyExecutor()
+
+    mock_engine = MagicMock()
+    mock_engine.state = State(metrics={"a": 12.23, "b": 23.45})
+    mock_engine.state.epoch = 5
+    mock_engine.state.output = 12345
+
+    wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+
+    assert mock_logger.vis.line.call_count == 3
+    assert (
+        len(wrapper.windows) == 3
+        and "tag/a" in wrapper.windows
+        and "tag/b" in wrapper.windows
+        and "tag/loss" in wrapper.windows
+    )
+    assert wrapper.windows["tag/a"]["win"] is not None
+    assert wrapper.windows["tag/b"]["win"] is not None
+    assert wrapper.windows["tag/loss"]["win"] is not None
+
+    mock_logger.vis.line.assert_has_calls(
+        [
+            call(
+                X=[5],
+                Y=[12.23],
+                env=mock_logger.vis.env,
+                win=None,
+                update=None,
+                opts=wrapper.windows["tag/a"]["opts"],
+                name="tag/a",
+            ),
+            call(
+                X=[5],
+                Y=[23.45],
+                env=mock_logger.vis.env,
+                win=None,
+                update=None,
+                opts=wrapper.windows["tag/b"]["opts"],
+                name="tag/b",
+            ),
+            call(
+                X=[5],
+                Y=[12345],
+                env=mock_logger.vis.env,
+                win=None,
+                update=None,
+                opts=wrapper.windows["tag/loss"]["opts"],
+                name="tag/loss",
+            ),
+        ],
+        any_order=True,
+    )
+
+    mock_engine.state.epoch = 6
+    wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+
+    assert mock_logger.vis.line.call_count == 6
+    assert (
+        len(wrapper.windows) == 3
+        and "tag/a" in wrapper.windows
+        and "tag/b" in wrapper.windows
+        and "tag/loss" in wrapper.windows
+    )
+    assert wrapper.windows["tag/a"]["win"] is not None
+    assert wrapper.windows["tag/b"]["win"] is not None
+    assert wrapper.windows["tag/loss"]["win"] is not None
+
+    mock_logger.vis.line.assert_has_calls(
+        [
+            call(
+                X=[6],
+                Y=[12.23],
+                env=mock_logger.vis.env,
+                win=wrapper.windows["tag/a"]["win"],
+                update="append",
+                opts=wrapper.windows["tag/a"]["opts"],
+                name="tag/a",
+            ),
+            call(
+                X=[6],
+                Y=[23.45],
+                env=mock_logger.vis.env,
+                win=wrapper.windows["tag/b"]["win"],
+                update="append",
+                opts=wrapper.windows["tag/b"]["opts"],
+                name="tag/b",
+            ),
+            call(
+                X=[6],
+                Y=[12345],
+                env=mock_logger.vis.env,
+                win=wrapper.windows["tag/loss"]["win"],
+                update="append",
+                opts=wrapper.windows["tag/loss"]["opts"],
+                name="tag/loss",
+            ),
+        ],
+        any_order=True,
+    )
+
+
+def test_output_handler_state_attrs():
+    wrapper = OutputHandler("tag", state_attributes=["alpha", "beta", "gamma"])
+    mock_logger = MagicMock(spec=VisdomLogger)
+    mock_logger.vis = MagicMock()
+    mock_logger.executor = _DummyExecutor()
+
+    mock_engine = MagicMock()
+    mock_engine.state = State()
+    mock_engine.state.iteration = 5
+    mock_engine.state.alpha = 3.899
+    mock_engine.state.beta = torch.tensor(12.0)
+    mock_engine.state.gamma = torch.tensor([21.0, 6.0])
+
+    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+
+    assert mock_logger.vis.line.call_count == 4
+    assert (
+        len(wrapper.windows) == 4
+        and "tag/alpha" in wrapper.windows
+        and "tag/beta" in wrapper.windows
+        and "tag/gamma/0" in wrapper.windows
+        and "tag/gamma/1" in wrapper.windows
+    )
+    assert wrapper.windows["tag/alpha"]["win"] is not None
+    assert wrapper.windows["tag/beta"]["win"] is not None
+    assert wrapper.windows["tag/gamma/0"]["win"] is not None
+    assert wrapper.windows["tag/gamma/1"]["win"] is not None
+
+    mock_logger.vis.line.assert_has_calls(
+        [
+            call(
+                X=[5],
+                Y=[3.899],
+                env=mock_logger.vis.env,
+                win=None,
+                update=None,
+                opts=wrapper.windows["tag/alpha"]["opts"],
+                name="tag/alpha",
+            ),
+            call(
+                X=[5],
+                Y=[12.0],
+                env=mock_logger.vis.env,
+                win=None,
+                update=None,
+                opts=wrapper.windows["tag/beta"]["opts"],
+                name="tag/beta",
+            ),
+            call(
+                X=[5],
+                Y=[21.0],
+                env=mock_logger.vis.env,
+                win=None,
+                update=None,
+                opts=wrapper.windows["tag/gamma/0"]["opts"],
+                name="tag/gamma/0",
+            ),
+            call(
+                X=[5],
+                Y=[6.0],
+                env=mock_logger.vis.env,
+                win=None,
+                update=None,
+                opts=wrapper.windows["tag/gamma/1"]["opts"],
+                name="tag/gamma/1",
+            ),
+        ],
+        any_order=True,
+    )
+
+
+def test_output_handler_with_wrong_global_step_transform_output():
+    def global_step_transform(*args, **kwargs):
+        return "a"
+
+    wrapper = OutputHandler("tag", output_transform=lambda x: {"loss": x}, global_step_transform=global_step_transform)
+    mock_logger = MagicMock(spec=VisdomLogger)
+    mock_logger.vis = MagicMock()
+    mock_logger.executor = _DummyExecutor()
+
+    mock_engine = MagicMock()
+    mock_engine.state = State()
+    mock_engine.state.epoch = 5
+    mock_engine.state.output = 12345
+
+    with pytest.raises(TypeError, match="global_step must be int"):
+        wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+
+
+def test_output_handler_with_global_step_transform():
+    def global_step_transform(*args, **kwargs):
+        return 10
+
+    wrapper = OutputHandler("tag", output_transform=lambda x: {"loss": x}, global_step_transform=global_step_transform)
+    mock_logger = MagicMock(spec=VisdomLogger)
+    mock_logger.vis = MagicMock()
+    mock_logger.executor = _DummyExecutor()
+
+    mock_engine = MagicMock()
+    mock_engine.state = State()
+    mock_engine.state.epoch = 5
+    mock_engine.state.output = 12345
+
+    wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+    assert mock_logger.vis.line.call_count == 1
+    assert len(wrapper.windows) == 1 and "tag/loss" in wrapper.windows
+    assert wrapper.windows["tag/loss"]["win"] is not None
+
+    mock_logger.vis.line.assert_has_calls(
+        [
+            call(
+                X=[10],
+                Y=[12345],
+                env=mock_logger.vis.env,
+                win=None,
+                update=None,
+                opts=wrapper.windows["tag/loss"]["opts"],
+                name="tag/loss",
+            )
+        ]
+    )
+
+
+def test_output_handler_with_global_step_from_engine():
+    mock_another_engine = MagicMock()
+    mock_another_engine.state = State()
+    mock_another_engine.state.epoch = 10
+    mock_another_engine.state.output = 12.345
+
+    wrapper = OutputHandler(
+        "tag",
+        output_transform=lambda x: {"loss": x},
+        global_step_transform=global_step_from_engine(mock_another_engine),
+    )
+
+    mock_logger = MagicMock(spec=VisdomLogger)
+    mock_logger.vis = MagicMock()
+    mock_logger.executor = _DummyExecutor()
+
+    mock_engine = MagicMock()
+    mock_engine.state = State()
+    mock_engine.state.epoch = 1
+    mock_engine.state.output = 0.123
+
+    wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+    assert mock_logger.vis.line.call_count == 1
+    assert len(wrapper.windows) == 1 and "tag/loss" in wrapper.windows
+    assert wrapper.windows["tag/loss"]["win"] is not None
+    mock_logger.vis.line.assert_has_calls(
+        [
+            call(
+                X=[mock_another_engine.state.epoch],
+                Y=[mock_engine.state.output],
+                env=mock_logger.vis.env,
+                win=None,
+                update=None,
+                opts=wrapper.windows["tag/loss"]["opts"],
+                name="tag/loss",
+            )
+        ]
+    )
+
+    mock_another_engine.state.epoch = 11
+    mock_engine.state.output = 1.123
+
+    wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+    assert mock_logger.vis.line.call_count == 2
+    assert len(wrapper.windows) == 1 and "tag/loss" in wrapper.windows
+    assert wrapper.windows["tag/loss"]["win"] is not None
+    mock_logger.vis.line.assert_has_calls(
+        [
+            call(
+                X=[mock_another_engine.state.epoch],
+                Y=[mock_engine.state.output],
+                env=mock_logger.vis.env,
+                win=wrapper.windows["tag/loss"]["win"],
+                update="append",
+                opts=wrapper.windows["tag/loss"]["opts"],
+                name="tag/loss",
+            )
+        ]
+    )
+
+
+def test_weights_scalar_handler_wrong_setup():
+    with pytest.raises(TypeError, match="Argument model should be of type torch.nn.Module"):
+        WeightsScalarHandler(None)
+
+    model = MagicMock(spec=torch.nn.Module)
+    with pytest.raises(TypeError, match="Argument reduction should be callable"):
+        WeightsScalarHandler(model, reduction=123)
+
+    with pytest.raises(TypeError, match="Output of the reduction function should be a scalar"):
+        WeightsScalarHandler(model, reduction=lambda x: x)
+
+    wrapper = WeightsScalarHandler(model)
+    mock_logger = MagicMock()
+    mock_engine = MagicMock()
+    with pytest.raises(RuntimeError, match="Handler 'WeightsScalarHandler' works only with VisdomLogger"):
+        wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+
+
+def test_weights_scalar_handler():
+    class DummyModel(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.fc1 = torch.nn.Linear(10, 10)
+            self.fc2 = torch.nn.Linear(12, 12)
+            self.fc1.weight.data.zero_()
+            self.fc1.bias.data.zero_()
+            self.fc2.weight.data.fill_(1.0)
+            self.fc2.bias.data.fill_(1.0)
+
+    model = DummyModel()
+
+    # define test wrapper to test with and without optional tag
+    def _test(tag=None):
+        wrapper = WeightsScalarHandler(model, tag=tag)
+        mock_logger = MagicMock(spec=VisdomLogger)
+        mock_logger.vis = MagicMock()
+        mock_logger.executor = _DummyExecutor()
+
+        mock_engine = MagicMock()
+        mock_engine.state = State()
+        mock_engine.state.epoch = 5
+
+        wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+
+        tag_prefix = f"{tag}/" if tag else ""
+
+        assert mock_logger.vis.line.call_count == 4
+        mock_logger.vis.line.assert_has_calls(
+            [
+                call(
+                    X=[5],
+                    Y=[0.0],
+                    env=mock_logger.vis.env,
+                    win=None,
+                    update=None,
+                    opts=wrapper.windows[tag_prefix + "weights_norm/fc1/weight"]["opts"],
+                    name=tag_prefix + "weights_norm/fc1/weight",
+                ),
+                call(
+                    X=[5],
+                    Y=[0.0],
+                    env=mock_logger.vis.env,
+                    win=None,
+                    update=None,
+                    opts=wrapper.windows[tag_prefix + "weights_norm/fc1/bias"]["opts"],
+                    name=tag_prefix + "weights_norm/fc1/bias",
+                ),
+                call(
+                    X=[5],
+                    Y=[12.0],
+                    env=mock_logger.vis.env,
+                    win=None,
+                    update=None,
+                    opts=wrapper.windows[tag_prefix + "weights_norm/fc2/weight"]["opts"],
+                    name=tag_prefix + "weights_norm/fc2/weight",
+                ),
+                call(
+                    X=[5],
+                    Y=ANY,
+                    env=mock_logger.vis.env,
+                    win=None,
+                    update=None,
+                    opts=wrapper.windows[tag_prefix + "weights_norm/fc2/bias"]["opts"],
+                    name=tag_prefix + "weights_norm/fc2/bias",
+                ),
+            ],
+            any_order=True,
         )
-    else:
-        expected = "Iteration: [1/2]  50%|▌, batchloss=0.5, alpha=3.9, beta=12.2, gamma_0=21, gamma_"
-    assert actual == expected
+
+    _test()
+    _test(tag="tag")
 
 
-def test_pbar_no_metric_names(capsys):
-    n_epochs = 2
-    loader = [1, 2]
-    engine = Engine(update_fn)
+def test_weights_scalar_handler_custom_reduction():
+    class DummyModel(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.fc1 = torch.nn.Linear(10, 10)
+            self.fc2 = torch.nn.Linear(12, 12)
+            self.fc1.weight.data.zero_()
+            self.fc1.bias.data.zero_()
+            self.fc2.weight.data.fill_(1.0)
+            self.fc2.bias.data.fill_(1.0)
 
-    pbar = ProgressBar(ncols=80)
-    pbar.attach(engine)
+    model = DummyModel()
 
-    engine.run(loader, max_epochs=n_epochs)
+    def norm(x):
+        return 12.34
 
-    captured = capsys.readouterr()
-    err = captured.err.split("\r")
-    err = list(map(lambda x: x.strip(), err))
-    err = list(filter(None, err))
-    actual = err[-1]
-    if get_tqdm_version() < Version("4.49.0"):
-        expected = "Epoch [2/2]: [1/2]  50%|██████████            [00:00<00:00]"
-    else:
-        expected = "Epoch [2/2]: [1/2]  50%|███████████████████████                        [00:00<?]"
-    assert actual == expected
+    wrapper = WeightsScalarHandler(model, reduction=norm, show_legend=True)
+    mock_logger = MagicMock(spec=VisdomLogger)
+    mock_logger.vis = MagicMock()
+    mock_logger.executor = _DummyExecutor()
 
+    mock_engine = MagicMock()
+    mock_engine.state = State()
+    mock_engine.state.epoch = 5
 
-def test_pbar_with_output(capsys):
-    n_epochs = 2
-    loader = [1, 2]
-    engine = Engine(update_fn)
+    wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-    pbar = ProgressBar(ncols=80)
-    pbar.attach(engine, output_transform=lambda x: {"a": x})
-
-    engine.run(loader, max_epochs=n_epochs)
-
-    captured = capsys.readouterr()
-    err = captured.err.split("\r")
-    err = list(map(lambda x: x.strip(), err))
-    err = list(filter(None, err))
-    if get_tqdm_version() < Version("4.49.0"):
-        expected = "Epoch [2/2]: [1/2]  50%|█████     , a=1 [00:00<00:00]"
-    else:
-        expected = "Epoch [2/2]: [1/2]  50%|████████████████████▌                    , a=1 [00:00<?]"
-    assert err[-1] == expected
-
-
-def test_pbar_fail_with_non_callable_transform():
-    engine = Engine(update_fn)
-    pbar = ProgressBar(ncols=80)
-
-    with pytest.raises(TypeError):
-        pbar.attach(engine, output_transform=1)
-
-
-def test_pbar_with_scalar_output(capsys):
-    n_epochs = 2
-    loader = [1, 2]
-    engine = Engine(update_fn)
-
-    pbar = ProgressBar(ncols=80)
-    pbar.attach(engine, output_transform=lambda x: x)
-
-    engine.run(loader, max_epochs=n_epochs)
-
-    captured = capsys.readouterr()
-    err = captured.err.split("\r")
-    err = list(map(lambda x: x.strip(), err))
-    err = list(filter(None, err))
-    if get_tqdm_version() < Version("4.49.0"):
-        expected = "Epoch [2/2]: [1/2]  50%|█████     , output=1 [00:00<00:00]"
-    else:
-        expected = "Epoch [2/2]: [1/2]  50%|██████████████████                  , output=1 [00:00<?]"
-    assert err[-1] == expected
-
-
-def test_pbar_with_str_output(capsys):
-    n_epochs = 2
-    loader = [1, 2]
-    engine = Engine(update_fn)
-
-    pbar = ProgressBar(ncols=80)
-    pbar.attach(engine, output_transform=lambda x: "red")
-
-    engine.run(loader, max_epochs=n_epochs)
-
-    captured = capsys.readouterr()
-    err = captured.err.split("\r")
-    err = list(map(lambda x: x.strip(), err))
-    err = list(filter(None, err))
-    if get_tqdm_version() < Version("4.49.0"):
-        expected = "Epoch [2/2]: [1/2]  50%|█████     , output=red [00:00<00:00]"
-    else:
-        expected = "Epoch [2/2]: [1/2]  50%|█████████████████                 , output=red [00:00<?]"
-    assert err[-1] == expected
+    assert mock_logger.vis.line.call_count == 4
+    mock_logger.vis.line.assert_has_calls(
+        [
+            call(
+                X=[5],
+                Y=[12.34],
+                env=mock_logger.vis.env,
+                win=None,
+                update=None,
+                opts=wrapper.windows["weights_norm/fc1/weight"]["opts"],
+                name="weights_norm/fc1/weight",
+            ),
+            call(
+                X=[5],
+                Y=[12.34],
+                env=mock_logger.vis.env,
+                win=None,
+                update=None,
+                opts=wrapper.windows["weights_norm/fc1/bias"]["opts"],
+                name="weights_norm/fc1/bias",
+            ),
+            call(
+                X=[5],
+                Y=[12.34],
+                env=mock_logger.vis.env,
+                win=None,
+                update=None,
+                opts=wrapper.windows["weights_norm/fc2/weight"]["opts"],
+                name="weights_norm/fc2/weight",
+            ),
+            call(
+                X=[5],
+                Y=[12.34],
+                env=mock_logger.vis.env,
+                win=None,
+                update=None,
+                opts=wrapper.windows["weights_norm/fc2/bias"]["opts"],
+                name="weights_norm/fc2/bias",
+            ),
+        ],
+        any_order=True,
+    )
 
 
-def test_pbar_with_tqdm_kwargs(capsys):
-    n_epochs = 10
-    loader = [1, 2, 3, 4, 5]
-    engine = Engine(update_fn)
+def test_grads_scalar_handler_wrong_setup():
+    with pytest.raises(TypeError, match="Argument model should be of type torch.nn.Module"):
+        GradsScalarHandler(None)
 
-    pbar = ProgressBar(desc="My description: ", ncols=80)
-    pbar.attach(engine, output_transform=lambda x: x)
-    engine.run(loader, max_epochs=n_epochs)
+    model = MagicMock(spec=torch.nn.Module)
+    with pytest.raises(TypeError, match="Argument reduction should be callable"):
+        GradsScalarHandler(model, reduction=123)
 
-    captured = capsys.readouterr()
-    err = captured.err.split("\r")
-    err = list(map(lambda x: x.strip(), err))
-    err = list(filter(None, err))
-    expected = "My description:  [10/10]: [4/5]  80%|███████████████▏   , output=1 [00:00<00:00]"
-    assert err[-1] == expected
+    wrapper = GradsScalarHandler(model)
+    mock_logger = MagicMock()
+    mock_engine = MagicMock()
+    with pytest.raises(RuntimeError, match="Handler 'GradsScalarHandler' works only with VisdomLogger"):
+        wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
-def test_pbar_for_validation(capsys):
-    loader = [1, 2, 3, 4, 5]
-    engine = Engine(update_fn)
+def test_grads_scalar_handler(dummy_model_factory, norm_mock):
+    model = dummy_model_factory(with_grads=True, with_frozen_layer=False)
 
-    pbar = ProgressBar(desc="Validation", ncols=80)
-    pbar.attach(engine)
-    engine.run(loader, max_epochs=1)
+    # define test wrapper to test with and without optional tag
+    def _test(tag=None):
+        wrapper = GradsScalarHandler(model, reduction=norm_mock, tag=tag)
+        mock_logger = MagicMock(spec=VisdomLogger)
+        mock_logger.vis = MagicMock()
+        mock_logger.executor = _DummyExecutor()
 
-    captured = capsys.readouterr()
-    err = captured.err.split("\r")
-    err = list(map(lambda x: x.strip(), err))
-    err = list(filter(None, err))
-    expected = "Validation: [4/5]  80%|██████████████████████████████████▍         [00:00<00:00]"
-    assert err[-1] == expected
+        mock_engine = MagicMock()
+        mock_engine.state = State()
+        mock_engine.state.epoch = 5
+
+        wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+
+        tag_prefix = f"{tag}/" if tag else ""
+
+        assert mock_logger.vis.line.call_count == 4
+        mock_logger.vis.line.assert_has_calls(
+            [
+                call(
+                    X=[5],
+                    Y=ANY,
+                    env=mock_logger.vis.env,
+                    win=None,
+                    update=None,
+                    opts=wrapper.windows[tag_prefix + "grads_norm/fc1/weight"]["opts"],
+                    name=tag_prefix + "grads_norm/fc1/weight",
+                ),
+                call(
+                    X=[5],
+                    Y=ANY,
+                    env=mock_logger.vis.env,
+                    win=None,
+                    update=None,
+                    opts=wrapper.windows[tag_prefix + "grads_norm/fc1/bias"]["opts"],
+                    name=tag_prefix + "grads_norm/fc1/bias",
+                ),
+                call(
+                    X=[5],
+                    Y=ANY,
+                    env=mock_logger.vis.env,
+                    win=None,
+                    update=None,
+                    opts=wrapper.windows[tag_prefix + "grads_norm/fc2/weight"]["opts"],
+                    name=tag_prefix + "grads_norm/fc2/weight",
+                ),
+                call(
+                    X=[5],
+                    Y=ANY,
+                    env=mock_logger.vis.env,
+                    win=None,
+                    update=None,
+                    opts=wrapper.windows[tag_prefix + "grads_norm/fc2/bias"]["opts"],
+                    name=tag_prefix + "grads_norm/fc2/bias",
+                ),
+            ],
+            any_order=True,
+        )
+
+    _test()
+    _test(tag="tag")
 
 
-def test_pbar_output_tensor(capsys):
-    def _test(out_tensor, out_msg):
-        loader = [1, 2, 3, 4, 5]
-
-        def update_fn(engine, batch):
-            return out_tensor
-
-        engine = Engine(update_fn)
-
-        pbar = ProgressBar(desc="Output tensor", ncols=80)
-        pbar.attach(engine, output_transform=lambda x: x)
-        engine.run(loader, max_epochs=1)
-
-        captured = capsys.readouterr()
-        err = captured.err.split("\r")
-        err = list(map(lambda x: x.strip(), err))
-        err = list(filter(None, err))
-        expected = f"Output tensor: [4/5]  {out_msg} [00:00<00:00]"
-        assert err[-1] == expected
-
-    _test(out_tensor=torch.tensor([5, 0]), out_msg="80%|████████████▊   , output_0=5, output_1=0")
-    _test(out_tensor=torch.tensor(123), out_msg="80%|██████████████████████▍     , output=123")
-    _test(out_tensor=torch.tensor(1.234), out_msg="80%|█████████████████████▌     , output=1.23")
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
+def test_integration_no_server():
+    with pytest.raises(ConnectionError, match="Error connecting to Visdom server"):
+        VisdomLogger()
 
 
-def test_pbar_output_warning(capsys):
-    loader = [1, 2, 3, 4, 5]
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
+def test_logger_init_hostname_port(visdom_server):
+    # Explicit hostname, port
+    vd_logger = VisdomLogger(server=visdom_server[0], port=visdom_server[1], num_workers=0)
+    assert "main" in vd_logger.vis.get_env_list()
+    vd_logger.close()
+
+
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
+def test_logger_init_env_vars(visdom_server):
+    # As env vars
+    import os
+
+    os.environ["VISDOM_SERVER_URL"] = visdom_server[0]
+    os.environ["VISDOM_PORT"] = str(visdom_server[1])
+    vd_logger = VisdomLogger(server=visdom_server[0], port=visdom_server[1], num_workers=0)
+    assert "main" in vd_logger.vis.get_env_list()
+    vd_logger.close()
+
+
+def _parse_content(content):
+    import json
+
+    return json.loads(content)
+
+
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
+def test_integration_no_executor(visdom_server):
+    vd_logger = VisdomLogger(server=visdom_server[0], port=visdom_server[1], num_workers=0)
+
+    # close all windows in 'main' environment
+    vd_logger.vis.close()
+
+    n_epochs = 3
+    data = list(range(10))
+
+    losses = torch.rand(n_epochs * len(data))
+    losses_iter = iter(losses)
 
     def update_fn(engine, batch):
-        return torch.zeros(1, 2, 3, 4)
+        return next(losses_iter)
 
-    engine = Engine(update_fn)
+    trainer = Engine(update_fn)
+    output_handler = OutputHandler(tag="training", output_transform=lambda x: {"loss": x})
+    vd_logger.attach(trainer, log_handler=output_handler, event_name=Events.ITERATION_COMPLETED)
 
-    pbar = ProgressBar(desc="Output tensor", ncols=80)
-    pbar.attach(engine, output_transform=lambda x: x)
-    with pytest.warns(UserWarning):
-        engine.run(loader, max_epochs=1)
+    trainer.run(data, max_epochs=n_epochs)
 
-
-def test_pbar_on_epochs(capsys):
-    n_epochs = 10
-    loader = [1, 2, 3, 4, 5]
-    engine = Engine(update_fn)
-
-    pbar = ProgressBar(ncols=80)
-    pbar.attach(engine, event_name=Events.EPOCH_STARTED, closing_event_name=Events.COMPLETED)
-    engine.run(loader, max_epochs=n_epochs)
-
-    captured = capsys.readouterr()
-    err = captured.err.split("\r")
-    err = list(map(lambda x: x.strip(), err))
-    err = list(filter(None, err))
-    actual = err[-1]
-    expected = "Epoch: [9/10]  90%|██████████████████████████████████████████▎     [00:00<00:00]"
-    assert actual == expected
+    assert len(output_handler.windows) == 1
+    assert "training/loss" in output_handler.windows
+    win_name = output_handler.windows["training/loss"]["win"]
+    data = vd_logger.vis.get_window_data(win=win_name)
+    data = _parse_content(data)
+    assert "content" in data and "data" in data["content"]
+    data = data["content"]["data"][0]
+    assert "x" in data and "y" in data
+    x_vals, y_vals = data["x"], data["y"]
+    assert all([int(x) == x_true for x, x_true in zip(x_vals, list(range(1, n_epochs * len(data) + 1)))])
+    assert all([y == y_true for y, y_true in zip(y_vals, losses)])
+    vd_logger.close()
 
 
-def test_pbar_with_max_epochs_set_to_one(capsys):
-    n_epochs = 1
-    loader = [1, 2]
-    engine = Engine(update_fn)
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
+def test_integration_with_executor(visdom_server):
+    vd_logger = VisdomLogger(server=visdom_server[0], port=visdom_server[1], num_workers=1)
 
-    pbar = ProgressBar(ncols=80)
-    pbar.attach(engine, ["a"])
+    # close all windows in 'main' environment
+    vd_logger.vis.close()
 
-    engine.run(loader, max_epochs=n_epochs)
+    n_epochs = 5
+    data = list(range(50))
 
-    captured = capsys.readouterr()
-    err = captured.err.split("\r")
-    err = list(map(lambda x: x.strip(), err))
-    err = list(filter(None, err))
-    if get_tqdm_version() < Version("4.49.0"):
-        expected = "Iteration: [1/2]  50%|█████     , a=1 [00:00<00:00]"
-    else:
-        expected = "Iteration: [1/2]  50%|█████████████████████▌                     , a=1 [00:00<?]"
-    assert err[-1] == expected
+    losses = torch.rand(n_epochs * len(data))
+    losses_iter = iter(losses)
 
+    def update_fn(engine, batch):
+        return next(losses_iter)
 
-def test_pbar_wrong_events_order():
-    engine = Engine(update_fn)
-    pbar = ProgressBar(ncols=80)
+    trainer = Engine(update_fn)
+    output_handler = OutputHandler(tag="training", output_transform=lambda x: {"loss": x})
+    vd_logger.attach(trainer, log_handler=output_handler, event_name=Events.ITERATION_COMPLETED)
 
-    with pytest.raises(ValueError, match="should be called before closing event"):
-        pbar.attach(engine, event_name=Events.COMPLETED, closing_event_name=Events.COMPLETED)
+    trainer.run(data, max_epochs=n_epochs)
 
-    with pytest.raises(ValueError, match="should be called before closing event"):
-        pbar.attach(engine, event_name=Events.COMPLETED, closing_event_name=Events.EPOCH_COMPLETED)
+    assert len(output_handler.windows) == 1
+    assert "training/loss" in output_handler.windows
+    win_name = output_handler.windows["training/loss"]["win"]
+    data = vd_logger.vis.get_window_data(win=win_name)
+    data = _parse_content(data)
+    assert "content" in data and "data" in data["content"]
+    data = data["content"]["data"][0]
+    assert "x" in data and "y" in data
+    x_vals, y_vals = data["x"], data["y"]
+    assert all([int(x) == x_true for x, x_true in zip(x_vals, list(range(1, n_epochs * len(data) + 1)))])
+    assert all([y == y_true for y, y_true in zip(y_vals, losses)])
 
-    with pytest.raises(ValueError, match="should be called before closing event"):
-        pbar.attach(engine, event_name=Events.COMPLETED, closing_event_name=Events.ITERATION_COMPLETED)
-
-    with pytest.raises(ValueError, match="should be called before closing event"):
-        pbar.attach(engine, event_name=Events.EPOCH_COMPLETED, closing_event_name=Events.EPOCH_COMPLETED)
-
-    with pytest.raises(ValueError, match="should be called before closing event"):
-        pbar.attach(engine, event_name=Events.ITERATION_COMPLETED, closing_event_name=Events.ITERATION_STARTED)
-
-    with pytest.raises(ValueError, match="should not be a filtered event"):
-        pbar.attach(engine, event_name=Events.ITERATION_STARTED, closing_event_name=Events.EPOCH_COMPLETED(every=10))
+    vd_logger.close()
 
 
-def test_pbar_with_nan_input():
-    def update(engine, batch):
-        x = batch
-        return x.item()
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
+def test_integration_with_executor_as_context_manager(visdom_server):
+    n_epochs = 5
+    data = list(range(50))
 
-    def create_engine():
-        engine = Engine(update)
-        pbar = ProgressBar(ncols=80)
+    losses = torch.rand(n_epochs * len(data))
+    losses_iter = iter(losses)
 
-        engine.add_event_handler(Events.ITERATION_COMPLETED, TerminateOnNan())
-        pbar.attach(engine, event_name=Events.EPOCH_COMPLETED, closing_event_name=Events.COMPLETED)
-        return engine
+    def update_fn(engine, batch):
+        return next(losses_iter)
 
-    data = torch.from_numpy(np.array([np.nan] * 25))
-    engine = create_engine()
-    engine.run(data)
-    assert engine.should_terminate
-    assert engine.state.iteration == 1
-    assert engine.state.epoch == 1
+    with VisdomLogger(server=visdom_server[0], port=visdom_server[1], num_workers=1) as vd_logger:
+        # close all windows in 'main' environment
+        vd_logger.vis.close()
 
-    data = torch.from_numpy(np.array([1] * 1000 + [np.nan] * 25))
-    engine = create_engine()
-    engine.run(data)
-    assert engine.should_terminate
-    assert engine.state.iteration == 1001
-    assert engine.state.epoch == 1
+        trainer = Engine(update_fn)
+        output_handler = OutputHandler(tag="training", output_transform=lambda x: {"loss": x})
+        vd_logger.attach(trainer, log_handler=output_handler, event_name=Events.ITERATION_COMPLETED)
 
+        trainer.run(data, max_epochs=n_epochs)
 
-def test_pbar_on_callable_events(capsys):
-    n_epochs = 1
-    loader = list(range(100))
-    engine = Engine(update_fn)
-
-    pbar = ProgressBar(ncols=80)
-    pbar.attach(engine, event_name=Events.ITERATION_STARTED(every=10), closing_event_name=Events.EPOCH_COMPLETED)
-    engine.run(loader, max_epochs=n_epochs)
-
-    captured = capsys.readouterr()
-    err = captured.err.split("\r")
-    err = list(map(lambda x: x.strip(), err))
-    err = list(filter(None, err))
-    actual = err[-1]
-    expected = "Iteration: [90/100]  90%|████████████████████████████████████▉     [00:00<00:00]"
-    assert actual == expected
+        assert len(output_handler.windows) == 1
+        assert "training/loss" in output_handler.windows
+        win_name = output_handler.windows["training/loss"]["win"]
+        data = vd_logger.vis.get_window_data(win=win_name)
+        data = _parse_content(data)
+        assert "content" in data and "data" in data["content"]
+        data = data["content"]["data"][0]
+        assert "x" in data and "y" in data
+        x_vals, y_vals = data["x"], data["y"]
+        assert all([int(x) == x_true for x, x_true in zip(x_vals, list(range(1, n_epochs * len(data) + 1)))])
+        assert all([y == y_true for y, y_true in zip(y_vals, losses)])
 
 
-def test_tqdm_logger_epoch_length(capsys):
-    loader = list(range(100))
-    engine = Engine(update_fn)
-    pbar = ProgressBar(persist=True, ncols=80)
-    pbar.attach(engine)
-    engine.run(loader, epoch_length=50)
-
-    captured = capsys.readouterr()
-    err = captured.err.split("\r")
-    err = list(map(lambda x: x.strip(), err))
-    err = list(filter(None, err))
-    actual = err[-1]
-    expected = "Iteration: [50/50] 100%|██████████████████████████████████████████ [00:00<00:00]"
-    assert actual == expected
+@pytest.mark.parametrize("no_site_packages", ["visdom"], indirect=True)
+def test_no_visdom(no_site_packages):
+    with pytest.raises(ModuleNotFoundError, match=r"This contrib module requires visdom package"):
+        VisdomLogger()
 
 
-def test_tqdm_logger_iter_without_epoch_length(capsys):
-    size = 11
-
-    def finite_size_data_iter(size):
-        for i in range(size):
-            yield i
-
-    def train_step(trainer, batch):
-        pass
-
-    trainer = Engine(train_step)
-
-    @trainer.on(Events.ITERATION_COMPLETED(every=size))
-    def restart_iter():
-        trainer.state.dataloader = finite_size_data_iter(size)
-
-    pbar = ProgressBar(persist=True, ncols=80)
-    pbar.attach(trainer)
-
-    data_iter = finite_size_data_iter(size)
-    trainer.run(data_iter, max_epochs=5)
-
-    captured = capsys.readouterr()
-    err = captured.err.split("\r")
-    err = list(map(lambda x: x.strip(), err))
-    err = list(filter(None, err))
-    actual = err[-1]
-    expected = "Epoch [5/5]: [11/11] 100%|████████████████████████████████████████ [00:00<00:00]"
-    assert actual == expected
+def test_no_concurrent():
+    with pytest.raises(ModuleNotFoundError, match=r"This contrib module requires concurrent.futures"):
+        with patch.dict("sys.modules", {"concurrent.futures": None}):
+            VisdomLogger(num_workers=1)
