@@ -16,8 +16,7 @@ class ProgressBar(BaseLogger):
     TQDM progress bar handler to log training progress and computed metrics.
 
     Args:
-        persist: Set to ``True`` to persist the progress bar after completion
-            (default = ``False``).
+        persist: set to ``True`` to persist the progress bar after completion (default = ``False``).
         bar_format : Specify a custom bar string format. May impact performance.
             [default: '{desc}[{n_fmt}/{total_fmt}] {percentage:3.0f}%|{bar}{postfix} [{elapsed}<{remaining}]'].
             Set to ``None`` to use the default ``tqdm`` bar format: '{l_bar}{bar}{r_bar}', where
@@ -81,7 +80,7 @@ class ProgressBar(BaseLogger):
             # Progress bar will look like
             # Epoch [2/50]: [64/128]  50%|█████      , loss=0.123 [06:17<12:34]
 
-        Example where the state attributes ``trainer.state.alpha`` and ``trainer.state.beta``
+        Example where the State Attributes ``trainer.state.alpha`` and ``trainer.state.beta``
         are also logged along with the NLL and accuracy after each iteration:
 
         .. code-block:: python
@@ -131,7 +130,7 @@ class ProgressBar(BaseLogger):
             from tqdm.autonotebook import tqdm
         except ImportError:
             raise ModuleNotFoundError(
-                "This contrib module requires tqdm to be installed. Please install it with the command: \n pip install tqdm"
+                "This submodule requires tqdm to be installed. Please install it with the command: \n pip install tqdm"
             )
 
         self.pbar_cls = tqdm
@@ -147,7 +146,7 @@ class ProgressBar(BaseLogger):
 
     def _close(self, engine: Engine) -> None:
         if self.pbar is not None:
-            # [https://github.com/tqdm/notebook.py#L240-L250](https://github.com/tqdm/notebook.py#L240-L250)
+            # https://github.com/tqdm/notebook.py#L240-L250
             # issue #1115: notebook backend of tqdm checks if n < total (error or KeyboardInterrupt)
             # and the bar persists in 'danger' mode
             if self.pbar.total is not None:
@@ -167,7 +166,7 @@ class ProgressBar(BaseLogger):
 
 
         Args:
-            message: String you wish to log.
+            message: string you wish to log.
         """
         from tqdm import tqdm
 
@@ -249,7 +248,7 @@ class _OutputHandler(BaseOutputHandler):
 
     Args:
         description: progress bar description.
-        metric_names: list of metric names to plot, or a string "all" to plot all available
+        metric_names: list of metric names to plot or a string "all" to plot all available
             metrics.
         output_transform: output transform function to prepare `engine.state.output` as a number.
             For example, `output_transform = lambda output: output`
