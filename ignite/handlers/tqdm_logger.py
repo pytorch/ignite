@@ -77,6 +77,7 @@ class ProgressBar(BaseLogger):
             pbar = ProgressBar()
             pbar.attach(trainer, output_transform=lambda x: {'loss': x})
 
+            # Progress bar will look like
             # Epoch [2/50]: [64/128]  50%|█████      , loss=0.123 [06:17<12:34]
 
         Example where the State Attributes ``trainer.state.alpha`` and ``trainer.state.beta``
