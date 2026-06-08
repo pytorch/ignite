@@ -2,7 +2,13 @@
 
 <!-- ![Ignite Logo](assets/logo/ignite_logo_mixed.svg) -->
 
-<img src="https://raw.githubusercontent.com/pytorch/ignite/master/assets/logo/ignite_logo_mixed.svg" width=512>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/pytorch/ignite/master/assets/logo/ignite_logo_mixed_light.svg">
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/pytorch/ignite/master/assets/logo/ignite_logo_mixed.svg">
+  <img src="https://raw.githubusercontent.com/pytorch/ignite/master/assets/logo/ignite_logo_mixed.svg"
+       alt="PyTorch-Ignite logo"
+       width="512">
+</picture>
 
 <!-- [![image](https://travis-ci.com/pytorch/ignite.svg?branch=master)](https://travis-ci.com/pytorch/ignite) -->
 
