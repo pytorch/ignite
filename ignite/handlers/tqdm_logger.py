@@ -66,7 +66,6 @@ class ProgressBar(BaseLogger):
             pbar = ProgressBar()
             pbar.attach(trainer, ['loss'])
 
-
             # Progress bar will look like
             # Epoch [2/50]: [64/128]  50%|█████      , loss=0.123 [06:17<12:34]
 
