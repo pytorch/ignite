@@ -80,7 +80,7 @@ class ProgressBar(BaseLogger):
             # Epoch [2/50]: [64/128]  50%|█████      , loss=0.123 [06:17<12:34]
 
         Example where the State Attributes ``trainer.state.alpha`` and ``trainer.state.beta``
-        are also logged along with the NLL and accuracy after each iteration:
+        are also logged along with the NLL and Accuracy after each iteration:
 
         .. code-block:: python
 
