@@ -2,7 +2,7 @@
 
 import numbers
 import warnings
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 from collections import OrderedDict
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any
@@ -15,12 +15,11 @@ from ignite.engine import Engine, Events, EventsList, State
 from ignite.engine.events import CallableEventWithFilter, RemovableEventHandle
 
 
-class BaseHandler(metaclass=ABCMeta):
+class BaseHandler(ABC):
     """Base handler for defining various useful handlers."""
 
     @abstractmethod
-    def __call__(self, engine: Engine, logger: Any, event_name: str | Events) -> None:
-        pass
+    def __call__(self, engine: Engine, logger: Any, event_name: str | Events) -> None: ...
 
 
 class BaseWeightsHandler(BaseHandler):
@@ -34,26 +33,21 @@ class BaseWeightsHandler(BaseHandler):
         tag: str | None = None,
         whitelist: list[str] | Callable[[str, nn.Parameter], bool] | None = None,
     ):
-        if not isinstance(model, torch.nn.Module):
+        if not isinstance(model, nn.Module):
             raise TypeError(f"Argument model should be of type torch.nn.Module, but given {type(model)}")
 
         self.model = model
         self.tag = tag
 
-        weights = {}
         if whitelist is None:
             weights = dict(model.named_parameters())
         elif callable(whitelist):
-            for n, p in model.named_parameters():
-                if whitelist(n, p):
-                    weights[n] = p
+            weights = {name: param for name, param in model.named_parameters() if whitelist(name, param)}
         else:
-            for n, p in model.named_parameters():
-                for item in whitelist:
-                    if n.startswith(item):
-                        weights[n] = p
+            prefixes = tuple(whitelist)
+            weights = {name: param for name, param in model.named_parameters() if name.startswith(prefixes)}
 
-        self.weights = weights.items()
+        self.weights = tuple(weights.items())
 
 
 class BaseOptimizerParamsHandler(BaseHandler):
@@ -90,7 +84,9 @@ class BaseOutputHandler(BaseHandler):
         state_attributes: list[str] | None = None,
     ):
         if metric_names is not None:
-            if not (isinstance(metric_names, list) or (isinstance(metric_names, str) and metric_names == "all")):
+            is_list = isinstance(metric_names, list)
+            is_all = isinstance(metric_names, str) and metric_names == "all"
+            if not (is_list or is_all):
                 raise TypeError(
                     f"metric_names should be either a list or equal 'all', got {type(metric_names)} instead."
                 )
@@ -144,8 +140,6 @@ class BaseOutputHandler(BaseHandler):
         if self.state_attributes is not None:
             metrics_state_attrs.update({name: getattr(engine.state, name, None) for name in self.state_attributes})
 
-        metrics_state_attrs_dict: dict[Any, str | float | numbers.Number] = OrderedDict()
-
         def key_tuple_fn(parent_key: str | tuple[str, ...] | None, *args: str) -> tuple[str, ...]:
             if parent_key is None:
                 return args
@@ -164,13 +158,14 @@ class BaseOutputHandler(BaseHandler):
         ) -> None | str | float | numbers.Number:
             if isinstance(value, numbers.Number):
                 return value
-            elif isinstance(value, torch.Tensor) and value.ndimension() == 0:
+
+            if isinstance(value, torch.Tensor) and value.ndimension() == 0:
                 return value.item()
-            else:
-                if isinstance(value, str) and log_text:
-                    return value
-                else:
-                    warnings.warn(f"Logger output_handler can not log metrics value type {type(value)}")
+
+            if isinstance(value, str) and log_text:
+                return value
+
+            warnings.warn(f"Logger output_handler can not log metrics value type {type(value)}")
             return None
 
         metrics_state_attrs_dict = _flatten_dict(metrics_state_attrs, key_fn, handle_value_fn, parent_key=self.tag)
@@ -183,33 +178,50 @@ def _flatten_dict(
     value_fn: Callable,
     parent_key: str | tuple[str, ...] | None = None,
 ) -> dict:
+    """Recursively flatten a nested mapping.
+
+    Args:
+        in_dict: Mapping to flatten.
+        key_fn: Function used to build the flattened key from the parent key and current key.
+        value_fn: Function used to convert leaf values to loggable values.
+        parent_key: Parent key prefix for nested values.
+
+    Returns:
+        Flattened dictionary of processed key-value pairs.
+    """
     items = {}
+
     for key, value in in_dict.items():
         new_key = key_fn(parent_key, key)
+
         if isinstance(value, Mapping):
             items.update(_flatten_dict(value, key_fn, value_fn, new_key))
-        elif any(
-            [
-                isinstance(value, tuple) and hasattr(value, "_fields"),  # namedtuple
-                not isinstance(value, str) and isinstance(value, Sequence),
-            ]
-        ):
+            continue
+
+        if isinstance(value, tuple) and hasattr(value, "_fields"):  # namedtuple
             for i, item in enumerate(value):
                 items.update(_flatten_dict({str(i): item}, key_fn, value_fn, new_key))
-        elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
+            continue
+
+        if not isinstance(value, str) and isinstance(value, Sequence):
+            for i, item in enumerate(value):
+                items.update(_flatten_dict({str(i): item}, key_fn, value_fn, new_key))
+            continue
+
+        if isinstance(value, torch.Tensor) and value.ndimension() == 1:
             for i, item in enumerate(value):
                 items.update(_flatten_dict({str(i): item.item()}, key_fn, value_fn, new_key))
-        else:
-            new_value = value_fn(value)
-            if new_value is not None:
-                items[new_key] = new_value
+            continue
+
+        new_value = value_fn(value)
+        if new_value is not None:
+            items[new_key] = new_value
+
     return items
 
 
 class BaseWeightsScalarHandler(BaseWeightsHandler):
-    """
-    Helper handler to log model's weights or gradients as scalars.
-    """
+    """Helper handler to log model's weights or gradients as scalars."""
 
     def __init__(
         self,
@@ -223,18 +235,18 @@ class BaseWeightsScalarHandler(BaseWeightsHandler):
         if not callable(reduction):
             raise TypeError(f"Argument reduction should be callable, but given {type(reduction)}")
 
-        def _is_0D_tensor(t: Any) -> bool:
+        def _is_0d_tensor(t: Any) -> bool:
             return isinstance(t, torch.Tensor) and t.ndimension() == 0
 
         # Test reduction function on a tensor
         o = reduction(torch.ones(4, 2))
-        if not (isinstance(o, numbers.Number) or _is_0D_tensor(o)):
+        if not (isinstance(o, numbers.Number) or _is_0d_tensor(o)):
             raise TypeError(f"Output of the reduction function should be a scalar, but got {type(o)}")
 
         self.reduction = reduction
 
 
-class BaseLogger(metaclass=ABCMeta):
+class BaseLogger(ABC):
     """
     Base logger handler. See implementations: TensorboardLogger, VisdomLogger, PolyaxonLogger, MLflowLogger, ...
 
@@ -248,19 +260,19 @@ class BaseLogger(metaclass=ABCMeta):
         *args: Any,
         **kwargs: Any,
     ) -> RemovableEventHandle:
-        """Attach the logger to the engine and execute `log_handler` function at `event_name` events.
+        """Attach the logger to the engine and execute `log_handler` at `event_name` events.
 
         Args:
-            engine: engine object.
-            log_handler: a logging handler to execute
-            event_name: event to attach the logging handler to. Valid events are from
+            engine: Engine object.
+            log_handler: Logging handler to execute.
+            event_name: Event to attach the logging handler to. Valid events are from
                 :class:`~ignite.engine.events.Events` or :class:`~ignite.engine.events.EventsList` or any `event_name`
                 added by :meth:`~ignite.engine.engine.Engine.register_events`.
-            args: args forwarded to the `log_handler` method
-            kwargs: kwargs forwarded to the  `log_handler` method
+            args: Positional arguments forwarded to `log_handler`.
+            kwargs: Keyword arguments forwarded to `log_handler`.
 
         Returns:
-            :class:`~ignite.engine.events.RemovableEventHandle`, which can be used to remove the handler.
+            :class:`~ignite.engine.events.RemovableEventHandle` that can be used to remove the handler.
         """
         if isinstance(event_name, EventsList):
             for name in event_name:
@@ -270,43 +282,42 @@ class BaseLogger(metaclass=ABCMeta):
 
             return RemovableEventHandle(event_name, log_handler, engine)
 
-        else:
-            if event_name not in State.event_to_attr:
-                raise RuntimeError(f"Unknown event name '{event_name}'")
+        if event_name not in State.event_to_attr:
+            raise RuntimeError(f"Unknown event name '{event_name}'")
 
-            return engine.add_event_handler(event_name, log_handler, self, event_name, *args, **kwargs)
+        return engine.add_event_handler(event_name, log_handler, self, event_name, *args, **kwargs)
 
     def attach_output_handler(self, engine: Engine, event_name: Any, *args: Any, **kwargs: Any) -> RemovableEventHandle:
-        """Shortcut method to attach `OutputHandler` to the logger.
+        """Shortcut to attach `OutputHandler` to the logger.
 
         Args:
-            engine: engine object.
-            event_name: event to attach the logging handler to. Valid events are from
+            engine: Engine object.
+            event_name: Event to attach the logging handler to. Valid events are from
                 :class:`~ignite.engine.events.Events` or any `event_name` added by
                 :meth:`~ignite.engine.engine.Engine.register_events`.
-            args: args to initialize `OutputHandler`
-            kwargs: kwargs to initialize `OutputHandler`
+            args: Positional args for `OutputHandler`.
+            kwargs: Keyword args for `OutputHandler`.
 
         Returns:
-            :class:`~ignite.engine.events.RemovableEventHandle`, which can be used to remove the handler.
+            :class:`~ignite.engine.events.RemovableEventHandle` that can be used to remove the handler.
         """
         return self.attach(engine, self._create_output_handler(*args, **kwargs), event_name=event_name)
 
     def attach_opt_params_handler(
         self, engine: Engine, event_name: Any, *args: Any, **kwargs: Any
     ) -> RemovableEventHandle:
-        """Shortcut method to attach `OptimizerParamsHandler` to the logger.
+        """Shortcut to attach `OptimizerParamsHandler` to the logger.
 
         Args:
-            engine: engine object.
-            event_name: event to attach the logging handler to. Valid events are from
+            engine: Engine object.
+            event_name: Event to attach the logging handler to. Valid events are from
                 :class:`~ignite.engine.events.Events` or any `event_name` added by
                 :meth:`~ignite.engine.engine.Engine.register_events`.
-            args: args to initialize `OptimizerParamsHandler`
-            kwargs: kwargs to initialize `OptimizerParamsHandler`
+            args: Positional args for `OptimizerParamsHandler`.
+            kwargs: Keyword args for `OptimizerParamsHandler`.
 
         Returns:
-            :class:`~ignite.engine.events.RemovableEventHandle`, which can be used to remove the handler.
+            :class:`~ignite.engine.events.RemovableEventHandle` that can be used to remove the handler.
 
         .. versionchanged:: 0.4.3
             Added missing return statement.
@@ -314,12 +325,10 @@ class BaseLogger(metaclass=ABCMeta):
         return self.attach(engine, self._create_opt_params_handler(*args, **kwargs), event_name=event_name)
 
     @abstractmethod
-    def _create_output_handler(self, engine: Engine, *args: Any, **kwargs: Any) -> Callable:
-        pass
+    def _create_output_handler(self, engine: Engine, *args: Any, **kwargs: Any) -> Callable: ...
 
     @abstractmethod
-    def _create_opt_params_handler(self, *args: Any, **kwargs: Any) -> Callable:
-        pass
+    def _create_opt_params_handler(self, *args: Any, **kwargs: Any) -> Callable: ...
 
     def __enter__(self) -> "BaseLogger":
         return self
@@ -327,5 +336,4 @@ class BaseLogger(metaclass=ABCMeta):
     def __exit__(self, type: Any, value: Any, traceback: Any) -> None:
         self.close()
 
-    def close(self) -> None:
-        pass
+    def close(self) -> None: ...
