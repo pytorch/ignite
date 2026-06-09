@@ -190,7 +190,6 @@ def _flatten_dict(
         Flattened dictionary of processed key-value pairs.
     """
     items = {}
-
     for key, value in in_dict.items():
         new_key = key_fn(parent_key, key)
         if isinstance(value, Mapping):
