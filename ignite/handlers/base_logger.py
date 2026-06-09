@@ -179,10 +179,10 @@ def _flatten_dict(
     """Recursively flatten a nested mapping.
 
     Args:
-        in_dict: Mapping to flatten.
-        key_fn: Function used to build the flattened key from the parent key and current key.
-        value_fn: Function used to convert leaf values to loggable values.
-        parent_key: Parent key prefix for nested values.
+        in_dict: mapping to flatten.
+        key_fn: function used to build the flattened key from the parent key and current key.
+        value_fn: function used to convert leaf values to loggable values.
+        parent_key: parent key prefix for nested values.
 
     Returns:
         Flattened dictionary of processed key-value pairs.
@@ -253,9 +253,9 @@ class BaseLogger(ABC):
         """Attach the logger to the engine and execute `log_handler` at `event_name` events.
 
         Args:
-            engine: Engine object.
-            log_handler: Logging handler to execute.
-            event_name: Event to attach the logging handler to. Valid events are from
+            engine: engine object.
+            log_handler: logging handler to execute.
+            event_name: event to attach the logging handler to. Valid events are from
                 :class:`~ignite.engine.events.Events` or :class:`~ignite.engine.events.EventsList` or any `event_name`
                 added by :meth:`~ignite.engine.engine.Engine.register_events`.
             args: positional arguments forwarded to `log_handler`.
@@ -281,12 +281,12 @@ class BaseLogger(ABC):
         """Shortcut to attach `OutputHandler` to the logger.
 
         Args:
-            engine: Engine object.
-            event_name: Event to attach the logging handler to. Valid events are from
+            engine: engine object.
+            event_name: event to attach the logging handler to. Valid events are from
                 :class:`~ignite.engine.events.Events` or any `event_name` added by
                 :meth:`~ignite.engine.engine.Engine.register_events`.
-            args: Positional args for `OutputHandler`.
-            kwargs: Keyword args for `OutputHandler`.
+            args: positional args for `OutputHandler`.
+            kwargs: keyword args for `OutputHandler`.
 
         Returns:
             :class:`~ignite.engine.events.RemovableEventHandle` that can be used to remove the handler.
