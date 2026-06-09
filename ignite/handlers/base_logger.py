@@ -254,7 +254,7 @@ class BaseLogger(ABC):
 
         Args:
             engine: engine object.
-            log_handler: logging handler to execute.
+            log_handler: a logging handler to execute
             event_name: event to attach the logging handler to. Valid events are from
                 :class:`~ignite.engine.events.Events` or :class:`~ignite.engine.events.EventsList` or any `event_name`
                 added by :meth:`~ignite.engine.engine.Engine.register_events`.
