@@ -192,27 +192,21 @@ def _flatten_dict(
         new_key = key_fn(parent_key, key)
         if isinstance(value, Mapping):
             items.update(_flatten_dict(value, key_fn, value_fn, new_key))
-            continue
-
-        if isinstance(value, tuple) and hasattr(value, "_fields"):  # namedtuple
+        elif any(
+            [
+                isinstance(value, tuple) and hasattr(value, "_fields"),  # namedtuple
+                not isinstance(value, str) and isinstance(value, Sequence),
+            ]
+        ):
             for i, item in enumerate(value):
                 items.update(_flatten_dict({str(i): item}, key_fn, value_fn, new_key))
-            continue
-
-        if not isinstance(value, str) and isinstance(value, Sequence):
-            for i, item in enumerate(value):
-                items.update(_flatten_dict({str(i): item}, key_fn, value_fn, new_key))
-            continue
-
-        if isinstance(value, torch.Tensor) and value.ndimension() == 1:
+        elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
             for i, item in enumerate(value):
                 items.update(_flatten_dict({str(i): item.item()}, key_fn, value_fn, new_key))
-            continue
-
-        new_value = value_fn(value)
-        if new_value is not None:
-            items[new_key] = new_value
-
+        else:
+            new_value = value_fn(value)
+            if new_value is not None:
+                items[new_key] = new_value
     return items
 
 
