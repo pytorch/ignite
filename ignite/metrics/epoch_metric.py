@@ -1,5 +1,6 @@
 import warnings
-from collections.abc import Callable
+from collections.abc import Callable, Mapping, Sequence
+from functools import partial
 from typing import cast
 
 import torch
@@ -7,6 +8,7 @@ import torch
 import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
 from ignite.metrics.metric import Metric, reinit__is_reduced
+from ignite.utils import apply_to_type
 
 __all__ = ["EpochMetric"]
 
@@ -93,7 +95,7 @@ class EpochMetric(Metric):
     def reset(self) -> None:
         self._predictions: list[torch.Tensor] = []
         self._targets: list[torch.Tensor] = []
-        self._result: float | None = None
+        self._result: float | torch.Tensor | Sequence | Mapping | None = None
 
     def _check_shape(self, output: tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output
@@ -142,7 +144,7 @@ class EpochMetric(Metric):
             except Exception as e:
                 warnings.warn(f"Probably, there can be a problem with `compute_fn`:\n {e}.", EpochMetricWarning)
 
-    def compute(self) -> float:
+    def compute(self) -> float | torch.Tensor | Sequence | Mapping:
         if len(self._predictions) < 1 or len(self._targets) < 1:
             raise NotComputableError("EpochMetric must have at least one example before it can be computed.")
 
@@ -156,14 +158,22 @@ class EpochMetric(Metric):
                 _prediction_tensor = cast(torch.Tensor, idist.all_gather(_prediction_tensor))
                 _target_tensor = cast(torch.Tensor, idist.all_gather(_target_tensor))
 
-            self._result = 0.0
+            result: float | torch.Tensor | Sequence | Mapping = 0.0
             if idist.get_rank() == 0:
                 # Run compute_fn on zero rank only
-                self._result = self.compute_fn(_prediction_tensor, _target_tensor)
+                result = self.compute_fn(_prediction_tensor, _target_tensor)
+
+            if not isinstance(result, (int, float, torch.Tensor, Sequence, Mapping)):
+                raise TypeError(
+                    f"compute_fn output type {type(result)} is not supported. "
+                    "Supported types are: int, float, torch.Tensor, Sequence, Mapping."
+                )
 
             if ws > 1:
                 # broadcast result to all processes
-                self._result = cast(float, idist.broadcast(self._result, src=0))
+                result = apply_to_type(result, (torch.Tensor, float, int), partial(idist.broadcast, src=0))
+
+            self._result = result
 
         return self._result
 
