@@ -262,7 +262,7 @@ class BaseLogger(ABC):
             kwargs: kwargs forwarded to the `log_handler` method
 
         Returns:
-            :class:`~ignite.engine.events.RemovableEventHandle` that can be used to remove the handler.
+            :class:`~ignite.engine.events.RemovableEventHandle`, which can be used to remove the handler.
         """
         if isinstance(event_name, EventsList):
             for name in event_name:
