@@ -23,7 +23,7 @@ class CallableEventWithFilter:
     Args:
         value: The actual enum value. Only needed for internal use. Do not touch!
         event_filter: A function taking the engine and the current event value as input and returning a
-            boolean to indicate whether this event should be executed. Defaults to None, which will result in a 
+            boolean to indicate whether this event should be executed. Defaults to None, which will result in a
             function that always returns `True`
         name: The enum-name of the current object. Only needed for internal use. Do not touch!
     """
