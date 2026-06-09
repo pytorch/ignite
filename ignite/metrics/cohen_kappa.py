@@ -68,11 +68,12 @@ class _CohenKappaEpochMetric(EpochMetric):
         output_transform: Callable,
         device: str | torch.device,
         skip_unrolling: bool,
+        check_compute_fn: bool,
     ):
         super().__init__(
             compute_fn=partial(_cohen_kappa_score, weights=weights),
             output_transform=output_transform,
-            check_compute_fn=False,
+            check_compute_fn=check_compute_fn,
             device=device,
             skip_unrolling=skip_unrolling,
         )
@@ -159,6 +160,9 @@ class CohenKappa(Metric):
             Alternatively, ``output_transform`` can be used to handle this.
         num_classes: number of classes. If provided, uses a running confusion matrix
             (memory-efficient). If ``None``, infers from data at compute time (backward-compatible default).
+        check_compute_fn: if True and ``num_classes`` is ``None``, the internal compute function is run on the
+            first batch of data to ensure there are no issues. If issues exist, user is warned that there might
+            be an error in the compute function. Default, False. Ignored when ``num_classes`` is provided.
 
     Examples:
         To use with ``Engine`` and ``process_function``, simply attach the metric instance to the engine.
@@ -197,6 +201,7 @@ class CohenKappa(Metric):
         device: str | torch.device = torch.device("cpu"),
         skip_unrolling: bool = False,
         num_classes: int | None = None,
+        check_compute_fn: bool = False,
     ):
         if weights not in (None, "linear", "quadratic"):
             raise ValueError("Kappa Weighting type must be None or linear or quadratic.")
@@ -217,6 +222,7 @@ class CohenKappa(Metric):
                 output_transform=output_transform,
                 device=device,
                 skip_unrolling=skip_unrolling,
+                check_compute_fn=check_compute_fn,
             )
 
         super().__init__(output_transform=output_transform, device=device, skip_unrolling=skip_unrolling)
