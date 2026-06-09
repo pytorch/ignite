@@ -187,8 +187,6 @@ class CohenKappa(Metric):
 
     .. versionchanged:: 0.6.0
         Replaced scikit-learn dependency with a native PyTorch implementation.
-
-    .. versionchanged:: 0.6.2
         Added ``num_classes`` argument; routes to a running-confusion-matrix backend when provided.
     """
 
