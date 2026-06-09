@@ -296,7 +296,7 @@ class BaseLogger(ABC):
             kwargs: kwargs to initialize `OptimizerParamsHandler`
 
         Returns:
-            :class:`~ignite.engine.events.RemovableEventHandle` that can be used to remove the handler.
+            :class:`~ignite.engine.events.RemovableEventHandle`, which can be used to remove the handler.
 
         .. versionchanged:: 0.4.3
             Added missing return statement.
