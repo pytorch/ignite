@@ -267,7 +267,7 @@ class BaseLogger(ABC):
         return engine.add_event_handler(event_name, log_handler, self, event_name, *args, **kwargs)
 
     def attach_output_handler(self, engine: Engine, event_name: Any, *args: Any, **kwargs: Any) -> RemovableEventHandle:
-        """Shortcut to attach `OutputHandler` to the logger.
+        """Shortcut method to attach `OutputHandler` to the logger.
 
         Args:
             engine: engine object.
