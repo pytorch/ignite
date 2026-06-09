@@ -193,7 +193,6 @@ def _flatten_dict(
 
     for key, value in in_dict.items():
         new_key = key_fn(parent_key, key)
-
         if isinstance(value, Mapping):
             items.update(_flatten_dict(value, key_fn, value_fn, new_key))
             continue
