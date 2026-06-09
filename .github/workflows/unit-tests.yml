@@ -35,6 +35,8 @@ jobs:
   cpu-tests:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 85
+    env:
+      PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION: python
     defaults:
       run:
         shell: bash
@@ -87,7 +89,6 @@ jobs:
       - name: Install dependencies
         run: |
           uv pip install -r requirements-dev.txt
-          uv pip install protobuf==3.18.1 --force-reinstall
           uv pip install .
           uv pip list
 
