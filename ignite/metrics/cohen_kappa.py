@@ -154,15 +154,15 @@ class CohenKappa(Metric):
             you want to compute the metric with respect to one of the outputs.
         weights: a string is used to define the type of Cohen's Kappa whether Non-Weighted or Linear
             or Quadratic. Default, None.
+        check_compute_fn: Default False. If True, the compute function is run on the first batch
+            of data to ensure there are no issues. User will be warned in case there are any issues
+            computing the function.
         device: optional device specification for internal storage.
         skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
             true for multi-output model, for example, if ``y_pred`` contains multi-output as ``(y_pred_a, y_pred_b)``
             Alternatively, ``output_transform`` can be used to handle this.
         num_classes: number of classes. If provided, uses a running confusion matrix
             (memory-efficient). If ``None``, infers from data at compute time (backward-compatible default).
-        check_compute_fn: if True and ``num_classes`` is ``None``, the internal compute function is run on the
-            first batch of data to ensure there are no issues. If issues exist, user is warned that there might
-            be an error in the compute function. Default, False. Ignored when ``num_classes`` is provided.
 
     Examples:
         To use with ``Engine`` and ``process_function``, simply attach the metric instance to the engine.
@@ -198,10 +198,10 @@ class CohenKappa(Metric):
         self,
         output_transform: Callable = lambda x: x,
         weights: Literal["linear", "quadratic"] | None = None,
+        check_compute_fn: bool = False,
         device: str | torch.device = torch.device("cpu"),
         skip_unrolling: bool = False,
         num_classes: int | None = None,
-        check_compute_fn: bool = False,
     ):
         if weights not in (None, "linear", "quadratic"):
             raise ValueError("Kappa Weighting type must be None or linear or quadratic.")
