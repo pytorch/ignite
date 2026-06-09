@@ -267,7 +267,7 @@ class BaseLogger(ABC):
                 :class:`~ignite.engine.events.Events` or :class:`~ignite.engine.events.EventsList` or any `event_name`
                 added by :meth:`~ignite.engine.engine.Engine.register_events`.
             args: Positional arguments forwarded to `log_handler`.
-            kwargs: Keyword arguments forwarded to `log_handler`.
+            kwargs: keyword arguments forwarded to `log_handler`.
 
         Returns:
             :class:`~ignite.engine.events.RemovableEventHandle` that can be used to remove the handler.
