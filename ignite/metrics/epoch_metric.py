@@ -163,7 +163,7 @@ class EpochMetric(Metric):
                 # Run compute_fn on zero rank only
                 result = self.compute_fn(_prediction_tensor, _target_tensor)
 
-            if not isinstance(result, (int, float, torch.Tensor, Sequence, Mapping)):
+            if not isinstance(result, (int, float, torch.Tensor, Sequence, Mapping)) or isinstance(result, str):
                 raise TypeError(
                     f"compute_fn output type {type(result)} is not supported. "
                     "Supported types are: int, float, torch.Tensor, Sequence, Mapping."

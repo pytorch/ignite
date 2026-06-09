@@ -211,3 +211,57 @@ def test_skip_unrolling(available_device):
     assert torch.equal(em._targets[0].cpu(), output1[1].cpu())
     assert torch.equal(em._targets[1].cpu(), output2[1].cpu())
     assert em.compute() == 0.0
+
+def test_epoch_metric_compute_fn_tensor_output():
+    """Test EpochMetric with compute_fn returning a tensor."""
+
+    def compute_fn(y_preds, y_targets):
+        return torch.mean(((y_preds - y_targets.type_as(y_preds)) ** 2), dim=0)
+
+    em = EpochMetric(compute_fn)
+    em.reset()
+    output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+    em.update(output1)
+    output2 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+    em.update(output2)
+
+    result = em.compute()
+    assert isinstance(result, torch.Tensor)
+    assert result.shape == (3,)
+
+
+def test_epoch_metric_compute_fn_tuple_output():
+    """Test EpochMetric with compute_fn returning a tuple of tensors."""
+
+    def compute_fn(y_preds, y_targets):
+        mse = torch.mean(((y_preds - y_targets.type_as(y_preds)) ** 2))
+        mae = torch.mean(torch.abs(y_preds - y_targets.type_as(y_preds)))
+        return (mse, mae)
+
+    em = EpochMetric(compute_fn)
+    em.reset()
+    output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+    em.update(output1)
+    output2 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+    em.update(output2)
+
+    result = em.compute()
+    assert isinstance(result, tuple)
+    assert len(result) == 2
+
+
+def test_epoch_metric_compute_fn_invalid_output():
+    """Test EpochMetric raises TypeError for unsupported compute_fn output."""
+
+    def compute_fn(y_preds, y_targets):
+        return "invalid_output"
+
+    em = EpochMetric(compute_fn, check_compute_fn=False)
+    em.reset()
+    output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+    em.update(output1)
+
+
+    with pytest.raises(TypeError, match=r"compute_fn output type"):
+        em.compute()
+                       
