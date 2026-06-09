@@ -84,9 +84,7 @@ class BaseOutputHandler(BaseHandler):
         state_attributes: list[str] | None = None,
     ):
         if metric_names is not None:
-            is_list = isinstance(metric_names, list)
-            is_all = isinstance(metric_names, str) and metric_names == "all"
-            if not (is_list or is_all):
+            if not (isinstance(metric_names, list) or metric_names == "all"):
                 raise TypeError(
                     f"metric_names should be either a list or equal 'all', got {type(metric_names)} instead."
                 )
