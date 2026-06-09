@@ -266,7 +266,7 @@ class BaseLogger(ABC):
             event_name: Event to attach the logging handler to. Valid events are from
                 :class:`~ignite.engine.events.Events` or :class:`~ignite.engine.events.EventsList` or any `event_name`
                 added by :meth:`~ignite.engine.engine.Engine.register_events`.
-            args: Positional arguments forwarded to `log_handler`.
+            args: positional arguments forwarded to `log_handler`.
             kwargs: keyword arguments forwarded to `log_handler`.
 
         Returns:
