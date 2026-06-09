@@ -258,8 +258,8 @@ class BaseLogger(ABC):
             event_name: event to attach the logging handler to. Valid events are from
                 :class:`~ignite.engine.events.Events` or :class:`~ignite.engine.events.EventsList` or any `event_name`
                 added by :meth:`~ignite.engine.engine.Engine.register_events`.
-            args: args forwarded to `log_handler`.
-            kwargs: kwargs forwarded to `log_handler`.
+            args: args forwarded to the `log_handler`.
+            kwargs: kwargs forwarded to the `log_handler`.
 
         Returns:
             :class:`~ignite.engine.events.RemovableEventHandle` that can be used to remove the handler.
