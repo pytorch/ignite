@@ -19,12 +19,22 @@ if Version(torch.__version__) >= Version("1.9.0"):
 else:
     HAVE_ZERO = False
 
+try:
+    import torch.distributed.checkpoint as dcp
+    from torch.distributed._composable.fsdp import FSDPModule
+    from torch.distributed.checkpoint import FileSystemReader, FileSystemWriter
+    from torch.distributed.checkpoint.state_dict import StateDictOptions, get_model_state_dict, set_model_state_dict
+
+    HAVE_FSDP2 = True
+except ImportError:
+    HAVE_FSDP2 = False
+
 import ignite.distributed as idist
 from ignite.base import Serializable
 from ignite.engine import Engine, Events, EventEnum
 from ignite.utils import _tree_apply2, _tree_map
 
-__all__ = ["Checkpoint", "DiskSaver", "ModelCheckpoint", "BaseSaveHandler", "CheckpointEvents"]
+__all__ = ["Checkpoint", "DiskSaver", "DCPSaver", "ModelCheckpoint", "BaseSaveHandler", "CheckpointEvents"]
 
 
 class CheckpointEvents(EventEnum):
@@ -388,7 +398,7 @@ class Checkpoint(Serializable):
         if n_saved is not None and n_saved < 1:
             raise ValueError(f"n_saved must be a positive integer or None, got {n_saved}")
         self.n_saved = n_saved
-        self.ext = "pt"
+        self.ext = "" if isinstance(self.save_handler, DCPSaver) else "pt"
         self.global_step_transform = global_step_transform
         self.filename_pattern = filename_pattern
         self._saved: list["Checkpoint.Item"] = []
@@ -403,6 +413,7 @@ class Checkpoint(Serializable):
                 with_score=self.score_function is not None,
                 with_score_name=self.score_name is not None,
                 with_global_step=global_step is not None,
+                as_folder=not self.ext,
             )
         else:
             filename_pattern = self.filename_pattern
@@ -531,6 +542,18 @@ class Checkpoint(Serializable):
             def func(obj: Any, **kwargs: Any) -> dict:
                 if isinstance(obj, (nn.DataParallel, nn.parallel.DistributedDataParallel)):
                     obj = obj.module
+                elif HAVE_FSDP2 and isinstance(obj, FSDPModule):
+                    if isinstance(self.save_handler, DCPSaver):
+                        # Each rank saves its own shard — no consolidation needed
+                        return get_model_state_dict(obj)
+                    else:
+                        # Consolidate full state dict to rank 0 for single-file saving
+                        state_dict = get_model_state_dict(
+                            obj, options=StateDictOptions(full_state_dict=True, cpu_offload=True)
+                        )
+                        if idist.get_rank() != self.save_on_rank:
+                            return {}
+                        return state_dict
                 elif HAVE_ZERO and isinstance(obj, ZeroRedundancyOptimizer):
                     obj.consolidate_state_dict(to=self.save_on_rank)
                     if self.save_on_rank != idist.get_rank():
@@ -542,7 +565,11 @@ class Checkpoint(Serializable):
 
     @staticmethod
     def setup_filename_pattern(
-        with_prefix: bool = True, with_score: bool = True, with_score_name: bool = True, with_global_step: bool = True
+        with_prefix: bool = True,
+        with_score: bool = True,
+        with_score_name: bool = True,
+        with_global_step: bool = True,
+        as_folder: bool = False,
     ) -> str:
         """Helper method to get the default filename pattern for a checkpoint.
 
@@ -557,6 +584,8 @@ class Checkpoint(Serializable):
             with_global_step: If True, ``{global_step}`` is added to the
                 filename pattern: ``...{name}_{global_step}...``.
                 At least one of ``with_score`` and ``with_global_step`` should be True.
+            as_folder: If True, the ``.{ext}`` suffix is omitted from the pattern, producing a
+                bare name suitable for directory-based (DCP) checkpoints. Default, False.
 
         Examples:
             .. code-block:: python
@@ -588,7 +617,8 @@ class Checkpoint(Serializable):
         if with_prefix:
             filename_pattern = "{filename_prefix}_" + filename_pattern
 
-        filename_pattern += ".{ext}"
+        if not as_folder:
+            filename_pattern += ".{ext}"
         return filename_pattern
 
     @staticmethod
@@ -649,6 +679,8 @@ class Checkpoint(Serializable):
         Note:
             If ``to_load`` contains objects of type torch `DistributedDataParallel`_ or
             `DataParallel`_, method ``load_state_dict`` will applied to their internal wrapped model (``obj.module``).
+            If ``to_load`` contains FSDP2-sharded objects (``FSDPModule``), ``set_model_state_dict``
+            is used with ``full_state_dict=True`` so that all ranks correctly receive the sharded parameters.
 
         .. _DistributedDataParallel: https://pytorch.org/docs/stable/generated/
             torch.nn.parallel.DistributedDataParallel.html
@@ -660,13 +692,40 @@ class Checkpoint(Serializable):
         Checkpoint._check_objects(to_load, "load_state_dict")
 
         if isinstance(checkpoint, (str, Path)):
-            checkpoint_obj = torch.load(checkpoint, weights_only=True)
+            checkpoint_path = Path(checkpoint)
+            if checkpoint_path.is_dir():
+                # DCP directory checkpoint — all ranks load their own shard
+                if not HAVE_FSDP2:
+                    raise RuntimeError(
+                        "Loading DCP directory checkpoints requires PyTorch >= 2.0 with torch.distributed.checkpoint."
+                    )
+                state_dicts = {}
+                for k, obj in to_load.items():
+                    if isinstance(obj, (nn.DataParallel, nn.parallel.DistributedDataParallel)):
+                        obj = obj.module
+                    if isinstance(obj, FSDPModule):
+                        state_dicts[k] = get_model_state_dict(obj)
+                    else:
+                        state_dicts[k] = obj.state_dict()
+                dcp.load(state_dicts, storage_reader=FileSystemReader(checkpoint_path))
+                for k, obj in to_load.items():
+                    if isinstance(obj, (nn.DataParallel, nn.parallel.DistributedDataParallel)):
+                        obj = obj.module
+                    if isinstance(obj, FSDPModule):
+                        set_model_state_dict(obj, state_dicts[k])
+                    else:
+                        obj.load_state_dict(state_dicts[k])
+                return
+            checkpoint_obj = torch.load(checkpoint_path, weights_only=True)
         else:
             checkpoint_obj = checkpoint
 
         def _load_object(obj: Any, chkpt_obj: Any) -> None:
             if isinstance(obj, (nn.DataParallel, nn.parallel.DistributedDataParallel)):
                 obj = obj.module
+            elif HAVE_FSDP2 and isinstance(obj, FSDPModule):
+                set_model_state_dict(obj, chkpt_obj, options=StateDictOptions(full_state_dict=True))
+                return
 
             if isinstance(obj, torch.nn.Module):
                 obj.load_state_dict(chkpt_obj, **kwargs)
@@ -920,6 +979,55 @@ class DiskSaver(BaseSaveHandler):
         if idist.get_rank() == self.save_on_rank:
             path = self.dirname / filename
             path.unlink()
+
+
+class DCPSaver(BaseSaveHandler):
+    """Handler that saves FSDP2 checkpoints using `torch.distributed.checkpoint`_ (DCP).
+
+    Unlike :class:`~ignite.handlers.DiskSaver`, every rank participates in saving so that
+    each rank writes only its own parameter shard. This avoids the memory spike of
+    consolidating the full model on rank 0, making it suitable for very large models.
+
+    Each checkpoint is saved as a subdirectory inside ``dirname``. The subdirectory name
+    is derived from the filename pattern of the parent :class:`~ignite.handlers.Checkpoint`
+    handler (same naming convention, just without the ``.pt`` extension).
+
+    Args:
+        dirname: base directory where checkpoint subdirectories will be created.
+        create_dir: if True, creates ``dirname`` if it does not exist. Default, True.
+        require_empty: if True, raises if ``dirname`` already contains checkpoint
+            subdirectories. Default, True.
+
+    .. _torch.distributed.checkpoint: https://pytorch.org/docs/stable/distributed.checkpoint.html
+    """
+
+    def __init__(self, dirname: str | Path, create_dir: bool = True, require_empty: bool = True):
+        if not HAVE_FSDP2:
+            raise RuntimeError("DCPSaver requires PyTorch >= 2.0 with torch.distributed.checkpoint.")
+        self.dirname = Path(dirname).expanduser()
+        if create_dir and not self.dirname.exists():
+            self.dirname.mkdir(parents=True)
+        if not self.dirname.exists():
+            raise ValueError(f"Directory path '{self.dirname}' is not found")
+        if require_empty:
+            subdirs = [p.name for p in self.dirname.iterdir() if p.is_dir()]
+            if subdirs:
+                raise ValueError(
+                    f"Checkpoint directories {subdirs} are already present in '{dirname}'. "
+                    "Pass require_empty=False to use this directory anyway."
+                )
+
+    def __call__(self, checkpoint: Mapping, filename: str, metadata: Mapping | None = None) -> None:
+        path = self.dirname / filename
+        path.mkdir(exist_ok=True)
+        dcp.save(checkpoint, storage_writer=FileSystemWriter(path))
+
+    def remove(self, filename: str) -> None:
+        import shutil
+
+        path = self.dirname / filename
+        if path.exists():
+            shutil.rmtree(path)
 
 
 class ModelCheckpoint(Checkpoint):
