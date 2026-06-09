@@ -1,4 +1,4 @@
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Sequence, Iterable
 
 import torch
 
@@ -90,6 +90,62 @@ class _BaseClassification(Metric):
                 raise RuntimeError(f"Input data type has changed from {self._type} to {update_type}.")
             if self._num_classes != num_classes:
                 raise ValueError(f"Input data number of classes has changed from {self._num_classes} to {num_classes}")
+
+    @staticmethod
+    def get_sequence_transform(
+        ignore_index: int | Iterable[int] | None = None,
+        output_transform: Callable = lambda x: x,
+    ) -> Callable:
+        """Returns a callable to transform sequence model outputs for metric evaluation.
+
+        It flattens the sequences and filters out the padding (``ignore_index``).
+
+        Expected input shapes:
+        - ``y_pred``: ``(N, S, C)`` where N is batch size, S is sequence length, C is number of classes
+        - ``y``: ``(N, S)`` containing class indices
+
+        Args:
+            ignore_index: An integer or an iterable of integers representing padding or
+                special tokens to be masked out from the sequence evaluation.
+            output_transform: A callable to transform the output into ``(y_pred, y)``.
+
+        Returns:
+            Callable that flattens ``y_pred`` to ``(N*S, C)`` and ``y`` to ``(N*S,)``,
+            then removes elements where ``y`` equals ``ignore_index``.
+        """
+
+        def wrapper(output: Sequence[torch.Tensor]) -> tuple[torch.Tensor, torch.Tensor]:
+            y_pred, y = output_transform(output)
+
+            if y_pred.ndimension() != 3 or y.ndimension() != 2:
+                raise ValueError(
+                    f"Expected y_pred to be 3D (N, S, C) and y to be 2D (N, S), "
+                    f"but got y_pred={y_pred.ndimension()}D and y={y.ndimension()}D."
+                )
+
+            if y_pred.shape[:2] != y.shape:
+                raise ValueError(
+                    f"y_pred and y have incompatible shapes: "
+                    f"y_pred={y_pred.shape} (expected first two dims to match y={y.shape})."
+                )
+
+            # Flatten: (N, S, C) -> (N*S, C) and (N, S) -> (N*S,)
+            y_pred = y_pred.reshape(-1, y_pred.size(-1))
+            y = y.reshape(-1)
+
+            if ignore_index is not None:
+                if isinstance(ignore_index, Iterable):
+                    mask = torch.ones_like(y, dtype=torch.bool)
+                    for idx in ignore_index:
+                        mask &= y != idx
+                else:
+                    mask = y != ignore_index
+                y_pred = y_pred[mask]
+                y = y[mask]
+
+            return y_pred, y
+
+        return wrapper
 
 
 class Accuracy(_BaseClassification):
