@@ -21,7 +21,7 @@ tensorboardX
 # visdom  # Removed: unmaintained package, cannot be installed with modern packages
 polyaxon
 wandb
-mlflow
+mlflow==3.6.0
 neptune-client>=0.16.17
 tensorboard
 torchvision

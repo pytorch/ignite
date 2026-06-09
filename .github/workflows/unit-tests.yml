@@ -35,8 +35,8 @@ jobs:
   cpu-tests:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 85
-    env:
-      PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION: python
+    # env:
+    #   PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION: python
     defaults:
       run:
         shell: bash
