@@ -303,7 +303,7 @@ class BaseLogger(ABC):
             event_name: event to attach the logging handler to. Valid events are from
                 :class:`~ignite.engine.events.Events` or any `event_name` added by
                 :meth:`~ignite.engine.engine.Engine.register_events`.
-            args: args to Initialize `OptimizerParamsHandler`
+            args: args to initialize `OptimizerParamsHandler`
             kwargs: kwargs to initialize `OptimizerParamsHandler`
 
         Returns:
