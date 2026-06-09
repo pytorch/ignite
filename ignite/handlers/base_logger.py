@@ -176,17 +176,6 @@ def _flatten_dict(
     value_fn: Callable,
     parent_key: str | tuple[str, ...] | None = None,
 ) -> dict:
-    """Recursively flatten a nested mapping.
-
-    Args:
-        in_dict: mapping to flatten.
-        key_fn: function used to build the flattened key from the parent key and current key.
-        value_fn: function used to convert leaf values to loggable values.
-        parent_key: parent key prefix for nested values.
-
-    Returns:
-        Flattened dictionary of processed key-value pairs.
-    """
     items = {}
     for key, value in in_dict.items():
         new_key = key_fn(parent_key, key)
