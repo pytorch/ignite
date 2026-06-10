@@ -92,7 +92,9 @@ def test_binary_input(n_times, weights, test_data_binary, available_device):
 
     res = ck.compute()
     assert isinstance(res, float)
-    assert cohen_kappa_score(np_y, np_y_pred, weights=weights) == pytest.approx(res)
+    # mps falls back to float32 (no float64 support), so relax tolerance there
+    tol = 1e-4 if available_device == "mps" else 1e-6
+    assert cohen_kappa_score(np_y, np_y_pred, weights=weights) == pytest.approx(res, abs=tol)
 
 
 def test_multilabel_inputs():
@@ -150,7 +152,9 @@ def test_integration_binary_input(n_times, weights, test_data_integration_binary
     ck = engine.run(data, max_epochs=1).metrics["ck"]
 
     assert isinstance(ck, float)
-    assert np_ck == pytest.approx(ck)
+    # mps falls back to float32 (no float64 support), so relax tolerance there
+    tol = 1e-4 if available_device == "mps" else 1e-6
+    assert np_ck == pytest.approx(ck, abs=tol)
 
 
 def _test_distrib_binary_input(device):
@@ -346,7 +350,9 @@ def test_num_classes_matches_dynamic(weights, available_device):
             idx = i * batch_size
             ck.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
 
-    assert ck_dynamic.compute() == pytest.approx(ck_fixed.compute())
+    # mps falls back to float32 (no float64 support), so relax tolerance there
+    tol = 1e-4 if available_device == "mps" else 1e-6
+    assert ck_dynamic.compute() == pytest.approx(ck_fixed.compute(), abs=tol)
 
 
 @pytest.mark.parametrize("weights", [None, "linear", "quadratic"])
@@ -361,7 +367,9 @@ def test_num_classes_single_batch(weights, available_device):
     res = ck.compute()
 
     assert isinstance(res, float)
-    assert cohen_kappa_score(y.numpy(), y_pred.numpy(), weights=weights) == pytest.approx(res)
+    # mps falls back to float32 (no float64 support), so relax tolerance there
+    tol = 1e-4 if available_device == "mps" else 1e-6
+    assert cohen_kappa_score(y.numpy(), y_pred.numpy(), weights=weights) == pytest.approx(res, abs=tol)
 
 
 def test_num_classes_multilabel_inputs():
