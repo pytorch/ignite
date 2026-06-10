@@ -21,7 +21,8 @@ tensorboardX
 # visdom  # Removed: unmaintained package, cannot be installed with modern packages
 polyaxon
 wandb
-mlflow
+# Temporary workaround due to protobuf incompatbilities: see https://github.com/pytorch/ignite/pull/3784
+mlflow==3.12.0
 neptune-client>=0.16.17
 tensorboard
 torchvision
