@@ -32,7 +32,10 @@ class EpochMetric(Metric):
 
     Args:
         compute_fn: a callable which receives two tensors as the `predictions` and `targets`
-            and returns a scalar. Input tensors will be on specified ``device`` (see arg below).
+            and returns a scalar, tensor, or a tuple/list/mapping of tensors.
+            Supported output types: int, float, torch.Tensor, Sequence of tensors, 
+            Mapping of tensors. Input tensors will be on specified ``device`` (see arg below).
+            If the output type is not supported, a TypeError will be raised.
         output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
