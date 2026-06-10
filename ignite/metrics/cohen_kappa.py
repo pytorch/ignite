@@ -51,10 +51,16 @@ def _cohen_kappa_score(
 
     num_classes = int(max(y_pred.max().item(), y.max().item())) + 1
 
-    cm = ConfusionMatrix(num_classes=num_classes, device=y_pred.device)
-    y_pred_oh = F.one_hot(y_pred.long(), num_classes).float()
-    cm.update((y_pred_oh, y.long()))
-    conf = cm.compute().to(dtype=cm._double_dtype)
+    # Build the confusion matrix locally with plain tensor ops. We must NOT use the
+    # ``ConfusionMatrix`` metric here: its ``compute()`` is wrapped with ``sync_all_reduce``
+    # and this function runs on rank 0 only (see ``EpochMetric.compute``), so a collective
+    # would deadlock the other ranks.
+    y, y_pred = y.long(), y_pred.long()
+    indices = num_classes * y + y_pred
+    conf = torch.bincount(indices, minlength=num_classes**2)
+    # MPS framework doesn't support float64, fall back to float32 (mirrors Metric._double_dtype)
+    double_dtype = torch.float32 if y_pred.device.type == "mps" else torch.float64
+    conf = conf.reshape(num_classes, num_classes).to(dtype=double_dtype)
 
     return _kappa_from_conf(conf, weights)
 
