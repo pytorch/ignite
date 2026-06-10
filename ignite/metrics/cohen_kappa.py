@@ -1,5 +1,4 @@
 from collections.abc import Callable
-from functools import partial
 from typing import Literal
 
 import torch
@@ -45,6 +44,7 @@ def _cohen_kappa_score(
     y_pred: torch.Tensor,
     y: torch.Tensor,
     weights: Literal["linear", "quadratic"] | None,
+    double_dtype: torch.dtype,
 ) -> float:
     if y_pred.ndim > 1 or y.ndim > 1:
         raise ValueError("multilabel-indicator is not supported")
@@ -58,8 +58,6 @@ def _cohen_kappa_score(
     y, y_pred = y.long(), y_pred.long()
     indices = num_classes * y + y_pred
     conf = torch.bincount(indices, minlength=num_classes**2)
-    # MPS framework doesn't support float64, fall back to float32 (mirrors Metric._double_dtype)
-    double_dtype = torch.float32 if y_pred.device.type == "mps" else torch.float64
     conf = conf.reshape(num_classes, num_classes).to(dtype=double_dtype)
 
     return _kappa_from_conf(conf, weights)
@@ -77,7 +75,9 @@ class _CohenKappaEpochMetric(EpochMetric):
         check_compute_fn: bool,
     ):
         super().__init__(
-            compute_fn=partial(_cohen_kappa_score, weights=weights),
+            # ``self._double_dtype`` (set in Metric.__init__, float32 on MPS / float64 otherwise)
+            # is resolved lazily at compute time.
+            compute_fn=lambda y_pred, y: _cohen_kappa_score(y_pred, y, weights, self._double_dtype),
             output_transform=output_transform,
             check_compute_fn=check_compute_fn,
             device=device,
