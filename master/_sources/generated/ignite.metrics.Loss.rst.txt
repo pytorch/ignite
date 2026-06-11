@@ -1,0 +1,47 @@
+﻿Loss
+====
+
+.. currentmodule:: ignite.metrics
+
+.. autoclass:: Loss
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~Loss.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~Loss.reset
+   
+   
+   
+   
+   
+   
+   
+      ~Loss.update
+   
+   
+   
+   

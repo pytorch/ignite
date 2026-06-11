@@ -1,0 +1,23 @@
+﻿RemovableEventHandle
+====================
+
+.. currentmodule:: ignite.engine.events
+
+.. autoclass:: RemovableEventHandle
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+      ~RemovableEventHandle.remove
+   
+   
+   
+   

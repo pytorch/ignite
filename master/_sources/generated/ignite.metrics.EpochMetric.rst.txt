@@ -1,0 +1,47 @@
+﻿EpochMetric
+===========
+
+.. currentmodule:: ignite.metrics
+
+.. autoclass:: EpochMetric
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~EpochMetric.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~EpochMetric.reset
+   
+   
+   
+   
+   
+   
+   
+      ~EpochMetric.update
+   
+   
+   
+   

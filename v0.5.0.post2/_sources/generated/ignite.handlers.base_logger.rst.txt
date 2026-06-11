@@ -1,0 +1,36 @@
+﻿base\_logger
+============
+
+.. automodule:: ignite.handlers.base_logger
+   :members:
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :nosignatures:
+   
+      BaseHandler
+      BaseLogger
+      BaseOptimizerParamsHandler
+      BaseOutputHandler
+      BaseWeightsHandler
+      BaseWeightsScalarHandler
+   
+   
+
+   
+   
+   
+
+
+

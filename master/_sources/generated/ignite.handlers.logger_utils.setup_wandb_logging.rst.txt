@@ -1,0 +1,6 @@
+﻿setup\_wandb\_logging
+=====================
+
+.. currentmodule:: ignite.handlers.logger_utils
+
+.. autofunction:: setup_wandb_logging

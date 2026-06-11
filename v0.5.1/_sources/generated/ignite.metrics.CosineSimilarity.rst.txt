@@ -1,0 +1,47 @@
+﻿CosineSimilarity
+================
+
+.. currentmodule:: ignite.metrics
+
+.. autoclass:: CosineSimilarity
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~CosineSimilarity.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~CosineSimilarity.reset
+   
+   
+   
+   
+   
+   
+   
+      ~CosineSimilarity.update
+   
+   
+   
+   

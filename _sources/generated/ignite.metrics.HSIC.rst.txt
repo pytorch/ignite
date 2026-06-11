@@ -1,0 +1,47 @@
+﻿HSIC
+====
+
+.. currentmodule:: ignite.metrics
+
+.. autoclass:: HSIC
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~HSIC.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~HSIC.reset
+   
+   
+   
+   
+   
+   
+   
+      ~HSIC.update
+   
+   
+   
+   
