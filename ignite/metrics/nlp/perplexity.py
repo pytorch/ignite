@@ -53,7 +53,7 @@ class Perplexity(Metric):
             ppl = Perplexity()
 
             # batch_size=2, vocab_size=5, seq_len=3
-            y_pred = torch.log_softmax(torch.randn(2, 5, 3), dim=1)
+            y_pred = torch.randn(2, 5, 3)
             y = torch.randint(0, 5, (2, 3))
 
             ppl.update((y_pred, y))
@@ -64,7 +64,7 @@ class Perplexity(Metric):
 
             <class 'float'>
 
-    .. versionadded:: 0.5.2
+    .. versionadded:: 0.5.5
     """
 
     _state_dict_all_req_keys = ("_sum_of_nll", "_num_tokens")
@@ -95,9 +95,22 @@ class Perplexity(Metric):
         if y.ndim < 1:
             raise ValueError(f"y must be at least 1-dimensional (got shape: {y.shape})")
 
+        if y_pred.ndim != y.ndim + 1:
+            raise ValueError(
+                f"y_pred and y must differ by exactly one dimension "
+                f"(got y_pred={y_pred.ndim}D and y={y.ndim}D)."
+            )
+
+        if y_pred.shape[0] != y.shape[0] or y_pred.shape[2:] != y.shape[1:]:
+            raise ValueError(
+                f"y_pred and y have incompatible shapes: "
+                f"y_pred={y_pred.shape}, y={y.shape} "
+                f"(expected y_pred[0] == y[0] and y_pred[2:] == y[1:])."
+            )
+
         nll = F.cross_entropy(y_pred, y, reduction="sum", ignore_index=self._ignore_index)
         self._sum_of_nll += nll.to(self._device)
-        self._num_tokens += (y != self._ignore_index).sum()
+        self._num_tokens += (y != self._ignore_index).sum().to(self._device)
 
     @sync_all_reduce("_sum_of_nll", "_num_tokens")
     def compute(self) -> float:

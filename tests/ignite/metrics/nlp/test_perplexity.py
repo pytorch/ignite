@@ -24,6 +24,30 @@ def test_invalid_y_pred_shape():
         ppl.update((torch.tensor([1.0, 2.0]), torch.tensor([0])))
 
 
+def test_invalid_y_shape():
+    ppl = Perplexity()
+    with pytest.raises(ValueError, match=r"y must be at least 1-dimensional"):
+        ppl.update((torch.randn(2, 5, 3), torch.tensor(0)))
+
+
+def test_invalid_ndim_difference():
+    ppl = Perplexity()
+    with pytest.raises(ValueError, match=r"y_pred and y must differ by exactly one dimension"):
+        ppl.update((torch.randn(2, 5), torch.randn(2, 5)))
+
+
+def test_invalid_batch_size():
+    ppl = Perplexity()
+    with pytest.raises(ValueError, match=r"y_pred and y have incompatible shapes"):
+        ppl.update((torch.randn(2, 5, 3), torch.randint(0, 5, (3, 3))))
+
+
+def test_invalid_seq_len():
+    ppl = Perplexity()
+    with pytest.raises(ValueError, match=r"y_pred and y have incompatible shapes"):
+        ppl.update((torch.randn(2, 5, 3), torch.randint(0, 5, (2, 4))))
+
+
 def test_reset_clears_state():
     torch.manual_seed(2)
     ppl = Perplexity()
