@@ -97,7 +97,7 @@ class Perplexity(Metric):
 
         if y_pred.ndim != y.ndim + 1:
             raise ValueError(
-                f"y_pred and y must differ by exactly one dimension "
+                f"y_pred must have exactly one more dimension than y "
                 f"(got y_pred={y_pred.ndim}D and y={y.ndim}D)."
             )
 
