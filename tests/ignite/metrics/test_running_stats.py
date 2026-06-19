@@ -1,7 +1,12 @@
 import numpy as np
 import pytest
 import torch
+
+import ignite.distributed as idist
+from ignite.exceptions import NotComputableError
+from ignite.metrics import Metric
 from ignite.metrics._running_stats import WelfordCovariance, WelfordVariance
+from ignite.metrics.metric import reinit__is_reduced
 
 
 def test_welford_variance_empty_accumulator():
@@ -333,3 +338,97 @@ def test_variance_x_matches_welford_variance():
 
     assert wc.variance_x.item() == pytest.approx(wv.variance.item(), rel=1e-12)
     assert wc.mean_x.item() == pytest.approx(wv.mean.item(), abs=1e-12)
+
+
+# ---------------------------------------------------------------------------
+# End to end: WelfordCovariance driven through a real Metric, including the
+# cross-rank reduction. Welford state is not additive, so it cannot go through
+# sync_all_reduce; compute() gathers each rank's state and folds the parts
+# with merge().
+# ---------------------------------------------------------------------------
+
+
+def _merge_across_ranks(local):
+    device = idist.device()
+    n = idist.all_gather(torch.tensor([local.n_samples], device=device))
+    parts = {
+        name: idist.all_gather(getattr(local, name).reshape(1).to(device))
+        for name in ("mean_x", "mean_y", "sum_sq_dev_x", "sum_sq_dev_y", "sum_product_of_devs")
+    }
+    combined = WelfordCovariance()
+    for i in range(n.numel()):
+        combined.merge(
+            WelfordCovariance(
+                n_samples=int(n[i].item()),
+                mean_x=parts["mean_x"][i].cpu(),
+                mean_y=parts["mean_y"][i].cpu(),
+                sum_sq_dev_x=parts["sum_sq_dev_x"][i].cpu(),
+                sum_sq_dev_y=parts["sum_sq_dev_y"][i].cpu(),
+                sum_product_of_devs=parts["sum_product_of_devs"][i].cpu(),
+            )
+        )
+    return combined
+
+
+class WelfordCorrelation(Metric):
+    # Minimal metric over WelfordCovariance, here to exercise the helper through
+    # reset/update/compute and across ranks. Metrics migrated in #3748 follow
+    # this shape.
+    @reinit__is_reduced
+    def reset(self):
+        self._cov = WelfordCovariance()
+
+    @reinit__is_reduced
+    def update(self, output):
+        y_pred, y = output
+        self._cov.update(y_pred.double(), y.double())
+
+    def compute(self):
+        cov = self._cov if idist.get_world_size() == 1 else _merge_across_ranks(self._cov)
+        if cov.n_samples == 0:
+            raise NotComputableError("WelfordCorrelation needs at least one sample before compute.")
+        return cov.correlation().item()
+
+
+def test_welford_correlation_metric_recovers_3662_case():
+    # The helper, driven through a metric's reset/update/compute, recovers the
+    # correlation on the mean=1e6 data from #3662 that the naive
+    # E[X^2] - E[X]^2 formula loses to float32 cancellation. Complements the
+    # helper-level stability test by exercising the full Metric lifecycle.
+    rng = np.random.default_rng(8)
+    n = 10_000
+    x = rng.standard_normal(n).astype(np.float32) + 1e6
+    y = (0.99 * x + rng.standard_normal(n).astype(np.float32) * 0.1).astype(np.float32)
+    true_r = float(np.corrcoef(x.astype(np.float64), y.astype(np.float64))[0, 1])
+    assert true_r > 0.99
+
+    m = WelfordCorrelation()
+    for start in range(0, n, 2000):
+        m.update((torch.from_numpy(x[start : start + 2000]), torch.from_numpy(y[start : start + 2000])))
+    assert m.compute() == pytest.approx(true_r, rel=1e-4)
+
+
+def test_welford_correlation_metric_no_samples_raises():
+    m = WelfordCorrelation()
+    with pytest.raises(NotComputableError, match="at least one sample"):
+        m.compute()
+
+
+@pytest.mark.usefixtures("distributed")
+class TestDistributed:
+    def test_compute_matches_full_data(self):
+        rank = idist.get_rank()
+        device = idist.device()
+        torch.manual_seed(10 + rank)
+
+        x = torch.rand(100, dtype=torch.float64, device=device)
+        y = 0.6 * x + torch.rand(100, dtype=torch.float64, device=device) * 0.4
+
+        m = WelfordCorrelation()
+        m.update((x, y))
+        res = m.compute()
+
+        x_all = idist.all_gather(x).cpu().numpy()
+        y_all = idist.all_gather(y).cpu().numpy()
+        ref = float(np.corrcoef(x_all, y_all)[0, 1])
+        assert res == pytest.approx(ref, rel=1e-5)
