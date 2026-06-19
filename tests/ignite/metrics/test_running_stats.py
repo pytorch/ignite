@@ -1,13 +1,7 @@
 import numpy as np
 import pytest
 import torch
-
 from ignite.metrics._running_stats import WelfordCovariance, WelfordVariance
-
-
-# ---------------------------------------------------------------------------
-# WelfordVariance
-# ---------------------------------------------------------------------------
 
 
 def test_welford_variance_empty_accumulator():
@@ -324,12 +318,6 @@ def test_welford_covariance_fresh_instance_has_zero_state():
     wc = WelfordCovariance()
     assert wc.n_samples == 0
     assert wc.covariance.item() == 0.0
-
-
-# ---------------------------------------------------------------------------
-# Cross-class sanity: variance_x of WelfordCovariance equals variance of
-# WelfordVariance fed the same x. Catches drift between the two implementations.
-# ---------------------------------------------------------------------------
 
 
 def test_variance_x_matches_welford_variance():
