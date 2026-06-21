@@ -32,7 +32,7 @@ def test_invalid_y_shape():
 
 def test_invalid_ndim_difference():
     ppl = Perplexity()
-    with pytest.raises(ValueError, match=r"y_pred and y must differ by exactly one dimension"):
+    with pytest.raises(ValueError, match=r"y_pred must have exactly one more dimension than y"):
         ppl.update((torch.randn(2, 5), torch.randn(2, 5)))
 
 
