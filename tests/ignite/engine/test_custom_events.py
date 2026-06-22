@@ -515,6 +515,10 @@ def test_once_event_filter(event_name, event_attr, once, expect_calls):
     engine.run(data, max_epochs=10)
     assert num_calls[0] == expect_calls
 
+    counter[0] = 0
+    engine.run(data, max_epochs=10)
+    assert num_calls[0] == 2 * expect_calls
+
 
 def test_custom_event_filter_with_engine():
     special_events = [1, 2, 5, 7, 17, 20]
