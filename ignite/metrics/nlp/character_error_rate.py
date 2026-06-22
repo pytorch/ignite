@@ -1,4 +1,4 @@
-from typing import Any, Callable, Sequence
+from typing import Any, Callable, Sequence, Union
 
 import torch
 from torch.types import Number
@@ -41,8 +41,9 @@ class CharacterErrorRate(Metric):
     and :math:`N` is the total number of characters in the reference (:math:`N = S + D + C`).
 
     - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
-    - `y_pred` must be a list of strings (predicted sequences).
-    - `y` must be a list of strings (reference sequences).
+    - `y_pred` must be either a ``str`` or a list of ``str`` (predicted sequences).
+    - `y` must be either a ``str`` or a list of ``str`` (reference sequences).
+    - When both inputs are plain ``str``, they are treated as a single-element batch.
 
     Args:
         output_transform: a callable that is used to transform the
@@ -70,7 +71,7 @@ class CharacterErrorRate(Metric):
     def __init__(
         self,
         output_transform: Callable = lambda x: x,
-        device: str | torch.device = torch.device("cpu"),
+        device: Union[str, torch.device] = torch.device("cpu"),
         skip_unrolling: bool = False,
     ):
         super().__init__(output_transform=output_transform, device=device, skip_unrolling=skip_unrolling)
@@ -84,9 +85,14 @@ class CharacterErrorRate(Metric):
     @reinit__is_reduced
     def update(self, output: Sequence[str]) -> None:
         y_pred, y = output[0], output[1]
+        # Handle single-string input — treat as a one-element batch
         if isinstance(y_pred, str) and isinstance(y, str):
             y_pred = [y_pred]
             y = [y]
+        if not all(isinstance(p, str) for p in y_pred):
+            raise TypeError("All elements of y_pred must be strings.")
+        if not all(isinstance(r, str) for r in y):
+            raise TypeError("All elements of y must be strings.")
         if len(y_pred) != len(y):
             raise ValueError(
                 f"y_pred and y must have the same length. Got y_pred of length {len(y_pred)} and y of length {len(y)}."
@@ -94,10 +100,9 @@ class CharacterErrorRate(Metric):
         errors = 0.0
         refs = 0.0
         for p, r in zip(y_pred, y):
-            p_chars = list(p)
-            r_chars = list(r)
-            errors += _edit_distance(r_chars, p_chars)
-            refs += len(r_chars)
+            # Strings are already character sequences — no need for explicit list()
+            errors += _edit_distance(r, p)
+            refs += len(r)
         self._num_errors += torch.tensor(errors, device=self._device)
         self._num_refs += torch.tensor(refs, device=self._device)
 
