@@ -89,9 +89,19 @@ class CharacterErrorRate(Metric):
         if isinstance(y_pred, str) and isinstance(y, str):
             y_pred = [y_pred]
             y = [y]
-        if not all(isinstance(p, str) for p in y_pred):
+        if not isinstance(y_pred, (str, list)) or not isinstance(y, (str, list)):
+            raise TypeError(
+                f"All inputs should be either str or list[str], "
+                f"got y_pred: {type(y_pred)} and y: {type(y)}"
+            )
+        if type(y_pred) is not type(y):
+            raise TypeError(
+                f"y_pred and y must be the same type, "
+                f"got y_pred: {type(y_pred)} and y: {type(y)}"
+            )
+        if isinstance(y_pred, list) and not all(isinstance(p, str) for p in y_pred):
             raise TypeError("All elements of y_pred must be strings.")
-        if not all(isinstance(r, str) for r in y):
+        if isinstance(y, list) and not all(isinstance(r, str) for r in y):
             raise TypeError("All elements of y must be strings.")
         if len(y_pred) != len(y):
             raise ValueError(
