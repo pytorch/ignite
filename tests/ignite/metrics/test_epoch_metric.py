@@ -265,3 +265,40 @@ def test_epoch_metric_compute_fn_invalid_output():
     with pytest.raises(TypeError, match=r"compute_fn output type"):
         em.compute()
                        
+
+def test_epoch_metric_compute_fn_list_output():
+    """Test EpochMetric with compute_fn returning a list of tensors."""
+
+    def compute_fn(y_preds, y_targets):
+        mse = torch.mean(((y_preds - y_targets.type_as(y_preds)) ** 2))
+        mae = torch.mean(torch.abs(y_preds - y_targets.type_as(y_preds)))
+        return [mse, mae]
+
+    em = EpochMetric(compute_fn)
+    em.reset()
+    output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+    em.update(output1)
+
+    result = em.compute()
+    assert isinstance(result, list)
+    assert len(result) == 2
+
+
+def test_epoch_metric_compute_fn_dict_output():
+    """Test EpochMetric with compute_fn returning a dict of tensors."""
+
+    def compute_fn(y_preds, y_targets):
+        return {
+            "mse": torch.mean(((y_preds - y_targets.type_as(y_preds)) ** 2)),
+            "mae": torch.mean(torch.abs(y_preds - y_targets.type_as(y_preds))),
+        }
+
+    em = EpochMetric(compute_fn)
+    em.reset()
+    output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+    em.update(output1)
+
+    result = em.compute()
+    assert isinstance(result, dict)
+    assert "mse" in result
+    assert "mae" in result

@@ -1,7 +1,7 @@
 import warnings
 from collections.abc import Callable, Mapping, Sequence
 from functools import partial
-from typing import cast
+from typing import Union, cast
 
 import torch
 
@@ -9,6 +9,8 @@ import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
 from ignite.metrics.metric import Metric, reinit__is_reduced
 from ignite.utils import apply_to_type
+
+EpochMetricOutput = Union[float, torch.Tensor, Sequence, Mapping]
 
 __all__ = ["EpochMetric"]
 
@@ -98,7 +100,7 @@ class EpochMetric(Metric):
     def reset(self) -> None:
         self._predictions: list[torch.Tensor] = []
         self._targets: list[torch.Tensor] = []
-        self._result: float | torch.Tensor | Sequence | Mapping | None = None
+        self._result: EpochMetricOutput | None = None
 
     def _check_shape(self, output: tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output
@@ -147,7 +149,7 @@ class EpochMetric(Metric):
             except Exception as e:
                 warnings.warn(f"Probably, there can be a problem with `compute_fn`:\n {e}.", EpochMetricWarning)
 
-    def compute(self) -> float | torch.Tensor | Sequence | Mapping:
+    def compute(self) -> EpochMetricOutput:
         if len(self._predictions) < 1 or len(self._targets) < 1:
             raise NotComputableError(f"{type(self).__name__} must have at least one example before it can be computed.")
 
@@ -161,7 +163,7 @@ class EpochMetric(Metric):
                 _prediction_tensor = cast(torch.Tensor, idist.all_gather(_prediction_tensor))
                 _target_tensor = cast(torch.Tensor, idist.all_gather(_target_tensor))
 
-            result: float | torch.Tensor | Sequence | Mapping = 0.0
+            result = 0.0
             if idist.get_rank() == 0:
                 # Run compute_fn on zero rank only
                 result = self.compute_fn(_prediction_tensor, _target_tensor)
