@@ -40,9 +40,8 @@ class CharacterErrorRate(Metric):
     :math:`I` is the number of insertions, :math:`C` is the number of correct characters,
     and :math:`N` is the total number of characters in the reference (:math:`N = S + D + C`).
 
-    - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
-    - `y_pred` must be either a ``str`` or a list of ``str`` (predicted sequences).
-    - `y` must be either a ``str`` or a list of ``str`` (reference sequences).
+    - ``update`` must receive input of the form ``(y_pred, y)``.
+    - `y_pred` and `y` both must be either ``str`` or list of ``str``.
     - When both inputs are plain ``str``, they are treated as a single-element batch.
 
     Args:
@@ -99,10 +98,6 @@ class CharacterErrorRate(Metric):
                 f"y_pred and y must be the same type, "
                 f"got y_pred: {type(y_pred)} and y: {type(y)}"
             )
-        if isinstance(y_pred, list) and not all(isinstance(p, str) for p in y_pred):
-            raise TypeError("All elements of y_pred must be strings.")
-        if isinstance(y, list) and not all(isinstance(r, str) for r in y):
-            raise TypeError("All elements of y must be strings.")
         if len(y_pred) != len(y):
             raise ValueError(
                 f"y_pred and y must have the same length. Got y_pred of length {len(y_pred)} and y of length {len(y)}."
