@@ -214,7 +214,7 @@ def test_ties_in_scores(metric_cls, score_fn, average):
 
 @pytest.mark.parametrize("average", [False, "macro", "micro", "weighted", "samples"])
 def test_zero_positive_label(average):
-    # A label with no positive ground-truth samples: recall denominator is 0 
+    # A label with no positive ground-truth samples: recall denominator is 0
     y_pred = torch.rand(6, 4)
     y = torch.randint(0, 2, size=(6, 4))
     y[:, 1] = 0  # label 1 has no positives
