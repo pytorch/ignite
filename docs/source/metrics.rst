@@ -350,6 +350,8 @@ Complete list of metrics
     RunningAverage
     SSIM
     TopKCategoricalAccuracy
+    TopKMultilabelPrecision
+    TopKMultilabelRecall
     Bleu
     Rouge
     RougeL
