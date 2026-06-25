@@ -85,7 +85,7 @@ class CharacterErrorRate(Metric):
     def reset(self) -> None:
         self._num_errors = torch.tensor(0.0, device=self._device)
         self._num_refs = torch.tensor(0.0, device=self._device)
-        super().reset()
+        super().reset()  # type: ignore[misc]
 
     @reinit__is_reduced
     def update(self, output: Sequence[str]) -> None:
