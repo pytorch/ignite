@@ -4,7 +4,6 @@ from ignite.metrics.nlp import CharacterErrorRate
 
 
 class TestCharacterErrorRate:
-
     def test_zero_cer_identical(self):
         """Identical prediction and reference → CER = 0."""
         cer = CharacterErrorRate()

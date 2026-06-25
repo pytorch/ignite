@@ -52,7 +52,9 @@ class CharacterErrorRate(Metric):
         skip_unrolling: specifies whether output should be unrolled before being fed to update method.
 
     Examples:
-        .. code-block:: python
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
+
+        .. testcode::
 
             from ignite.metrics.nlp import CharacterErrorRate
 
@@ -62,7 +64,11 @@ class CharacterErrorRate(Metric):
             y = ["the cat sat on mat", "hello world"]
 
             cer.update((y_pred, y))
-            print(cer.compute())  # Output: 0.1724... (5 insertions / 29 reference chars)
+            print(round(cer.compute(), 4))
+
+        .. testoutput::
+
+            0.1379
 
     .. versionadded:: 0.5.2
     """
@@ -90,14 +96,10 @@ class CharacterErrorRate(Metric):
             y = [y]
         if not isinstance(y_pred, (str, list)) or not isinstance(y, (str, list)):
             raise TypeError(
-                f"All inputs should be either str or list[str], "
-                f"got y_pred: {type(y_pred)} and y: {type(y)}"
+                f"All inputs should be either str or list[str], got y_pred: {type(y_pred)} and y: {type(y)}"
             )
         if type(y_pred) is not type(y):
-            raise TypeError(
-                f"y_pred and y must be the same type, "
-                f"got y_pred: {type(y_pred)} and y: {type(y)}"
-            )
+            raise TypeError(f"y_pred and y must be the same type, got y_pred: {type(y_pred)} and y: {type(y)}")
         if len(y_pred) != len(y):
             raise ValueError(
                 f"y_pred and y must have the same length. Got y_pred of length {len(y_pred)} and y of length {len(y)}."
@@ -114,5 +116,7 @@ class CharacterErrorRate(Metric):
     @sync_all_reduce("_num_errors", "_num_refs")
     def compute(self) -> Number:
         if self._num_refs == 0:
-            raise NotComputableError("CharacterErrorRate must have at least one valid reference sequence to be computed.")
+            raise NotComputableError(
+                "CharacterErrorRate must have at least one valid reference sequence to be computed."
+            )
         return (self._num_errors / self._num_refs).item()
