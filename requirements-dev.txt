@@ -12,7 +12,7 @@ pytest-xdist
 setuptools
 fairlearn
 # Test contrib dependencies
-scipy
+scipy<=1.17.0
 pytorch_fid
 tqdm
 scikit-learn
