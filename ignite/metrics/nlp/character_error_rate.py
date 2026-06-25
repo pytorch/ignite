@@ -1,4 +1,4 @@
-from typing import Any, Callable, Sequence, Union
+from typing import Callable, Sequence
 
 import torch
 from torch.types import Number
@@ -9,8 +9,8 @@ from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
 __all__ = ["CharacterErrorRate"]
 
 
-def _edit_distance(ref: Sequence[Any], pred: Sequence[Any]) -> int:
-    """Computes the Levenshtein distance between two sequences."""
+def _edit_distance(ref: str, pred: str) -> int:
+    """Computes the Levenshtein distance between two strings."""
     n, m = len(ref), len(pred)
     if n == 0:
         return m
@@ -76,7 +76,7 @@ class CharacterErrorRate(Metric):
     def __init__(
         self,
         output_transform: Callable = lambda x: x,
-        device: Union[str, torch.device] = torch.device("cpu"),
+        device: str | torch.device = torch.device("cpu"),
         skip_unrolling: bool = False,
     ):
         super().__init__(output_transform=output_transform, device=device, skip_unrolling=skip_unrolling)
@@ -89,16 +89,13 @@ class CharacterErrorRate(Metric):
     @reinit__is_reduced
     def update(self, output: Sequence[str]) -> None:
         y_pred, y = output[0], output[1]
-        # Handle single-string input — treat as a one-element batch
         if isinstance(y_pred, str) and isinstance(y, str):
             y_pred = [y_pred]
             y = [y]
-        if not isinstance(y_pred, (str, list)) or not isinstance(y, (str, list)):
-            raise TypeError(
-                f"All inputs should be either str or list[str], got y_pred: {type(y_pred)} and y: {type(y)}"
-            )
-        if type(y_pred) is not type(y):
-            raise TypeError(f"y_pred and y must be the same type, got y_pred: {type(y_pred)} and y: {type(y)}")
+        if not isinstance(y_pred, list) or not isinstance(y, list):
+            raise TypeError(f"y_pred and y must be str or list[str], got y_pred: {type(y_pred)} and y: {type(y)}")
+        if not all(isinstance(p, str) for p in y_pred) or not all(isinstance(r, str) for r in y):
+            raise TypeError("All elements of y_pred and y must be strings.")
         if len(y_pred) != len(y):
             raise ValueError(
                 f"y_pred and y must have the same length. Got y_pred of length {len(y_pred)} and y of length {len(y)}."
@@ -106,7 +103,6 @@ class CharacterErrorRate(Metric):
         errors = 0.0
         refs = 0.0
         for p, r in zip(y_pred, y):
-            # Strings are already character sequences — no need for explicit list()
             errors += _edit_distance(r, p)
             refs += len(r)
         self._num_errors += torch.tensor(errors, device=self._device)
