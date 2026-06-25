@@ -12,6 +12,7 @@ pytest-xdist
 setuptools
 fairlearn
 # Test contrib dependencies
+# pytorch_fid library passes disp=False to scipy.linalg.sqrtm, disp parameter was removed in scipy 1.18.0
 scipy<=1.17.0
 pytorch_fid
 tqdm
