@@ -39,9 +39,24 @@ def test_cer_empty_prediction():
     assert cer.compute() == pytest.approx(1.0)
 
 
-def test_cer_empty_reference_raises():
+def test_cer_empty_reference():
+    # mixed batch: empty ref pair contributes errors but not refs
     cer = CharacterErrorRate()
     cer.update((["hello world", "hello"], ["hello world", ""]))
+    assert cer.compute() == pytest.approx(5 / 11)
+
+
+def test_cer_empty_ref_nonempty_pred_only():
+    # case 1: errors > 0, refs == 0 -> return 1.0
+    cer = CharacterErrorRate()
+    cer.update((["hello"], [""]))
+    assert cer.compute() == pytest.approx(1.0)
+
+
+def test_cer_both_empty_strings():
+    # case 3: both empty -> return 0.0
+    cer = CharacterErrorRate()
+    cer.update(([""], [""]))
     assert cer.compute() == pytest.approx(0.0)
 
 

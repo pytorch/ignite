@@ -85,6 +85,7 @@ class CharacterErrorRate(Metric):
     def reset(self) -> None:
         self._num_errors = torch.tensor(0.0, device=self._device)
         self._num_refs = torch.tensor(0.0, device=self._device)
+        self._num_examples = 0
 
     @reinit__is_reduced
     def update(self, output: Sequence[str]) -> None:
@@ -103,17 +104,16 @@ class CharacterErrorRate(Metric):
         errors = 0.0
         refs = 0.0
         for p, r in zip(y_pred, y):
-            if len(r) == 0:
-                continue
             errors += _edit_distance(r, p)
             refs += len(r)
-        self._num_errors += torch.tensor(errors, device=self._device)
-        self._num_refs += torch.tensor(refs, device=self._device)
+        self._num_errors += errors
+        self._num_refs += refs
+        self._num_examples += 1
 
     @sync_all_reduce("_num_errors", "_num_refs")
     def compute(self) -> Number:
+        if self._num_examples == 0:
+            raise NotComputableError("CharacterErrorRate must have at least one example before it can be computed.")
         if self._num_refs == 0:
-            raise NotComputableError(
-                "CharacterErrorRate must have at least one valid reference sequence to be computed."
-            )
+            return 0.0 if self._num_errors == 0 else 1.0
         return (self._num_errors / self._num_refs).item()
