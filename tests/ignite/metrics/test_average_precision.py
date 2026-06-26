@@ -29,7 +29,7 @@ def test_no_update():
     ap = AveragePrecision()
 
     with pytest.raises(
-        NotComputableError, match=r"EpochMetric must have at least one example before it can be computed"
+        NotComputableError, match=r"AveragePrecision must have at least one example before it can be computed"
     ):
         ap.compute()
 
