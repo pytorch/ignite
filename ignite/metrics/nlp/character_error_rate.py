@@ -89,11 +89,11 @@ class CharacterErrorRate(Metric):
     @reinit__is_reduced
     def update(self, output: Sequence[str]) -> None:
         y_pred, y = output[0], output[1]
+        if not isinstance(y_pred, (str, list)) or not isinstance(y, (str, list)):
+            raise TypeError(f"y_pred and y must be str or list[str], got y_pred: {type(y_pred)} and y: {type(y)}")
         if isinstance(y_pred, str) and isinstance(y, str):
             y_pred = [y_pred]
             y = [y]
-        if not isinstance(y_pred, list) or not isinstance(y, list):
-            raise TypeError(f"y_pred and y must be str or list[str], got y_pred: {type(y_pred)} and y: {type(y)}")
         if not all(isinstance(p, str) for p in y_pred) or not all(isinstance(r, str) for r in y):
             raise TypeError("All elements of y_pred and y must be strings.")
         if len(y_pred) != len(y):
@@ -103,6 +103,8 @@ class CharacterErrorRate(Metric):
         errors = 0.0
         refs = 0.0
         for p, r in zip(y_pred, y):
+            if len(r) == 0:
+                continue
             errors += _edit_distance(r, p)
             refs += len(r)
         self._num_errors += torch.tensor(errors, device=self._device)

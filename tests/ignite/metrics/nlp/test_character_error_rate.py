@@ -41,9 +41,8 @@ def test_cer_empty_prediction():
 
 def test_cer_empty_reference_raises():
     cer = CharacterErrorRate()
-    cer.update((["hello"], [""]))
-    with pytest.raises(NotComputableError):
-        cer.compute()
+    cer.update((["hello world", "hello"], ["hello world", ""]))
+    assert cer.compute() == pytest.approx(0.0)
 
 
 def test_cer_batch():
