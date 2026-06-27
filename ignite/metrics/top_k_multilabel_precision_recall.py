@@ -37,6 +37,7 @@ class _BaseTopKMultilabelPrecisionRecall(_BasePrecisionRecall):
         )
 
     def _check_type(self, output: Sequence[torch.Tensor]) -> None:
+        # Override the parent's method to accommodate for this metric inputting floats instead of binary labels
         y_pred, y = output
 
         if not torch.equal(y, y**2):
