@@ -132,12 +132,6 @@ class Parallel:
             with idist.Parallel(backend=backend, init_method='file:///d:/tmp/some_file', nproc_per_node=4) as parallel:
                 parallel.run(training, config, a=1, b=2)
 
-        Initializing the process using ``tcp://``
-
-        .. code-block:: python
-
-            with idist.Parallel(backend=backend, init_method='tcp://10.1.1.20:23456', nproc_per_node=4) as parallel:
-                parallel.run(training, config, a=1, b=2)
 
 
         3) Single node, Multi-TPU training launched with `python`
@@ -232,6 +226,13 @@ class Parallel:
             for name, value in zip(arg_names, arg_values):
                 if value is not None:
                     raise ValueError(f"If backend is None, argument '{name}' should be also None, but given {value}")
+
+        if init_method is not None and init_method.startswith("tcp://"):
+            raise ValueError(
+                f"TCP initialization via init_method='{init_method}' will hang. "
+                "To fix this, please configure MASTER_ADDR and MASTER_PORT in the environment and "
+                "use 'env://' (or omit init_method)."
+            )
 
         self.backend = backend
         self._spawn_params = None

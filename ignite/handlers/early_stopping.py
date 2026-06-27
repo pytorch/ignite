@@ -1,6 +1,7 @@
 from collections import OrderedDict
 from collections.abc import Callable, Mapping
 from typing import Any, cast, Literal
+import warnings
 
 from ignite.base import Serializable, ResettableHandler
 from ignite.engine import Engine, Events
@@ -14,29 +15,34 @@ class EarlyStopping(Serializable, ResettableHandler):
 
     Args:
         patience: Number of events to wait if no improvement and then stop the training.
-        score_function: It should be a function taking a single argument, an :class:`~ignite.engine.engine.Engine`
-            object, and return a score `float`. An improvement is considered if the score is higher (for ``mode='max'``)
+        score_function: It should be a function taking a single argument, an
+            :class:`~ignite.engine.engine.Engine` object, and return a score ``float``.
+            An improvement is considered if the score is higher (for ``mode='max'``)
             or lower (for ``mode='min'``).
         trainer: Trainer engine to stop the run if no improvement.
-        min_delta: A minimum change in the score to qualify as an improvement. For ``mode='max'``, it's a minimum
-            increase; for ``mode='min'``, it's a minimum decrease. An improvement is only considered if the change
-            exceeds the threshold determined by `min_delta` and `min_delta_mode`.
-        cumulative_delta: If True, `min_delta` defines the change since the last `patience` reset, otherwise,
-            it defines the change after the last event. Default value is False.
-        min_delta_mode: Determines whether `min_delta` is an absolute change or a relative change.
+        threshold: A minimum change in the score to qualify as an improvement.
+            For ``mode='max'``, it is a minimum increase; for ``mode='min'``, it is a
+            minimum decrease. An improvement is only considered if the change
+            exceeds the threshold determined by ``threshold`` and ``threshold_mode``.
+        cumulative: If True, ``threshold`` defines the change since the last
+            ``patience`` reset, otherwise it defines the change after the last
+            event. Default value is False.
+        threshold_mode: Determines whether ``threshold`` is an absolute change
+            or a relative change.
 
-            - In 'abs' mode:
+            - In ``'abs'`` mode:
 
-              - For ``mode='max'``: improvement if score > best_score + min_delta
-              - For ``mode='min'``: improvement if score < best_score - min_delta
+              - For ``mode='max'``: improvement if ``score > best_score + threshold``
+              - For ``mode='min'``: improvement if ``score < best_score - threshold``
 
-            - In 'rel' mode:
+            - In ``'rel'`` mode:
 
-              - For ``mode='max'``: improvement if score > best_score * (1 + min_delta)
-              - For ``mode='min'``: improvement if score < best_score * (1 - min_delta)
+              - For ``mode='max'``: improvement if ``score > best_score * (1 + threshold)``
+              - For ``mode='min'``: improvement if ``score < best_score * (1 - threshold)``
 
-            Possible values are "abs" and "rel". Default value is "abs".
-        mode: Whether to maximize ('max') or minimize ('min') the score. Default is 'max'.
+            Possible values are ``"abs"`` and ``"rel"``. Default value is ``"abs"``.
+        mode: Whether to maximize (``'max'``) or minimize (``'min'``) the score.
+            Default is ``'max'``.
 
     Examples:
         .. code-block:: python
@@ -45,13 +51,22 @@ class EarlyStopping(Serializable, ResettableHandler):
             from ignite.handlers import EarlyStopping
 
             def score_function(engine):
-                val_loss = engine.state.metrics['nll']
+                val_loss = engine.state.metrics["nll"]
                 return -val_loss
 
-            handler = EarlyStopping(patience=10, score_function=score_function, trainer=trainer)
-            # Note: the handler is attached to an *Evaluator* (runs one epoch on validation dataset).
+            handler = EarlyStopping(
+                patience=10,
+                score_function=score_function,
+                trainer=trainer,
+            )
+
+            # Note: the handler is attached to an *Evaluator*
             evaluator.add_event_handler(Events.COMPLETED, handler)
 
+    .. versionchanged:: 0.6.0
+        Renamed ``min_delta_mode``  to ``threshold_mode``.
+        Renamed ``min_delta`` to ``threshold``.
+        Renamed ``cumulative_delta`` to ``cumulative``.
     .. versionchanged:: 0.5.4
         Added `mode` parameter to support minimization in addition to maximization.
         Added `min_delta_mode` parameter to support both absolute and relative improvements.
@@ -61,6 +76,7 @@ class EarlyStopping(Serializable, ResettableHandler):
     _state_dict_all_req_keys = (
         "counter",
         "best_score",
+        "threshold_mode",
     )
 
     def __init__(
@@ -68,10 +84,14 @@ class EarlyStopping(Serializable, ResettableHandler):
         patience: int,
         score_function: Callable,
         trainer: Engine,
-        min_delta: float = 0.0,
-        cumulative_delta: bool = False,
-        min_delta_mode: Literal["abs", "rel"] = "abs",
+        threshold: float = 0.0,
+        cumulative: bool = False,
+        threshold_mode: Literal["abs", "rel"] = "abs",
         mode: Literal["min", "max"] = "max",
+        # Deprecated args for BC
+        min_delta: float | None = None,
+        min_delta_mode: Literal["abs", "rel"] | None = None,
+        cumulative_delta: bool | None = None,
     ):
         if not callable(score_function):
             raise TypeError("Argument score_function should be a function.")
@@ -79,28 +99,109 @@ class EarlyStopping(Serializable, ResettableHandler):
         if patience < 1:
             raise ValueError("Argument patience should be positive integer.")
 
-        if min_delta < 0.0:
-            raise ValueError("Argument min_delta should not be a negative number.")
-
         if not isinstance(trainer, Engine):
             raise TypeError("Argument trainer should be an instance of Engine.")
 
-        if min_delta_mode not in ("abs", "rel"):
-            raise ValueError("Argument min_delta_mode should be either 'abs' or 'rel'.")
+        # Backward compatibility for deprecated args
+        if min_delta is not None:
+            warnings.warn(
+                "'min_delta' is deprecated and will be removed in a future version. Please use 'threshold' instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            threshold = min_delta
+
+        if min_delta_mode is not None:
+            warnings.warn(
+                "'min_delta_mode' is deprecated and will be removed in a future version. "
+                "Please use 'threshold_mode' instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            threshold_mode = min_delta_mode
+
+        if cumulative_delta is not None:
+            warnings.warn(
+                "'cumulative_delta' is deprecated and will be removed in a future version. "
+                "Please use 'cumulative' instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            cumulative = cumulative_delta
+
+        if threshold < 0.0:
+            raise ValueError("Argument threshold should not be a negative number.")
+
+        if threshold_mode not in ("abs", "rel"):
+            raise ValueError("Argument threshold_mode should be either 'abs' or 'rel'.")
 
         if mode not in ("min", "max"):
             raise ValueError("Argument mode should be either 'min' or 'max'.")
 
         self.score_function = score_function
         self.patience = patience
-        self.min_delta = min_delta
-        self.cumulative_delta = cumulative_delta
+        self.threshold = threshold
+        self.threshold_mode = threshold_mode
+        self.cumulative = cumulative
         self.trainer = trainer
         self.counter = 0
         self.best_score: float | None = None
         self.logger = setup_logger(__name__ + "." + self.__class__.__name__)
-        self.min_delta_mode = min_delta_mode
         self.mode = mode
+
+    @property
+    def min_delta(self) -> float:
+        warnings.warn(
+            "min_delta is deprecated and will be removed in a future version. Please use 'threshold' instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.threshold
+
+    @min_delta.setter
+    def min_delta(self, value: float) -> None:
+        warnings.warn(
+            "min_delta is deprecated and will be removed in a future version. Please use 'threshold' instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        self.threshold = value
+
+    @property
+    def min_delta_mode(self) -> str:
+        warnings.warn(
+            "min_delta_mode is deprecated and will be removed in a future version. Please use 'threshold_mode' instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.threshold_mode
+
+    @min_delta_mode.setter
+    def min_delta_mode(self, value: str) -> None:
+        warnings.warn(
+            "min_delta_mode is deprecated and will be removed in a future version. Please use 'threshold_mode' instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        self.threshold_mode = value
+
+    @property
+    def cumulative_delta(self) -> bool:
+        warnings.warn(
+            "cumulative_delta is deprecated and will be removed in a future version. Please use 'cumulative' instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.cumulative
+
+    @cumulative_delta.setter
+    def cumulative_delta(self, value: bool) -> None:
+        warnings.warn(
+            "cumulative_delta is deprecated and will be removed in a future version. Please use 'cumulative' instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        self.cumulative = value
 
     def __call__(self, engine: Engine) -> None:
         score = self.score_function(engine)
@@ -109,16 +210,16 @@ class EarlyStopping(Serializable, ResettableHandler):
             self.best_score = score
             return
 
-        min_delta = -self.min_delta if self.mode == "min" else self.min_delta
-        if self.min_delta_mode == "abs":
-            improvement_threshold = self.best_score + min_delta
+        threshold = -self.threshold if self.mode == "min" else self.threshold
+        if self.threshold_mode == "abs":
+            improvement_threshold = self.best_score + threshold
         else:
-            improvement_threshold = self.best_score * (1 + min_delta)
+            improvement_threshold = self.best_score * (1 + threshold)
 
         no_improvement = score <= improvement_threshold if self.mode == "max" else score >= improvement_threshold
 
         if no_improvement:
-            if not self.cumulative_delta:
+            if not self.cumulative:
                 self.best_score = max(score, self.best_score) if self.mode == "max" else min(score, self.best_score)
             self.counter += 1
             self.logger.debug("EarlyStopping: %i / %i" % (self.counter, self.patience))
@@ -168,11 +269,17 @@ class EarlyStopping(Serializable, ResettableHandler):
         target_reset_engine = reset_engine or engine
         target_reset_engine.add_event_handler(reset_event, self.reset)
 
-    def state_dict(self) -> "OrderedDict[str, float]":
+    def state_dict(self) -> "OrderedDict[str, Any]":
         """Method returns state dict with ``counter`` and ``best_score``.
         Can be used to save internal state of the class.
         """
-        return OrderedDict([("counter", self.counter), ("best_score", cast(float, self.best_score))])
+        return OrderedDict(
+            [
+                ("counter", self.counter),
+                ("best_score", cast(float, self.best_score)),
+                ("threshold_mode", self.threshold_mode),
+            ]
+        )
 
     def load_state_dict(self, state_dict: Mapping) -> None:
         """Method replace internal state of the class with provided state dict data.
@@ -183,3 +290,4 @@ class EarlyStopping(Serializable, ResettableHandler):
         super().load_state_dict(state_dict)
         self.counter = state_dict["counter"]
         self.best_score = state_dict["best_score"]
+        self.threshold_mode = state_dict.get("threshold_mode", self.threshold_mode)

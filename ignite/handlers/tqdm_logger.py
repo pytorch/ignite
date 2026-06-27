@@ -19,15 +19,16 @@ class ProgressBar(BaseLogger):
         persist: set to ``True`` to persist the progress bar after completion (default = ``False``)
         bar_format : Specify a custom bar string formatting. May impact performance.
             [default: '{desc}[{n_fmt}/{total_fmt}] {percentage:3.0f}%|{bar}{postfix} [{elapsed}<{remaining}]'].
-            Set to ``None`` to use ``tqdm`` default bar formatting: '{l_bar}{bar}{r_bar}', where
-            l_bar='{desc}: {percentage:3.0f}%|' and
-            r_bar='| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}{postfix}]'. For more details on the
+            Set to ``None`` to use the default ``tqdm`` bar format: '{l_bar}{bar}{r_bar}', where
+            l_bar = '{desc}: {percentage:3.0f}%|' and
+            r_bar = '| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}{postfix}]'. For more details on the
             formatting, see `tqdm docs <https://tqdm.github.io/docs/tqdm/>`_.
-        tqdm_kwargs: kwargs passed to tqdm progress bar.
-            By default, progress bar description displays "Epoch [5/10]" where 5 is the current epoch and 10 is the
-            number of epochs; however, if ``max_epochs`` are set to 1, the progress bar instead displays
-            "Iteration: [5/10]". If tqdm_kwargs defines `desc`, e.g. "Predictions", than the description is
-            "Predictions [5/10]" if number of epochs is more than one otherwise it is simply "Predictions".
+        tqdm_kwargs: kwargs passed to the tqdm progress bar.
+            By default, the progress bar description displays "Epoch [5/10]", where 5 is the current epoch and 10 is the
+            number of epochs. However, if ``max_epochs`` is set to 1, the progress bar instead displays
+            "Iteration: [5/10]". If tqdm_kwargs defines `desc`, e.g. "Predictions", then the description is
+            "Predictions [5/10]" if the number of epochs is greater than one; otherwise, it is simply "Predictions".
+
 
     Examples:
         Simple progress bar
@@ -39,7 +40,7 @@ class ProgressBar(BaseLogger):
             pbar = ProgressBar()
             pbar.attach(trainer)
 
-            # Progress bar will looks like
+            # Progress bar will look like
             # Epoch [2/50]: [64/128]  50%|█████      [06:17<12:34]
 
         Log output to a file instead of stderr (tqdm's default output)
@@ -52,7 +53,7 @@ class ProgressBar(BaseLogger):
             pbar = ProgressBar(file=log_file)
             pbar.attach(trainer)
 
-        Attach metrics that already have been computed at :attr:`~ignite.engine.events.Events.ITERATION_COMPLETED`
+        Attach metrics that have already been computed at :attr:`~ignite.engine.events.Events.ITERATION_COMPLETED`
         (such as :class:`~ignite.metrics.RunningAverage`)
 
         .. code-block:: python
@@ -64,7 +65,7 @@ class ProgressBar(BaseLogger):
             pbar = ProgressBar()
             pbar.attach(trainer, ['loss'])
 
-            # Progress bar will looks like
+            # Progress bar will look like
             # Epoch [2/50]: [64/128]  50%|█████      , loss=0.123 [06:17<12:34]
 
         Directly attach the engine's output
@@ -76,9 +77,8 @@ class ProgressBar(BaseLogger):
             pbar = ProgressBar()
             pbar.attach(trainer, output_transform=lambda x: {'loss': x})
 
-            # Progress bar will looks like
+            # Progress bar will look like
             # Epoch [2/50]: [64/128]  50%|█████      , loss=0.123 [06:17<12:34]
-
 
         Example where the State Attributes ``trainer.state.alpha`` and ``trainer.state.beta``
         are also logged along with the NLL and Accuracy after each iteration:
@@ -94,13 +94,14 @@ class ProgressBar(BaseLogger):
 
     Note:
         When attaching the progress bar to an engine, it is recommended that you replace
-        every print operation in the engine's handlers triggered every iteration with
-        ``pbar.log_message`` to guarantee the correct format of the stdout.
+        every print operation in the engine's handlers triggered on every iteration with
+        ``pbar.log_message`` to guarantee the correct stdout format.
+
 
     Note:
-        When using inside jupyter notebook, `ProgressBar` automatically uses `tqdm_notebook`. For correct rendering,
+        When used inside a Jupyter notebook, `ProgressBar` automatically uses `tqdm_notebook`. For correct rendering,
         please install `ipywidgets <https://ipywidgets.readthedocs.io/en/stable/user_install.html#installation>`_.
-        Due to `tqdm notebook bugs <https://github.com/tqdm/tqdm/issues/594>`_, bar format may be needed to be set
+        Due to `tqdm notebook bugs <https://github.com/tqdm/tqdm/issues/594>`_, the bar format may need to be set
         to an empty string value.
 
     .. versionchanged:: 0.4.7
@@ -129,7 +130,7 @@ class ProgressBar(BaseLogger):
             from tqdm.autonotebook import tqdm
         except ImportError:
             raise ModuleNotFoundError(
-                "This contrib module requires tqdm to be installed. Please install it with command: \n pip install tqdm"
+                "This submodule requires tqdm to be installed. Please install it with the command: \n pip install tqdm"
             )
 
         self.pbar_cls = tqdm
@@ -146,7 +147,7 @@ class ProgressBar(BaseLogger):
     def _close(self, engine: Engine) -> None:
         if self.pbar is not None:
             # https://github.com/tqdm/notebook.py#L240-L250
-            # issue #1115 : notebook backend of tqdm checks if n < total (error or KeyboardInterrupt)
+            # issue #1115: notebook backend of tqdm checks if n < total (error or KeyboardInterrupt)
             # and the bar persists in 'danger' mode
             if self.pbar.total is not None:
                 self.pbar.n = self.pbar.total
@@ -161,7 +162,8 @@ class ProgressBar(BaseLogger):
 
     def log_message(self, message: str) -> None:
         """
-        Logs a message, preserving the progress bar correct output format.
+        Logs a message while preserving the correct progress bar output format.
+
 
         Args:
             message: string you wish to log.
@@ -189,14 +191,14 @@ class ProgressBar(BaseLogger):
             output_transform: a function to select what you want to print from the engine's
                 output. This function may return either a dictionary with entries in the format of ``{name: value}``,
                 or a single scalar, which will be displayed with the default name `output`.
-            event_name: event's name on which the progress bar advances. Valid events are from
+            event_name: event name on which the progress bar advances. Valid events are from
                 :class:`~ignite.engine.events.Events`.
-            closing_event_name: event's name on which the progress bar is closed. Valid events are from
+            closing_event_name: event name on which the progress bar is closed. Valid events are from
                 :class:`~ignite.engine.events.Events`.
             state_attributes: list of attributes of the ``trainer.state`` to plot.
 
         Note:
-            Accepted output value types are numbers, 0d and 1d torch tensors and strings.
+            Accepted output value types are numbers, 0D and 1D torch tensors, and strings.
 
         """
         desc = self.tqdm_kwargs.get("desc", "")
@@ -244,16 +246,15 @@ class ProgressBar(BaseLogger):
 class _OutputHandler(BaseOutputHandler):
     """Helper handler to log engine's output and/or metrics
 
-        pbar = ProgressBar()
     Args:
         description: progress bar description.
         metric_names: list of metric names to plot or a string "all" to plot all available
             metrics.
         output_transform: output transform function to prepare `engine.state.output` as a number.
             For example, `output_transform = lambda output: output`
-            This function can also return a dictionary, e.g `{'loss': loss1, 'another_loss': loss2}` to label the plot
+            This function can also return a dictionary, e.g. `{'loss': loss1, 'another_loss': loss2}` to label the plot
             with corresponding keys.
-        closing_event_name: event's name on which the progress bar is closed. Valid events are from
+        closing_event_name: event name on which the progress bar is closed. Valid events are from
             :class:`~ignite.engine.events.Events` or any `event_name` added by
             :meth:`~ignite.engine.engine.Engine.register_events`.
         state_attributes: list of attributes of the ``trainer.state`` to plot.
