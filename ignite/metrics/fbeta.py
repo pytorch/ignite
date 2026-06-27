@@ -177,6 +177,16 @@ def Fbeta(
     elif recall._average:
         raise ValueError("Input recall metric should have average=False")
 
+    if precision._class_names is not None:
+
+        def _fbeta_with_class_names(p: dict, r: dict) -> dict:
+            p_vals = torch.tensor(list(p.values()))
+            r_vals = torch.tensor(list(r.values()))
+            scores = (1.0 + beta**2) * p_vals * r_vals / (beta**2 * p_vals + r_vals + 1e-15)
+            return dict(zip(precision._class_names, scores.tolist()))
+
+        return MetricsLambda(_fbeta_with_class_names, precision, recall)
+
     fbeta = (1.0 + beta**2) * precision * recall / (beta**2 * precision + recall + 1e-15)
 
     if average:
