@@ -355,6 +355,7 @@ Complete list of metrics
     Rouge
     RougeL
     RougeN
+    CharacterErrorRate
     InceptionScore
     FID
     CosineSimilarity
