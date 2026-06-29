@@ -211,3 +211,140 @@ def test_skip_unrolling(available_device):
     assert torch.equal(em._targets[0].cpu(), output1[1].cpu())
     assert torch.equal(em._targets[1].cpu(), output2[1].cpu())
     assert em.compute() == 0.0
+
+
+def test_epoch_metric_scalar_tensor_output(available_device):
+    # compute_fn returns a 0-dim (scalar) tensor instead of a python float
+    def compute_fn(y_preds, y_targets):
+        return torch.mean(y_preds - y_targets.type_as(y_preds))
+
+    em = EpochMetric(compute_fn, device=available_device)
+
+    em.reset()
+    output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+    em.update(output1)
+    output2 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+    em.update(output2)
+
+    preds = torch.cat([output1[0], output2[0]], dim=0)
+    targets = torch.cat([output1[1], output2[1]], dim=0)
+    expected = compute_fn(preds, targets)
+
+    result = em.compute()
+    assert isinstance(result, torch.Tensor)
+    assert result.ndim == 0
+    assert torch.allclose(result.cpu(), expected.cpu())
+
+
+def test_epoch_metric_vector_tensor_output(available_device):
+    # compute_fn returns a 1-dim (vector) tensor, one value per target column
+    def compute_fn(y_preds, y_targets):
+        return y_preds.mean(dim=0)
+
+    em = EpochMetric(compute_fn, device=available_device)
+
+    em.reset()
+    output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+    em.update(output1)
+    output2 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+    em.update(output2)
+
+    preds = torch.cat([output1[0], output2[0]], dim=0)
+    targets = torch.cat([output1[1], output2[1]], dim=0)
+    expected = compute_fn(preds, targets)
+
+    result = em.compute()
+    assert isinstance(result, torch.Tensor)
+    assert result.shape == (3,)
+    assert torch.allclose(result.cpu(), expected.cpu())
+
+
+def test_epoch_metric_tuple_of_tensors_output(available_device):
+    # compute_fn returns a tuple of tensors
+    def compute_fn(y_preds, y_targets):
+        return y_preds.mean(dim=0), y_preds.sum(dim=0)
+
+    em = EpochMetric(compute_fn, device=available_device)
+
+    em.reset()
+    output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+    em.update(output1)
+    output2 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+    em.update(output2)
+
+    preds = torch.cat([output1[0], output2[0]], dim=0)
+    targets = torch.cat([output1[1], output2[1]], dim=0)
+    expected = compute_fn(preds, targets)
+
+    result = em.compute()
+    assert isinstance(result, tuple)
+    assert len(result) == 2
+    for r, e in zip(result, expected):
+        assert torch.allclose(r.cpu(), e.cpu())
+
+
+def test_epoch_metric_list_of_tensors_output(available_device):
+    # compute_fn returns a list of tensors
+    def compute_fn(y_preds, y_targets):
+        return [y_preds.mean(dim=0), y_preds.sum(dim=0)]
+
+    em = EpochMetric(compute_fn, device=available_device)
+
+    em.reset()
+    output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+    em.update(output1)
+    output2 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+    em.update(output2)
+
+    preds = torch.cat([output1[0], output2[0]], dim=0)
+    targets = torch.cat([output1[1], output2[1]], dim=0)
+    expected = compute_fn(preds, targets)
+
+    result = em.compute()
+    assert isinstance(result, list)
+    assert len(result) == 2
+    for r, e in zip(result, expected):
+        assert torch.allclose(r.cpu(), e.cpu())
+
+
+def test_epoch_metric_mapping_of_tensors_output(available_device):
+    # compute_fn returns a dict mapping str -> tensor
+    def compute_fn(y_preds, y_targets):
+        return {"mean": y_preds.mean(dim=0), "sum": y_preds.sum(dim=0)}
+
+    em = EpochMetric(compute_fn, device=available_device)
+
+    em.reset()
+    output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+    em.update(output1)
+    output2 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+    em.update(output2)
+
+    preds = torch.cat([output1[0], output2[0]], dim=0)
+    targets = torch.cat([output1[1], output2[1]], dim=0)
+    expected = compute_fn(preds, targets)
+
+    result = em.compute()
+    assert isinstance(result, dict)
+    assert set(result.keys()) == {"mean", "sum"}
+    for key in expected:
+        assert torch.allclose(result[key].cpu(), expected[key].cpu())
+
+
+@pytest.mark.xfail(
+    reason="EpochMetric does not yet validate compute_fn output type; see issue #1757 / PR #3789",
+    strict=True,
+)
+def test_epoch_metric_unsupported_output_type_raises(available_device):
+    # An unsupported output type (str) should raise a clear TypeError once validation is added.
+    def compute_fn(y_preds, y_targets):
+        return "not-a-number"
+
+    em = EpochMetric(compute_fn, check_compute_fn=False, device=available_device)
+
+    em.reset()
+    em.update((torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long)))
+    em.update((torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long)))
+
+    with pytest.raises(TypeError):
+        em.compute()
