@@ -331,12 +331,8 @@ def test_epoch_metric_mapping_of_tensors_output(available_device):
         assert torch.allclose(result[key].cpu(), expected[key].cpu())
 
 
-@pytest.mark.xfail(
-    reason="EpochMetric does not yet validate compute_fn output type; see issue #1757 / PR #3789",
-    strict=True,
-)
 def test_epoch_metric_unsupported_output_type_raises(available_device):
-    # An unsupported output type (str) should raise a clear TypeError once validation is added.
+    # An unsupported output type (str) should raise a clear TypeError.
     def compute_fn(y_preds, y_targets):
         return "not-a-number"
 
@@ -346,5 +342,5 @@ def test_epoch_metric_unsupported_output_type_raises(available_device):
     em.update((torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long)))
     em.update((torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long)))
 
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match=r"compute_fn output type .* is not supported"):
         em.compute()
