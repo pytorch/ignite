@@ -503,3 +503,34 @@ class TestDistributed:
             if average == "weighted":
                 assert pr._weight.device == metric_device, f"{type(pr._weight.device)}:{pr._weight.device} vs "
                 f"{type(metric_device)}:{metric_device}"
+
+
+def test_top_k_precision_multilabel_samples():
+    """dummy test for checking workflow of TopK wrapper and registry idea"""
+    import torch
+    from ignite.metrics import Precision
+    from ignite.metrics.top_k import TopK
+
+    y_pred = torch.tensor(
+        [
+            [0.9, 0.3, 0.8, 0.1],
+            [0.5, 0.8, 0.2, 0.9],
+            [0.3, 0.6, 0.9, 0.1],
+        ]
+    )
+    y_true = torch.tensor(
+        [
+            [1, 0, 1, 0],
+            [0, 1, 0, 1],
+            [0, 1, 1, 0],
+        ]
+    )
+
+    metric = TopK(Precision(average="samples", is_multilabel=True), top_k=[1, 2, 3])
+    metric.update((y_pred, y_true))
+    result = metric.compute()
+
+    assert len(result) == 3
+    assert pytest.approx(result[0], abs=1e-4) == 1.0
+    assert pytest.approx(result[1], abs=1e-4) == 1.0
+    assert pytest.approx(result[2], abs=1e-4) == 2 / 3
