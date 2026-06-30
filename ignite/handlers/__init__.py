@@ -5,6 +5,7 @@ from ignite.handlers.clearml_logger import ClearMLLogger
 from ignite.handlers.early_stopping import EarlyStopping
 from ignite.handlers.ema_handler import EMAHandler
 from ignite.handlers.fbresearch_logger import FBResearchLogger
+from ignite.handlers.grad_monitor import GradMonitor
 from ignite.handlers.lr_finder import FastaiLRFinder
 from ignite.handlers.mlflow_logger import MLflowLogger
 from ignite.handlers.neptune_logger import NeptuneLogger
@@ -51,6 +52,7 @@ __all__ = [
     "Timer",
     "EarlyStopping",
     "TerminateOnNan",
+    "GradMonitor",
     "global_step_from_engine",
     "TimeLimit",
     "EpochOutputStore",
