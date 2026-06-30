@@ -119,13 +119,12 @@ class ProgressBar(BaseLogger):
     ]
 
     def __init__(
-        self,
-        persist: bool = False,
-        bar_format: (
-            str | None
-        ) = "{desc}[{n_fmt}/{total_fmt}] {percentage:3.0f}%|{bar}{postfix} [{elapsed}<{remaining}]",
-        **tqdm_kwargs: Any,
-    ):
+    self,
+    persist: bool = False,
+    bar_format: str | None = "{desc}[{n_fmt}/{total_fmt}] {percentage:3.0f}%|{bar}{postfix} [{elapsed}<{remaining}]",
+    show_epoch: bool = True,
+    **tqdm_kwargs: Any,
+):
         try:
             from tqdm.autonotebook import tqdm
         except ImportError:
@@ -137,6 +136,7 @@ class ProgressBar(BaseLogger):
         self.pbar = None
         self.persist = persist
         self.bar_format = bar_format
+        self.show_epoch = show_epoch
         self.tqdm_kwargs = tqdm_kwargs
 
     def _reset(self, pbar_total: int | None) -> None:
@@ -214,12 +214,13 @@ class ProgressBar(BaseLogger):
             raise ValueError(f"Logging event {event_name} should be called before closing event {closing_event_name}")
 
         log_handler = _OutputHandler(
-            desc,
-            metric_names,
-            output_transform,
-            closing_event_name=closing_event_name,
-            state_attributes=state_attributes,
-        )
+    desc,
+    metric_names,
+    output_transform,
+    closing_event_name=closing_event_name,
+    state_attributes=state_attributes,
+    show_epoch=self.show_epoch,
+)
 
         super().attach(engine, log_handler, event_name)
         engine.add_event_handler(closing_event_name, self._close)
@@ -262,13 +263,14 @@ class _OutputHandler(BaseOutputHandler):
     """
 
     def __init__(
-        self,
-        description: str,
-        metric_names: str | list[str] | None = None,
-        output_transform: Callable | None = None,
-        closing_event_name: Events | CallableEventWithFilter = Events.EPOCH_COMPLETED,
-        state_attributes: list[str] | None = None,
-    ):
+    self,
+    description: str,
+    metric_names: str | list[str] | None = None,
+    output_transform: Callable | None = None,
+    closing_event_name: Events | CallableEventWithFilter = Events.EPOCH_COMPLETED,
+    state_attributes: list[str] | None = None,
+    show_epoch: bool = True,
+):
         if metric_names is None and output_transform is None:
             # This helps to avoid 'Either metric_names or output_transform should be defined' of BaseOutputHandler
             metric_names = []
@@ -276,6 +278,7 @@ class _OutputHandler(BaseOutputHandler):
             description, metric_names, output_transform, global_step_transform=None, state_attributes=state_attributes
         )
         self.closing_event_name = closing_event_name
+        self.show_epoch = show_epoch
 
     @staticmethod
     def get_max_number_events(event_name: str | Events | CallableEventWithFilter, engine: Engine) -> int | None:
@@ -295,7 +298,7 @@ class _OutputHandler(BaseOutputHandler):
 
         desc = self.tag or default_desc
         max_num_of_closing_events = self.get_max_number_events(self.closing_event_name, engine)
-        if max_num_of_closing_events and max_num_of_closing_events > 1:
+        if self.show_epoch and max_num_of_closing_events and max_num_of_closing_events > 1:
             global_step = engine.state.get_event_attrib_value(self.closing_event_name)
             desc += f" [{global_step}/{max_num_of_closing_events}]"
         logger.pbar.set_description(desc)  # type: ignore[attr-defined]
