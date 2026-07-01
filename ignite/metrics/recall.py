@@ -98,7 +98,7 @@ class Recall(_BasePrecisionRecall):
             true for multi-output model, for example, if ``y_pred`` contains multi-output as ``(y_pred_a, y_pred_b)``
             Alternatively, ``output_transform`` can be used to handle this.
         class_names: list of class name strings used to label per-class output when ``average=False``
-            or ``average=None``. If provided, :meth:`compute` returns a ``dict`` mapping each class
+            or ``average=None``. If provided, ``compute()`` returns a ``dict`` mapping each class
             name to its metric value instead of a tensor. Must match the number of classes inferred
             from the data. Default: ``None``.
     Examples:

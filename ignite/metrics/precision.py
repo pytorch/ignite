@@ -135,7 +135,7 @@ class _BasePrecisionRecall(_BaseClassification):
         super().reset()
 
     @sync_all_reduce("_numerator", "_denominator")
-    def compute(self) -> torch.Tensor | float:
+    def compute(self) -> torch.Tensor | float | dict:
         r"""
         Return value of the metric for `average` options `'weighted'` and `'macro'` is computed as follows.
 
@@ -168,7 +168,7 @@ class _BasePrecisionRecall(_BaseClassification):
             return cast(torch.Tensor, fraction).mean().item()
         else:
             if self._class_names is not None:
-                return dict(zip(self._class_names, fraction.tolist()))
+                return dict(zip(self._class_names, cast(torch.Tensor, fraction).tolist()))
             return fraction
 
 
@@ -259,7 +259,7 @@ class Precision(_BasePrecisionRecall):
             true for multi-output model, for example, if ``y_pred`` contains multi-output as ``(y_pred_a, y_pred_b)``
             Alternatively, ``output_transform`` can be used to handle this.
         class_names: list of class name strings used to label per-class output when ``average=False``
-            or ``average=None``. If provided, :meth:`compute` returns a ``dict`` mapping each class
+            or ``average=None``. If provided, ``compute()`` returns a ``dict``  mapping each class
             name to its metric value instead of a tensor. Must match the number of classes inferred
             from the data. Default: ``None``.
 
