@@ -39,7 +39,7 @@ jobs:
           echo "::endgroup::"
 
       - name: Checkout repository (pytorch/test-infra)
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           # Support the use case where we need to checkout someone's fork
           repository: pytorch/test-infra
@@ -54,7 +54,7 @@ jobs:
           docker-image: ${{ env.DOCKER_IMAGE }}
 
       - name: Checkout repository (${{ github.repository }})
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           # Support the use case where we need to checkout someone's fork
           repository: ${{ github.repository }}
@@ -124,7 +124,7 @@ jobs:
 
       - name: Run GPU Unit Tests
         continue-on-error: false
-        uses: nick-fields/retry@v4.0.0
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
         with:
           max_attempts: 5
           timeout_minutes: 45
@@ -133,7 +133,7 @@ jobs:
           new_command_on_retry: docker exec -e USE_LAST_FAILED=1 -t pthd /bin/bash -xec 'bash tests/run_gpu_tests.sh 4'
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6.0.1
         with:
           files: ${{ github.repository }}/coverage.xml
           flags: gpu-2

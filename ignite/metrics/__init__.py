@@ -32,7 +32,9 @@ from ignite.metrics.metrics_lambda import MetricsLambda
 from ignite.metrics.multilabel_confusion_matrix import MultiLabelConfusionMatrix
 from ignite.metrics.mutual_information import MutualInformation
 from ignite.metrics.nlp.bleu import Bleu
+from ignite.metrics.nlp.character_error_rate import CharacterErrorRate
 from ignite.metrics.nlp.rouge import Rouge, RougeL, RougeN
+from ignite.metrics.nlp.perplexity import Perplexity
 from ignite.metrics.precision import Precision
 from ignite.metrics.precision_recall_curve import PrecisionRecallCurve
 from ignite.metrics.psnr import PSNR
@@ -91,9 +93,11 @@ __all__ = [
     "Frequency",
     "SSIM",
     "Bleu",
+    "CharacterErrorRate",
     "Rouge",
     "RougeN",
     "RougeL",
+    "Perplexity",
     "regression",
     "clustering",
     "fairness",

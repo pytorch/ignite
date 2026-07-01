@@ -139,7 +139,7 @@ class _BaseRouge(Metric):
         valid_multiref = ["best", "average"]
         if self._multiref not in valid_multiref:
             raise ValueError(f"multiref : valid values are {valid_multiref} (got : {self._multiref})")
-        self._mutliref_reducer = self._get_multiref_reducer()
+        self._multiref_reducer = self._get_multiref_reducer()
 
     def _get_multiref_reducer(self) -> MultiRefReducer:
         if self._multiref == "average":
@@ -158,7 +158,7 @@ class _BaseRouge(Metric):
         candidates, references = output
         for _candidate, _reference in zip(candidates, references):
             multiref_scores = [self._compute_score(candidate=_candidate, reference=_ref) for _ref in _reference]
-            score = self._mutliref_reducer(multiref_scores)
+            score = self._multiref_reducer(multiref_scores)
             precision = score.precision()
             recall = score.recall()
             self._precision += precision
@@ -171,7 +171,7 @@ class _BaseRouge(Metric):
     @sync_all_reduce("_precision", "_recall", "_fmeasure", "_num_examples")
     def compute(self) -> Mapping:
         if self._num_examples == 0:
-            raise NotComputableError("Rouge metric must have at least one example before be computed")
+            raise NotComputableError("Rouge metric must have at least one example before being computed")
 
         return {
             f"{self._metric_name()}-P": float(self._precision / self._num_examples),
