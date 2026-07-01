@@ -351,9 +351,11 @@ Complete list of metrics
     SSIM
     TopKCategoricalAccuracy
     Bleu
+    Perplexity
     Rouge
     RougeL
     RougeN
+    CharacterErrorRate
     InceptionScore
     FID
     CosineSimilarity
