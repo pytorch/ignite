@@ -23,7 +23,17 @@ class _BasePrecisionRecall(_BaseClassification):
         is_multilabel: bool = False,
         device: str | torch.device = torch.device("cpu"),
         skip_unrolling: bool = False,
+        class_names: list[str] | None = None,
     ):
+        if class_names is not None:
+            if not isinstance(class_names, (list, tuple)) or not all(isinstance(n, str) for n in class_names):
+                raise ValueError("class_names must be a list of strings")
+            if average is not False and average is not None:
+                raise ValueError(
+                    f"class_names is only applicable when average=False or average=None, got average={average!r}."
+                )
+        self._class_names = class_names
+
         if not (average is None or isinstance(average, bool) or average in ["macro", "micro", "weighted", "samples"]):
             raise ValueError(
                 "Argument average should be None or a boolean or one of values"
@@ -125,7 +135,7 @@ class _BasePrecisionRecall(_BaseClassification):
         super().reset()
 
     @sync_all_reduce("_numerator", "_denominator")
-    def compute(self) -> torch.Tensor | float:
+    def compute(self) -> torch.Tensor | float | dict:
         r"""
         Return value of the metric for `average` options `'weighted'` and `'macro'` is computed as follows.
 
@@ -157,6 +167,8 @@ class _BasePrecisionRecall(_BaseClassification):
         elif self._average == "macro":
             return cast(torch.Tensor, fraction).mean().item()
         else:
+            if self._class_names is not None:
+                return dict(zip(self._class_names, cast(torch.Tensor, fraction).tolist()))
             return fraction
 
 
@@ -246,6 +258,10 @@ class Precision(_BasePrecisionRecall):
         skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
             true for multi-output model, for example, if ``y_pred`` contains multi-output as ``(y_pred_a, y_pred_b)``
             Alternatively, ``output_transform`` can be used to handle this.
+        class_names: list of class name strings used to label per-class output when ``average=False``
+            or ``average=None``. If provided, ``compute()`` returns a ``dict``  mapping each class
+            name to its metric value instead of a tensor. Must match the number of classes inferred
+            from the data. Default: ``None``.
 
     Examples:
 
@@ -428,5 +444,9 @@ class Precision(_BasePrecisionRecall):
 
             if self._average == "weighted":
                 self._weight += y.sum(dim=0)
-
+            if self._class_names is not None and len(self._class_names) != self._numerator.shape[0]:
+                raise ValueError(
+                    f"class_names has {len(self._class_names)} entries but the metric computed "
+                    f"{self._numerator.shape[0]} classes."
+                )
         self._updated = True
