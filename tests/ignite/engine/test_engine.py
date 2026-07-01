@@ -1,3 +1,4 @@
+import itertools
 import math
 import os
 import time
@@ -131,6 +132,23 @@ class TestEngine:
         assert state.epoch == last_epoch_to_run
         assert engine.should_terminate
         assert engine._dataloader_iter is None
+
+    def test_continue_after_terminate_with_unknown_epoch_length(self):
+        def _run_iteration(engine, batch):
+            if batch > 2:
+                engine.terminate()
+
+        engine = Engine(_run_iteration)
+
+        state = engine.run(itertools.count(start=0), max_epochs=engine.state.epoch + 1)
+        assert state.epoch == 1
+        assert state.iteration == 4
+        assert state.epoch_length is None
+
+        state = engine.run(itertools.count(start=0), max_epochs=engine.state.epoch + 1)
+        assert state.epoch == 2
+        assert state.iteration == 8
+        assert state.epoch_length is None
 
     @pytest.mark.parametrize("data, epoch_length", [(None, 10), (range(10), None)])
     def test_terminate_at_start_of_epoch(self, data, epoch_length):
