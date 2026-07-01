@@ -1,0 +1,23 @@
+﻿ReproducibleBatchSampler
+========================
+
+.. currentmodule:: ignite.engine.deterministic
+
+.. autoclass:: ReproducibleBatchSampler
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+      ~ReproducibleBatchSampler.setup_batch_indices
+   
+   
+   
+   

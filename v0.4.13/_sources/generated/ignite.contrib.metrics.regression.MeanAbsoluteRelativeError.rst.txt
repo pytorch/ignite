@@ -1,0 +1,45 @@
+﻿MeanAbsoluteRelativeError
+=========================
+
+.. currentmodule:: ignite.contrib.metrics.regression
+
+.. autoclass:: MeanAbsoluteRelativeError
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~MeanAbsoluteRelativeError.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~MeanAbsoluteRelativeError.reset
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   

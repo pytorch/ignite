@@ -1,0 +1,63 @@
+﻿Metric
+======
+
+.. currentmodule:: ignite.metrics.metric
+
+.. autoclass:: Metric
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+      ~Metric.attach
+   
+   
+   
+      ~Metric.completed
+   
+   
+   
+      ~Metric.compute
+   
+   
+   
+      ~Metric.detach
+   
+   
+   
+      ~Metric.is_attached
+   
+   
+   
+      ~Metric.iteration_completed
+   
+   
+   
+      ~Metric.load_state_dict
+   
+   
+   
+      ~Metric.reset
+   
+   
+   
+      ~Metric.started
+   
+   
+   
+      ~Metric.state_dict
+   
+   
+   
+      ~Metric.update
+   
+   
+   
+   
