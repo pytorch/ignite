@@ -229,6 +229,11 @@ def test_epoch_metric_compute_fn_tensor_output():
     assert isinstance(result, torch.Tensor)
     assert result.shape == (3,)
 
+    preds = torch.cat([output1[0], output2[0]], dim=0)
+    targets = torch.cat([output1[1], output2[1]], dim=0)
+    expected = compute_fn(preds, targets)
+    assert torch.allclose(result, expected)
+
 
 def test_epoch_metric_compute_fn_tuple_output():
     """Test EpochMetric with compute_fn returning a tuple of tensors."""
@@ -248,6 +253,12 @@ def test_epoch_metric_compute_fn_tuple_output():
     result = em.compute()
     assert isinstance(result, tuple)
     assert len(result) == 2
+
+    preds = torch.cat([output1[0], output2[0]], dim=0)
+    targets = torch.cat([output1[1], output2[1]], dim=0)
+    expected = compute_fn(preds, targets)
+    assert torch.allclose(result[0], expected[0])
+    assert torch.allclose(result[1], expected[1])
 
 
 def test_epoch_metric_compute_fn_invalid_output():
@@ -278,10 +289,18 @@ def test_epoch_metric_compute_fn_list_output():
     em.reset()
     output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
     em.update(output1)
+    output2 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+    em.update(output2)
 
     result = em.compute()
     assert isinstance(result, list)
     assert len(result) == 2
+
+    preds = torch.cat([output1[0], output2[0]], dim=0)
+    targets = torch.cat([output1[1], output2[1]], dim=0)
+    expected = compute_fn(preds, targets)
+    assert torch.allclose(result[0], expected[0])
+    assert torch.allclose(result[1], expected[1])
 
 
 def test_epoch_metric_compute_fn_dict_output():
@@ -297,8 +316,16 @@ def test_epoch_metric_compute_fn_dict_output():
     em.reset()
     output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
     em.update(output1)
+    output2 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+    em.update(output2)
 
     result = em.compute()
     assert isinstance(result, dict)
     assert "mse" in result
     assert "mae" in result
+
+    preds = torch.cat([output1[0], output2[0]], dim=0)
+    targets = torch.cat([output1[1], output2[1]], dim=0)
+    expected = compute_fn(preds, targets)
+    assert torch.allclose(result["mse"], expected["mse"])
+    assert torch.allclose(result["mae"], expected["mae"])
