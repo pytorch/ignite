@@ -13,7 +13,8 @@ setuptools
 fairlearn
 # Test contrib dependencies
 scipy
-pytorch_fid
+# pytorch-fid is not maintained anymore, using our fork
+git+https://github.com/pytorch-ignite/pytorch-fid@8287430921edb01fec92fba6266a22bd49a71533
 tqdm
 scikit-learn
 matplotlib
