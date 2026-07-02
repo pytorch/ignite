@@ -211,3 +211,121 @@ def test_skip_unrolling(available_device):
     assert torch.equal(em._targets[0].cpu(), output1[1].cpu())
     assert torch.equal(em._targets[1].cpu(), output2[1].cpu())
     assert em.compute() == 0.0
+
+def test_epoch_metric_compute_fn_tensor_output():
+    """Test EpochMetric with compute_fn returning a tensor."""
+
+    def compute_fn(y_preds, y_targets):
+        return torch.mean(((y_preds - y_targets.type_as(y_preds)) ** 2), dim=0)
+
+    em = EpochMetric(compute_fn)
+    em.reset()
+    output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+    em.update(output1)
+    output2 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+    em.update(output2)
+
+    result = em.compute()
+    assert isinstance(result, torch.Tensor)
+    assert result.shape == (3,)
+
+    preds = torch.cat([output1[0], output2[0]], dim=0)
+    targets = torch.cat([output1[1], output2[1]], dim=0)
+    expected = compute_fn(preds, targets)
+    assert torch.allclose(result, expected)
+
+
+def test_epoch_metric_compute_fn_tuple_output():
+    """Test EpochMetric with compute_fn returning a tuple of tensors."""
+
+    def compute_fn(y_preds, y_targets):
+        mse = torch.mean(((y_preds - y_targets.type_as(y_preds)) ** 2))
+        mae = torch.mean(torch.abs(y_preds - y_targets.type_as(y_preds)))
+        return (mse, mae)
+
+    em = EpochMetric(compute_fn)
+    em.reset()
+    output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+    em.update(output1)
+    output2 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+    em.update(output2)
+
+    result = em.compute()
+    assert isinstance(result, tuple)
+    assert len(result) == 2
+
+    preds = torch.cat([output1[0], output2[0]], dim=0)
+    targets = torch.cat([output1[1], output2[1]], dim=0)
+    expected = compute_fn(preds, targets)
+    assert torch.allclose(result[0], expected[0])
+    assert torch.allclose(result[1], expected[1])
+
+
+def test_epoch_metric_compute_fn_invalid_output():
+    """Test EpochMetric raises TypeError for unsupported compute_fn output."""
+
+    def compute_fn(y_preds, y_targets):
+        return "invalid_output"
+
+    em = EpochMetric(compute_fn, check_compute_fn=False)
+    em.reset()
+    output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+    em.update(output1)
+
+
+    with pytest.raises(TypeError, match=r"compute_fn output type"):
+        em.compute()
+                       
+
+def test_epoch_metric_compute_fn_list_output():
+    """Test EpochMetric with compute_fn returning a list of tensors."""
+
+    def compute_fn(y_preds, y_targets):
+        mse = torch.mean(((y_preds - y_targets.type_as(y_preds)) ** 2))
+        mae = torch.mean(torch.abs(y_preds - y_targets.type_as(y_preds)))
+        return [mse, mae]
+
+    em = EpochMetric(compute_fn)
+    em.reset()
+    output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+    em.update(output1)
+    output2 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+    em.update(output2)
+
+    result = em.compute()
+    assert isinstance(result, list)
+    assert len(result) == 2
+
+    preds = torch.cat([output1[0], output2[0]], dim=0)
+    targets = torch.cat([output1[1], output2[1]], dim=0)
+    expected = compute_fn(preds, targets)
+    assert torch.allclose(result[0], expected[0])
+    assert torch.allclose(result[1], expected[1])
+
+
+def test_epoch_metric_compute_fn_dict_output():
+    """Test EpochMetric with compute_fn returning a dict of tensors."""
+
+    def compute_fn(y_preds, y_targets):
+        return {
+            "mse": torch.mean(((y_preds - y_targets.type_as(y_preds)) ** 2)),
+            "mae": torch.mean(torch.abs(y_preds - y_targets.type_as(y_preds))),
+        }
+
+    em = EpochMetric(compute_fn)
+    em.reset()
+    output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+    em.update(output1)
+    output2 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+    em.update(output2)
+
+    result = em.compute()
+    assert isinstance(result, dict)
+    assert "mse" in result
+    assert "mae" in result
+
+    preds = torch.cat([output1[0], output2[0]], dim=0)
+    targets = torch.cat([output1[1], output2[1]], dim=0)
+    expected = compute_fn(preds, targets)
+    assert torch.allclose(result["mse"], expected["mse"])
+    assert torch.allclose(result["mae"], expected["mae"])
