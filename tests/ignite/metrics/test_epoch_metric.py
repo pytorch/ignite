@@ -344,3 +344,101 @@ def test_epoch_metric_unsupported_output_type_raises(available_device):
 
     with pytest.raises(TypeError, match=r"compute_fn output type .* is not supported"):
         em.compute()
+
+
+def test_epoch_metric_nested_invalid_output_raises(available_device):
+    # A container holding an unsupported value (str) should be rejected by the recursive check.
+    def compute_fn(y_preds, y_targets):
+        return [torch.tensor(1.0), "not-a-number"]
+
+    em = EpochMetric(compute_fn, check_compute_fn=False, device=available_device)
+
+    em.reset()
+    em.update((torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long)))
+    em.update((torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long)))
+
+    with pytest.raises(TypeError, match=r"compute_fn output type .* is not supported"):
+        em.compute()
+
+
+def test_epoch_metric_mapping_non_str_key_raises(available_device):
+    # A mapping with a non-string key is not a supported output.
+    def compute_fn(y_preds, y_targets):
+        return {0: torch.tensor(1.0)}
+
+    em = EpochMetric(compute_fn, check_compute_fn=False, device=available_device)
+
+    em.reset()
+    em.update((torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long)))
+    em.update((torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long)))
+
+    with pytest.raises(TypeError, match=r"mapping keys should be str"):
+        em.compute()
+
+
+def test_distrib_output_tensor(distributed):
+    # A non-scalar tensor output should broadcast successfully and be identical on all ranks.
+    device = idist.device() if idist.device().type != "xla" else "cpu"
+    torch.manual_seed(40 + idist.get_rank())
+
+    def compute_fn(y_preds, y_targets):
+        return y_preds.mean(dim=0)
+
+    em = EpochMetric(compute_fn, check_compute_fn=False, device=device)
+    em.reset()
+    em.update((torch.rand(4, 3, device=device), torch.randint(0, 2, size=(4, 3), dtype=torch.long, device=device)))
+    em.update((torch.rand(4, 3, device=device), torch.randint(0, 2, size=(4, 3), dtype=torch.long, device=device)))
+
+    result = em.compute()
+    assert isinstance(result, torch.Tensor)
+    assert result.shape == (3,)
+    # All ranks must receive the same broadcasted values.
+    gathered = idist.all_gather(result.unsqueeze(0))
+    assert torch.allclose(gathered[0], gathered[-1])
+
+
+@pytest.mark.parametrize(
+    "compute_fn",
+    [
+        lambda y_preds, y_targets: (y_preds.mean(dim=0), y_preds.sum(dim=0)),
+        lambda y_preds, y_targets: [y_preds.mean(dim=0), y_preds.sum(dim=0)],
+        lambda y_preds, y_targets: {"mean": y_preds.mean(dim=0), "sum": y_preds.sum(dim=0)},
+    ],
+    ids=["tuple", "list", "dict"],
+)
+def test_distrib_output_container_raises(distributed, compute_fn):
+    # Documents the current conservative distributed behavior: tuple/list/mapping outputs are
+    # supported in single-process mode, but under world_size > 1 they intentionally fail
+    # symmetrically with NotImplementedError rather than entering mismatched collective calls.
+    # This is a safety/regression guarantee for this implementation, not the ideal long-term
+    # feature behavior (broadcasting containers across ranks is left for future work).
+    if idist.get_world_size() == 1:
+        pytest.skip("This test verifies world_size > 1 behavior; containers are supported in single process.")
+
+    device = idist.device() if idist.device().type != "xla" else "cpu"
+    torch.manual_seed(40 + idist.get_rank())
+
+    em = EpochMetric(compute_fn, check_compute_fn=False, device=device)
+    em.reset()
+    em.update((torch.rand(4, 3, device=device), torch.randint(0, 2, size=(4, 3), dtype=torch.long, device=device)))
+    em.update((torch.rand(4, 3, device=device), torch.randint(0, 2, size=(4, 3), dtype=torch.long, device=device)))
+
+    with pytest.raises(NotImplementedError, match=r"Distributed broadcast of tuple/list/mapping"):
+        em.compute()
+
+
+def test_distrib_output_unsupported_raises(distributed):
+    # An unsupported output type (str) should raise TypeError consistently on all ranks.
+    device = idist.device() if idist.device().type != "xla" else "cpu"
+    torch.manual_seed(40 + idist.get_rank())
+
+    def compute_fn(y_preds, y_targets):
+        return "not-a-number"
+
+    em = EpochMetric(compute_fn, check_compute_fn=False, device=device)
+    em.reset()
+    em.update((torch.rand(4, 3, device=device), torch.randint(0, 2, size=(4, 3), dtype=torch.long, device=device)))
+    em.update((torch.rand(4, 3, device=device), torch.randint(0, 2, size=(4, 3), dtype=torch.long, device=device)))
+
+    with pytest.raises(TypeError, match=r"compute_fn output type.*is not supported"):
+        em.compute()
