@@ -43,7 +43,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
         pytorch-channel: [pytorch, pytorch-nightly]
         include:
           # includes a single build on windows
@@ -187,5 +187,8 @@ jobs:
       - name: Run CIFAR10 with Ray Tune and Ignite
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
+          echo "Downloading CIFAR10 archive from Zenodo..."
+          mkdir -p data
+          curl -L --retry 3 --retry-delay 10 -o data/cifar-10-python.tar.gz "https://zenodo.org/records/10089977/files/cifar-10-python.tar.gz?download=1"
           uv pip install -r examples/cifar10_raytune/requirements.txt
           python examples/cifar10_raytune/main.py --num_epochs 1 --num_trials 1 --cpus_per_trial 1 --gpus_per_trial 0
