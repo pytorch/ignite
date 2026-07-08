@@ -212,6 +212,7 @@ def test_skip_unrolling(available_device):
     assert torch.equal(em._targets[1].cpu(), output2[1].cpu())
     assert em.compute() == 0.0
 
+
 def test_epoch_metric_compute_fn_tensor_output():
     """Test EpochMetric with compute_fn returning a tensor."""
 
@@ -271,11 +272,12 @@ def test_epoch_metric_compute_fn_invalid_output():
     em.reset()
     output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
     em.update(output1)
-
+    output2 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+    em.update(output2)
 
     with pytest.raises(TypeError, match=r"compute_fn output type"):
         em.compute()
-                       
+
 
 def test_epoch_metric_compute_fn_list_output():
     """Test EpochMetric with compute_fn returning a list of tensors."""
@@ -329,3 +331,33 @@ def test_epoch_metric_compute_fn_dict_output():
     expected = compute_fn(preds, targets)
     assert torch.allclose(result["mse"], expected["mse"])
     assert torch.allclose(result["mae"], expected["mae"])
+
+
+def test_epoch_metric_nested_invalid_output_raises():
+    """Test EpochMetric raises TypeError for container with invalid nested type."""
+
+    def compute_fn(y_preds, y_targets):
+        return [torch.tensor(1.0), "not-a-number"]
+
+    em = EpochMetric(compute_fn, check_compute_fn=False)
+    em.reset()
+    em.update((torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long)))
+    em.update((torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long)))
+
+    with pytest.raises(TypeError, match=r"compute_fn output type .* is not supported"):
+        em.compute()
+
+
+def test_epoch_metric_mapping_non_str_key_raises():
+    """Test EpochMetric raises TypeError for mapping with non-string keys."""
+
+    def compute_fn(y_preds, y_targets):
+        return {0: torch.tensor(1.0)}
+
+    em = EpochMetric(compute_fn, check_compute_fn=False)
+    em.reset()
+    em.update((torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long)))
+    em.update((torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long)))
+
+    with pytest.raises(TypeError, match=r"mapping keys should be str"):
+        em.compute()
