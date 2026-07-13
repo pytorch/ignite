@@ -3,7 +3,7 @@ import torch
 
 from ignite import distributed as idist
 from ignite.engine import Engine
-from ignite.metrics import Accuracy, MetricGroup, Precision
+from ignite.metrics import Accuracy, Loss, MetricGroup, Precision
 
 torch.manual_seed(41)
 
@@ -46,6 +46,34 @@ def test_output_transform():
 
     assert precision.state_dict() == group.metrics["precision"].state_dict()
     assert accuracy.state_dict() == group.metrics["accuracy"].state_dict()
+
+
+def test_mapping_output_with_custom_keys():
+    # Regression test for https://github.com/pytorch/ignite/issues/3806 :
+    # a MetricGroup should not require the engine's output mapping to contain
+    # ('y_pred', 'y'); each metric in the group applies its own output_transform
+    # to pull what it needs from the mapping, same as attaching it directly.
+    def step(engine, batch):
+        return {
+            "outputs_1": (torch.rand(4, 3), torch.rand(4, 3)),
+            "masks": (torch.rand(4, 3), torch.rand(4, 3)),
+        }
+
+    loss_fn = torch.nn.MSELoss()
+
+    direct_engine = Engine(step)
+    Loss(loss_fn, output_transform=lambda o: o["outputs_1"]).attach(direct_engine, "loss")
+
+    group_engine = Engine(step)
+    group = MetricGroup({"loss": Loss(loss_fn, output_transform=lambda o: o["outputs_1"])})
+    group.attach(group_engine, "metrics")
+
+    torch.manual_seed(0)
+    direct_engine.run([0])
+    torch.manual_seed(0)
+    group_engine.run([0])
+
+    assert group_engine.state.metrics["metrics"] == {"loss": direct_engine.state.metrics["loss"]}
 
 
 def test_compute():
