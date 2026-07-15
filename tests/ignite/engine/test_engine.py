@@ -1,6 +1,7 @@
 import math
 import os
 import time
+import weakref
 from unittest.mock import call, MagicMock, Mock
 
 import numpy as np
@@ -1099,9 +1100,46 @@ class TestEngine:
         with pytest.raises(
             ValueError,
             match=r"Arguments max_iters and max_epochs are mutually exclusive."
-            "Please provide only max_epochs or max_iters.",
+            " Please provide only max_epochs or max_iters.",
         ):
             engine.run([0] * 20, max_iters=max_iters, max_epochs=max_epochs)
+
+    def test_switch_termination_mode_errors(self):
+        engine = Engine(lambda e, b: 1)
+        data = range(100)
+
+        # 1. Start with max_epochs
+        engine.run(data, max_epochs=5)
+        assert engine.state.max_epochs == 5
+        assert engine.state.max_iters is None
+
+        # 2. Try to switch to max_iters without reset
+        expected_msg = (
+            "To switch from max_epochs to max_iters mode during resume, "
+            "you must first reset by setting 'engine.state.max_epochs = None' before calling run()."
+        )
+        with pytest.raises(ValueError, match=expected_msg):
+            engine.run(data, max_iters=500)
+
+        # 3. Reset and switch
+        engine.state.max_epochs = None
+        engine.run(data, max_iters=600)
+        assert engine.state.max_iters == 600
+        assert engine.state.max_epochs is None
+
+        # 4. Try to switch back to max_epochs without reset
+        expected_msg_back = (
+            "To switch from max_iters to max_epochs mode during resume, "
+            "you must first reset by setting 'engine.state.max_iters = None' before calling run()."
+        )
+        with pytest.raises(ValueError, match=expected_msg_back):
+            engine.run(data, max_epochs=10)
+
+        # 5. Reset and switch back
+        engine.state.max_iters = None
+        engine.run(data, max_epochs=10)
+        assert engine.state.max_epochs == 10
+        assert engine.state.max_iters is None
 
     def test_epoch_events_fired_max_iters(self):
         max_iters = 32
@@ -1393,6 +1431,46 @@ class TestEngine:
 
         with pytest.raises(ValueError, match="epoch_length should be provided if data is None"):
             engine.run(None, max_epochs=5)
+
+    def test_fire_event_raises_when_engine_ref_not_resolved(self):
+        # covers: RuntimeError raised in _fire_event when the engine weakref
+        # resolves to None (e.g. the engine has been garbage collected)
+        engine = Engine(lambda e, b: None)
+
+        class _Dummy:
+            pass
+
+        dead = _Dummy()
+        dead_ref = weakref.ref(dead)
+        del dead  # weakref now resolves to None
+
+        assert dead_ref() is None
+        # craft a handler whose first arg is a dead weakref to the engine
+        engine._event_handlers[Events.STARTED].append((MagicMock(), (dead_ref,), {}))
+
+        with pytest.raises(RuntimeError, match="Engine reference not resolved"):
+            engine._fire_event(Events.STARTED)
+
+    def test_run_handles_process_function_exception(self):
+        # covers: the `except Exception` block in _run_once_on_dataset (generator
+        # path) and _run_once_on_dataset_legacy when process_function raises;
+        # the exception is routed to the Events.EXCEPTION_RAISED handler
+        def process_fn(engine, batch):
+            raise ValueError("process function error")
+
+        engine = Engine(process_fn)
+
+        caught = []
+
+        @engine.on(Events.EXCEPTION_RAISED)
+        def on_exception(engine, e):
+            caught.append(e)
+
+        engine.run([0, 1, 2], max_epochs=1)
+
+        assert len(caught) == 1
+        assert isinstance(caught[0], ValueError)
+        assert str(caught[0]) == "process function error"
 
 
 @pytest.mark.parametrize(

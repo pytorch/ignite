@@ -10,20 +10,20 @@ Complete list of generic handlers
     :nosignatures:
     :toctree: generated
 
-    checkpoint.Checkpoint
+    Checkpoint
     checkpoint.CheckpointEvents
     DiskSaver
-    checkpoint.ModelCheckpoint
-    ema_handler.EMAHandler
-    early_stopping.EarlyStopping
-    lr_finder.FastaiLRFinder
-    terminate_on_nan.TerminateOnNan
+    ModelCheckpoint
+    EMAHandler
+    EarlyStopping
+    FastaiLRFinder
+    TerminateOnNan
     TimeLimit
-    time_profilers.BasicTimeProfiler
-    time_profilers.HandlersTimeProfiler
-    timing.Timer
+    BasicTimeProfiler
+    HandlersTimeProfiler
+    Timer
     global_step_from_engine
-    stores.EpochOutputStore
+    EpochOutputStore
 
 .. autosummary::
     :nosignatures:

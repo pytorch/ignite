@@ -27,7 +27,7 @@ def test_no_update():
     mcc = MatthewsCorrCoef()
 
     with pytest.raises(
-        NotComputableError, match=r"EpochMetric must have at least one example before it can be computed"
+        NotComputableError, match=r"MatthewsCorrCoef must have at least one example before it can be computed"
     ):
         mcc.compute()
 

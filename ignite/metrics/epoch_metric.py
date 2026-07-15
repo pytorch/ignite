@@ -144,7 +144,7 @@ class EpochMetric(Metric):
 
     def compute(self) -> float:
         if len(self._predictions) < 1 or len(self._targets) < 1:
-            raise NotComputableError("EpochMetric must have at least one example before it can be computed.")
+            raise NotComputableError(f"{type(self).__name__} must have at least one example before it can be computed.")
 
         if self._result is None:
             _prediction_tensor = torch.cat(self._predictions, dim=0)

@@ -1,5 +1,6 @@
 import os
 import sys
+import warnings
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -111,6 +112,26 @@ def test__setup_logging_wrong_args():
         _setup_logging(MagicMock(), MagicMock(), MagicMock(spec=torch.optim.SGD), "abc", 1)
 
 
+def test__setup_logging_metric_names():
+    trainer = Engine(lambda e, b: b)
+    evaluator = Engine(lambda e, b: b)
+    logger = MagicMock()
+
+    _setup_logging(
+        logger,
+        trainer,
+        optimizers=None,
+        evaluators={"validation": evaluator},
+        log_every_iters=10,
+        trainer_metric_names=["loss"],
+        evaluator_metric_names=["accuracy"],
+    )
+
+    assert logger.attach_output_handler.call_count == 2
+    assert logger.attach_output_handler.call_args_list[0].kwargs["metric_names"] == ["loss"]
+    assert logger.attach_output_handler.call_args_list[1].kwargs["metric_names"] == ["accuracy"]
+
+
 def test_setup_tb_logging(dirname):
     tb_logger = _test_setup_logging(
         setup_logging_fn=setup_tb_logging,
@@ -141,6 +162,35 @@ def test_setup_tb_logging(dirname):
         log_every_iters=None,
     )
     tb_logger.close()
+
+
+def test_setup_tb_logging_evaluator_metric_names_filter_tensor_metrics(dirname):
+    trainer = Engine(lambda e, b: b)
+    evaluator = Engine(lambda e, b: b)
+
+    @trainer.on(Events.EPOCH_COMPLETED)
+    def validate(engine):
+        evaluator.run([0])
+
+    @evaluator.on(Events.COMPLETED)
+    def set_eval_metrics(engine):
+        engine.state.metrics = {"acc": 0.75, "cm": torch.zeros(2, 2)}
+
+    tb_logger = setup_tb_logging(
+        output_path=dirname / "filtered",
+        trainer=trainer,
+        evaluators={"validation": evaluator},
+        log_every_iters=1,
+        evaluator_metric_names=["acc"],
+    )
+
+    with warnings.catch_warnings(record=True) as records:
+        warnings.simplefilter("always")
+        trainer.run([0], max_epochs=1)
+
+    tb_logger.close()
+
+    assert not any("can not log metrics value type" in str(record.message) for record in records)
 
 
 @pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")

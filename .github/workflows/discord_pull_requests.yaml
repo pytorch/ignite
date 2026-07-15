@@ -19,7 +19,7 @@ jobs:
     steps:
       - name: "Discuss on Discord-PR (Non-maintainer only)"
         if: ${{ github.event.label.name == 'help wanted' }}
-        uses: EndBug/discuss-on-discord@v1.1.0
+        uses: EndBug/discuss-on-discord@bff2908cbd855fff72c1007aed386e09144727e1 # v1.1.0
         with:
           discord_bot_token: ${{ secrets.DISCORD_BOT_TOKEN }}
           destination: ${{ secrets.DISCORD_BOT_DESTINATION }}

@@ -30,9 +30,7 @@ def test_no_sklearn(mock_no_sklearn):
 def test_no_update():
     roc_auc = ROC_AUC()
 
-    with pytest.raises(
-        NotComputableError, match=r"EpochMetric must have at least one example before it can be computed"
-    ):
+    with pytest.raises(NotComputableError, match=r"ROC_AUC must have at least one example before it can be computed"):
         roc_auc.compute()
 
 

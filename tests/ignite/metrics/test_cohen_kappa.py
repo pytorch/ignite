@@ -1,8 +1,6 @@
 import os
-from unittest.mock import patch
 
 import pytest
-import sklearn
 import torch
 from sklearn.metrics import cohen_kappa_score
 
@@ -14,22 +12,11 @@ from ignite.metrics import CohenKappa
 torch.manual_seed(12)
 
 
-@pytest.fixture()
-def mock_no_sklearn():
-    with patch.dict("sys.modules", {"sklearn.metrics": None}):
-        yield sklearn
-
-
-def test_no_sklearn(mock_no_sklearn):
-    with pytest.raises(ModuleNotFoundError, match=r"This contrib module requires scikit-learn to be installed."):
-        CohenKappa()
-
-
 def test_no_update():
     ck = CohenKappa()
 
     with pytest.raises(
-        NotComputableError, match=r"EpochMetric must have at least one example before it can be computed"
+        NotComputableError, match=r"_CohenKappaEpochMetric must have at least one example before it can be computed"
     ):
         ck.compute()
 
@@ -52,15 +39,16 @@ def test_input_types():
 
 def test_check_shape():
     ck = CohenKappa()
+    impl = ck._impl
 
     with pytest.raises(ValueError, match=r"Predictions should be of shape"):
-        ck._check_shape((torch.tensor(0), torch.tensor(0)))
+        impl._check_shape((torch.tensor(0), torch.tensor(0)))
 
     with pytest.raises(ValueError, match=r"Predictions should be of shape"):
-        ck._check_shape((torch.rand(4, 3, 1), torch.rand(4, 3)))
+        impl._check_shape((torch.rand(4, 3, 1), torch.rand(4, 3)))
 
     with pytest.raises(ValueError, match=r"Targets should be of shape"):
-        ck._check_shape((torch.rand(4, 3), torch.rand(4, 3, 1)))
+        impl._check_shape((torch.rand(4, 3), torch.rand(4, 3, 1)))
 
 
 def test_cohen_kappa_wrong_weights_type():
@@ -104,7 +92,9 @@ def test_binary_input(n_times, weights, test_data_binary, available_device):
 
     res = ck.compute()
     assert isinstance(res, float)
-    assert cohen_kappa_score(np_y, np_y_pred, weights=weights) == pytest.approx(res)
+    # mps falls back to float32 (no float64 support), so relax tolerance there
+    tol = 1e-4 if available_device == "mps" else 1e-6
+    assert cohen_kappa_score(np_y, np_y_pred, weights=weights) == pytest.approx(res, abs=tol)
 
 
 def test_multilabel_inputs():
@@ -162,7 +152,9 @@ def test_integration_binary_input(n_times, weights, test_data_integration_binary
     ck = engine.run(data, max_epochs=1).metrics["ck"]
 
     assert isinstance(ck, float)
-    assert np_ck == pytest.approx(ck)
+    # mps falls back to float32 (no float64 support), so relax tolerance there
+    tol = 1e-4 if available_device == "mps" else 1e-6
+    assert np_ck == pytest.approx(ck, abs=tol)
 
 
 def _test_distrib_binary_input(device):
@@ -329,3 +321,74 @@ def _test_distrib_xla_nprocs(index):
 def test_distrib_xla_nprocs(xmp_executor):
     n = int(os.environ["NUM_TPU_WORKERS"])
     xmp_executor(_test_distrib_xla_nprocs, args=(), nprocs=n)
+
+
+# --- num_classes path tests ---
+
+
+def test_num_classes_no_update():
+    ck = CohenKappa(num_classes=3)
+    with pytest.raises(
+        NotComputableError, match=r"Confusion matrix must have at least one example before it can be computed"
+    ):
+        ck.compute()
+
+
+@pytest.mark.parametrize("weights", [None, "linear", "quadratic"])
+def test_num_classes_matches_dynamic(weights, available_device):
+    torch.manual_seed(42)
+    y_pred = torch.randint(0, 4, size=(60,)).long()
+    y = torch.randint(0, 4, size=(60,)).long()
+    batch_size = 10
+
+    ck_dynamic = CohenKappa(weights=weights, device=available_device)
+    ck_fixed = CohenKappa(weights=weights, device=available_device, num_classes=4)
+
+    for ck in (ck_dynamic, ck_fixed):
+        ck.reset()
+        for i in range(60 // batch_size):
+            idx = i * batch_size
+            ck.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
+
+    # mps falls back to float32 (no float64 support), so relax tolerance there
+    tol = 1e-4 if available_device == "mps" else 1e-6
+    assert ck_dynamic.compute() == pytest.approx(ck_fixed.compute(), abs=tol)
+
+
+@pytest.mark.parametrize("weights", [None, "linear", "quadratic"])
+def test_num_classes_single_batch(weights, available_device):
+    torch.manual_seed(0)
+    y_pred = torch.randint(0, 3, size=(30,)).long()
+    y = torch.randint(0, 3, size=(30,)).long()
+
+    ck = CohenKappa(weights=weights, device=available_device, num_classes=3)
+    ck.reset()
+    ck.update((y_pred, y))
+    res = ck.compute()
+
+    assert isinstance(res, float)
+    # mps falls back to float32 (no float64 support), so relax tolerance there
+    tol = 1e-4 if available_device == "mps" else 1e-6
+    assert cohen_kappa_score(y.numpy(), y_pred.numpy(), weights=weights) == pytest.approx(res, abs=tol)
+
+
+def test_num_classes_multilabel_inputs():
+    ck = CohenKappa(num_classes=4)
+    with pytest.raises(ValueError, match=r"multilabel-indicator is not supported"):
+        ck.reset()
+        ck.update((torch.randint(0, 2, size=(10, 4)).long(), torch.randint(0, 2, size=(10, 4)).long()))
+        ck.compute()
+
+
+def test_num_classes_squeeze_n1():
+    torch.manual_seed(7)
+    y_pred = torch.randint(0, 2, size=(20, 1)).long()
+    y = torch.randint(0, 2, size=(20, 1)).long()
+
+    ck = CohenKappa(num_classes=2)
+    ck.reset()
+    ck.update((y_pred, y))
+    res = ck.compute()
+
+    assert isinstance(res, float)
+    assert cohen_kappa_score(y.squeeze().numpy(), y_pred.squeeze().numpy()) == pytest.approx(res)
