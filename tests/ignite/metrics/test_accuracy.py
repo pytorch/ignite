@@ -154,6 +154,18 @@ def test_multilabel_wrong_inputs():
         acc.update((torch.randint(0, 2, size=(10, 1)), torch.randint(0, 2, size=(10, 1)).long()))
 
 
+def test_average_parameter():
+    with pytest.raises(ValueError, match=r"Argument average should be None or False"):
+        Accuracy(average="macro")
+
+    with pytest.raises(ValueError, match=r"Argument average=False is only applicable with is_multilabel=True"):
+        Accuracy(average=False)
+
+    # both should be fine
+    Accuracy(average=None)
+    Accuracy(average=False, is_multilabel=True)
+
+
 @pytest.mark.parametrize("n_times", range(3))
 def test_multilabel_input(n_times, available_device, test_data_multilabel):
     acc = Accuracy(is_multilabel=True, device=available_device)
@@ -176,6 +188,110 @@ def test_multilabel_input(n_times, available_device, test_data_multilabel):
     assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
 
 
+def test_multilabel_input_average_false():
+    y_true = torch.tensor(
+        [
+            [0, 0, 1, 0, 1],
+            [1, 0, 1, 0, 0],
+            [0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 1],
+            [0, 1, 1, 0, 1],
+        ]
+    )
+    y_pred = torch.tensor(
+        [
+            [1, 1, 0, 0, 0],
+            [1, 0, 1, 0, 0],
+            [1, 0, 0, 0, 0],
+            [1, 0, 1, 1, 1],
+            [1, 1, 0, 0, 1],
+        ]
+    )
+
+    acc = Accuracy(is_multilabel=True, average=False)
+    acc.update((y_pred, y_true))
+    result = acc.compute()
+
+    assert isinstance(result, torch.Tensor)
+    assert result.shape == (5,)
+
+    expected = (y_true == y_pred).float().mean(dim=0)
+    assert torch.allclose(result, expected)
+    assert torch.allclose(result, torch.tensor([0.4, 0.8, 0.4, 0.8, 0.6]))
+
+
+def test_multilabel_input_average_false_all_correct():
+    y_true = torch.randint(0, 2, size=(8, 3))
+    y_pred = y_true.clone()
+
+    acc = Accuracy(is_multilabel=True, average=False)
+    acc.update((y_pred, y_true))
+    assert torch.allclose(acc.compute(), torch.ones(3))
+
+
+def test_multilabel_input_average_false_all_wrong():
+    y_true = torch.tensor([[0, 1, 0]] * 8)
+    y_pred = torch.tensor([[1, 0, 1]] * 8)
+
+    acc = Accuracy(is_multilabel=True, average=False)
+    acc.update((y_pred, y_true))
+    assert torch.allclose(acc.compute(), torch.zeros(3))
+
+
+def test_multilabel_input_average_false_label_with_no_positives():
+    # label at index 1 has no positive samples in y_true
+    y_true = torch.tensor(
+        [
+            [1, 0, 0],
+            [0, 0, 1],
+            [1, 0, 1],
+            [0, 0, 0],
+        ]
+    )
+    y_pred = torch.tensor(
+        [
+            [1, 0, 0],
+            [0, 1, 1],
+            [1, 0, 0],
+            [0, 0, 1],
+        ]
+    )
+
+    acc = Accuracy(is_multilabel=True, average=False)
+    acc.update((y_pred, y_true))
+    result = acc.compute()
+
+    expected = (y_true == y_pred).float().mean(dim=0)
+    assert torch.allclose(result, expected)
+    assert torch.isfinite(result).all()
+
+
+@pytest.mark.parametrize("n_times", range(3))
+def test_multilabel_input_average_false_batched(n_times, available_device, test_data_multilabel):
+    acc = Accuracy(is_multilabel=True, average=False, device=available_device)
+    assert acc._device == torch.device(available_device)
+
+    y_pred, y, batch_size = test_data_multilabel
+    if batch_size > 1:
+        n_iters = y.shape[0] // batch_size + 1
+        for i in range(n_iters):
+            idx = i * batch_size
+            acc.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
+    else:
+        acc.update((y_pred, y))
+
+    np_y_pred = to_numpy_multilabel(y_pred)
+    np_y = to_numpy_multilabel(y)
+    num_labels = np_y.shape[1]
+
+    result = acc.compute()
+    assert isinstance(result, torch.Tensor)
+    assert result.shape == (num_labels,)
+
+    expected = (np_y == np_y_pred).mean(axis=0)
+    assert result.cpu().numpy().tolist() == pytest.approx(expected.tolist())
+
+
 def test_incorrect_type():
     acc = Accuracy()
 
@@ -190,6 +306,39 @@ def test_incorrect_type():
 
     with pytest.raises(RuntimeError):
         acc.update((y_pred, y))
+
+
+@pytest.mark.parametrize("n_epochs", [1, 2])
+def test_engine_integration_multilabel_average_false(n_epochs):
+    # Regression test: reset() must correctly re-initialize the per-label accumulator
+    # at the start of every epoch, not just the first one.
+    n_iters = 10
+    batch_size = 16
+    n_classes = 5
+
+    y_true = torch.randint(0, 2, size=(n_iters * batch_size, n_classes))
+    y_preds = torch.randint(0, 2, size=(n_iters * batch_size, n_classes))
+
+    def update(engine, i):
+        return (
+            y_preds[i * batch_size : (i + 1) * batch_size, :],
+            y_true[i * batch_size : (i + 1) * batch_size, :],
+        )
+
+    engine = Engine(update)
+    acc = Accuracy(is_multilabel=True, average=False)
+    acc.attach(engine, "acc")
+
+    data = list(range(n_iters))
+    engine.run(data=data, max_epochs=n_epochs)
+
+    assert "acc" in engine.state.metrics
+    res = engine.state.metrics["acc"]
+    assert isinstance(res, torch.Tensor)
+    assert res.shape == (n_classes,)
+
+    expected = (y_true == y_preds).float().mean(dim=0)
+    assert torch.allclose(res, expected)
 
 
 @pytest.mark.usefixtures("distributed")
@@ -400,6 +549,58 @@ class TestDistributed:
 
             assert pytest.approx(res) == true_res
 
+    @pytest.mark.parametrize("n_epochs", [1, 2])
+    def test_integration_multilabel_average_false(self, n_epochs):
+        rank = idist.get_rank()
+        torch.manual_seed(12 + rank)
+
+        n_iters = 80
+        batch_size = 16
+        n_classes = 10
+
+        metric_devices = [torch.device("cpu")]
+        device = idist.device()
+        if device.type != "xla":
+            metric_devices.append(device)
+
+        for metric_device in metric_devices:
+            metric_device = torch.device(metric_device)
+
+            y_true = torch.randint(0, 2, size=(n_iters * batch_size, n_classes, 8, 10)).to(device)
+            y_preds = torch.randint(0, 2, size=(n_iters * batch_size, n_classes, 8, 10)).to(device)
+
+            def update(engine, i):
+                return (
+                    y_preds[i * batch_size : (i + 1) * batch_size, ...],
+                    y_true[i * batch_size : (i + 1) * batch_size, ...],
+                )
+
+            engine = Engine(update)
+
+            acc = Accuracy(is_multilabel=True, average=False, device=metric_device)
+            acc.attach(engine, "acc")
+
+            data = list(range(n_iters))
+            engine.run(data=data, max_epochs=n_epochs)
+
+            y_true = idist.all_gather(y_true)
+            y_preds = idist.all_gather(y_preds)
+
+            assert acc._num_correct.device == metric_device, (
+                f"{type(acc._num_correct.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
+            )
+
+            assert "acc" in engine.state.metrics
+            res = engine.state.metrics["acc"]
+            assert isinstance(res, torch.Tensor)
+            assert res.shape == (n_classes,)
+
+            np_y_true = to_numpy_multilabel(y_true)
+            np_y_preds = to_numpy_multilabel(y_preds)
+            expected = (np_y_true == np_y_preds).mean(axis=0)
+
+            assert res.cpu().numpy().tolist() == pytest.approx(expected.tolist())
+
     def test_accumulator_device(self):
         metric_devices = [torch.device("cpu")]
         device = idist.device()
@@ -409,9 +610,9 @@ class TestDistributed:
         for metric_device in metric_devices:
             acc = Accuracy(device=metric_device)
             assert acc._device == metric_device
-            assert acc._num_correct.device == metric_device, (
-                f"{type(acc._num_correct.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
-            )
+            # Since the shape of the accumulated amount isn't known before the first update
+            # call, the internal variable isn't a tensor on the right device yet (it's a
+            # plain int 0 right after reset()).
 
             y_pred = torch.randint(0, 2, size=(10,), device=device, dtype=torch.long)
             y = torch.randint(0, 2, size=(10,), device=device, dtype=torch.long)
