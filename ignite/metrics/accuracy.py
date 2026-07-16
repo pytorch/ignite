@@ -1,4 +1,5 @@
 from collections.abc import Callable, Sequence, Iterable
+from typing import cast
 
 import torch
 
@@ -349,7 +350,6 @@ class Accuracy(_BaseClassification):
             y_pred = torch.transpose(y_pred, 1, last_dim - 1).reshape(-1, num_classes)
             y = torch.transpose(y, 1, last_dim - 1).reshape(-1, num_classes)
             if self._average is False:
-                # Per-label elementwise accuracy: count correct predictions per label separately
                 correct = (y == y_pred.type_as(y)).float()
                 self._num_correct += correct.sum(dim=0).to(self._device)
                 self._num_examples += correct.shape[0]
@@ -368,4 +368,4 @@ class Accuracy(_BaseClassification):
             raise NotComputableError("Accuracy must have at least one example before it can be computed.")
         if self._average is False:
             return self._num_correct / self._num_examples
-        return self._num_correct.item() / self._num_examples
+        return cast(torch.Tensor, self._num_correct).item() / self._num_examples
