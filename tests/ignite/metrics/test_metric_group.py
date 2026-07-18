@@ -62,10 +62,12 @@ def test_mapping_output_with_custom_keys():
     loss_fn = torch.nn.MSELoss()
 
     direct_engine = Engine(step)
-    Loss(loss_fn, output_transform=lambda o: o["outputs_1"]).attach(direct_engine, "loss")
+    direct_loss = Loss(loss_fn, output_transform=lambda o: o["outputs_1"])
+    direct_loss.attach(direct_engine, "loss")
 
     group_engine = Engine(step)
-    group = MetricGroup({"loss": Loss(loss_fn, output_transform=lambda o: o["outputs_1"])})
+    group_loss = Loss(loss_fn, output_transform=lambda o: o["outputs_1"])
+    group = MetricGroup({"loss": group_loss})
     group.attach(group_engine, "metrics")
 
     torch.manual_seed(0)
@@ -74,6 +76,7 @@ def test_mapping_output_with_custom_keys():
     group_engine.run([0])
 
     assert group_engine.state.metrics["metrics"] == {"loss": direct_engine.state.metrics["loss"]}
+    assert direct_loss.state_dict() == group_loss.state_dict()
 
 
 def test_compute():
