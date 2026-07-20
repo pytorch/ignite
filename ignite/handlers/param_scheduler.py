@@ -277,7 +277,7 @@ class ParamScheduler(BaseParamScheduler):
             values.append([i, scheduler.optimizer_param_groups[0][scheduler.param_name]])
         return values
 
-    def _get_param(self) -> list[float] | float:
+    def _get_param(self) -> list[float] | tuple[float, ...] | float:
         # `ParamScheduler` does nothing special, only returning what child class returns.
         # Intermediate child classes edit this method
         return self.get_param()
@@ -310,6 +310,8 @@ class CyclicalScheduler(ParamScheduler):
     Note:
         If the scheduler is bound to an 'ITERATION_*' event, 'cycle_size' should
         usually be the number of batches in an epoch.
+        Tuple parameters can be scheduled by passing tuples for both ``start_value``
+        and ``end_value``.
 
     .. versionadded:: 0.4.5
 
@@ -321,8 +323,8 @@ class CyclicalScheduler(ParamScheduler):
         self,
         optimizer: Optimizer,
         param_name: str,
-        start_value: float,
-        end_value: float,
+        start_value: float | tuple[float, ...],
+        end_value: float | tuple[float, ...],
         cycle_size: int,
         cycle_mult: float = 1.0,
         start_value_mult: float = 1.0,
@@ -332,8 +334,20 @@ class CyclicalScheduler(ParamScheduler):
         param_group_index: int | None = None,
     ):
         super().__init__(optimizer, param_name, save_history=save_history, param_group_index=param_group_index)
-        self.start_value = start_value
-        self.end_value = end_value
+        if isinstance(start_value, tuple):
+            if not isinstance(end_value, tuple):
+                raise TypeError("start_value and end_value should both be tuples")
+            if len(start_value) != len(end_value):
+                raise ValueError("start_value and end_value should have the same length")
+            tuple_values = True
+        elif isinstance(end_value, tuple):
+            raise TypeError("start_value and end_value should both be tuples")
+        else:
+            tuple_values = False
+
+        self._tuple_values = tuple_values
+        self.start_value: Any = torch.tensor(start_value, dtype=torch.float64) if tuple_values else start_value
+        self.end_value: Any = torch.tensor(end_value, dtype=torch.float64) if tuple_values else end_value
         self.cycle_size = cycle_size
         self.cycle_mult = cycle_mult
         self.cycle = 0
@@ -370,15 +384,20 @@ class CyclicalScheduler(ParamScheduler):
 
         return super(CyclicalScheduler, self).__call__(engine, name)
 
-    def _get_param(self) -> list[float] | float:
+    def _get_param(self) -> list[float] | tuple[float, ...] | float:
         """Applies warm-up if the scheduler is in the warm-up phase,
         otherwise returns what is returned by `self.get_param()`
         """
         if self.event_index > self.cycle_size:
             warmup_progress = (self.event_index - self.cycle_size) / self.warmup_duration
-            return self.end_value + (self.start_value - self.end_value) * warmup_progress
+            value = self.end_value + (self.start_value - self.end_value) * warmup_progress
+        else:
+            value = self.get_param()
 
-        return self.get_param()
+        if self._tuple_values:
+            assert isinstance(value, torch.Tensor)
+            return tuple(value.tolist())
+        return value
 
 
 class LinearCyclicalScheduler(CyclicalScheduler):
