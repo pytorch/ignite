@@ -117,7 +117,7 @@ def setup_tb_logging(
         evaluator_metric_names: list of evaluator metric names to plot or a string "all" to plot all available metrics.
         kwargs: optional keyword args to be passed to construct the logger.
 
-    .. versionchanged:: 0.6.0
+    .. versionchanged:: 0.5.5
         Added ``trainer_metric_names`` and ``evaluator_metric_names`` parameters.
 
     Returns:
@@ -185,7 +185,7 @@ def setup_visdom_logging(
         evaluator_metric_names: list of evaluator metric names to plot or a string "all" to plot all available metrics.
         kwargs: optional keyword args to be passed to construct the logger.
 
-    .. versionchanged:: 0.6.0
+    .. versionchanged:: 0.5.5
         Added ``trainer_metric_names`` and ``evaluator_metric_names`` parameters.
 
     Returns:
@@ -247,7 +247,7 @@ def setup_mlflow_logging(
         evaluator_metric_names: list of evaluator metric names to plot or a string "all" to plot all available metrics.
         kwargs: optional keyword args to be passed to construct the logger.
 
-    .. versionchanged:: 0.6.0
+    .. versionchanged:: 0.5.5
         Added ``trainer_metric_names`` and ``evaluator_metric_names`` parameters.
 
     Returns:
@@ -309,7 +309,7 @@ def setup_neptune_logging(
         evaluator_metric_names: list of evaluator metric names to plot or a string "all" to plot all available metrics.
         kwargs: optional keyword args to be passed to construct the logger.
 
-    .. versionchanged:: 0.6.0
+    .. versionchanged:: 0.5.5
         Added ``trainer_metric_names`` and ``evaluator_metric_names`` parameters.
 
     Returns:
@@ -371,7 +371,7 @@ def setup_wandb_logging(
         evaluator_metric_names: list of evaluator metric names to plot or a string "all" to plot all available metrics.
         kwargs: optional keyword args to be passed to construct the logger.
 
-    .. versionchanged:: 0.6.0
+    .. versionchanged:: 0.5.5
         Added ``trainer_metric_names`` and ``evaluator_metric_names`` parameters.
 
     Returns:
@@ -433,7 +433,7 @@ def setup_plx_logging(
         evaluator_metric_names: list of evaluator metric names to plot or a string "all" to plot all available metrics.
         kwargs: optional keyword args to be passed to construct the logger.
 
-    .. versionchanged:: 0.6.0
+    .. versionchanged:: 0.5.5
         Added ``trainer_metric_names`` and ``evaluator_metric_names`` parameters.
 
     Returns:
@@ -495,7 +495,7 @@ def setup_clearml_logging(
         evaluator_metric_names: list of evaluator metric names to plot or a string "all" to plot all available metrics.
         kwargs: optional keyword args to be passed to construct the logger.
 
-    .. versionchanged:: 0.6.0
+    .. versionchanged:: 0.5.5
         Added ``trainer_metric_names`` and ``evaluator_metric_names`` parameters.
 
     Returns:
@@ -541,7 +541,7 @@ def setup_trains_logging(
 ) -> ClearMLLogger:
     """``setup_trains_logging`` was renamed to :func:`~ignite.handlers.logger_utils.setup_clearml_logging`.
 
-    .. versionchanged:: 0.6.0
+    .. versionchanged:: 0.5.5
         Added ``trainer_metric_names`` and ``evaluator_metric_names`` parameters.
     """
     warnings.warn("setup_trains_logging was renamed to setup_clearml_logging.")

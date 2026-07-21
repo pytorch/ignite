@@ -63,14 +63,14 @@ class EarlyStopping(Serializable, ResettableHandler):
             # Note: the handler is attached to an *Evaluator*
             evaluator.add_event_handler(Events.COMPLETED, handler)
 
-    .. versionchanged:: 0.6.0
-        Renamed ``min_delta_mode``  to ``threshold_mode``.
-        Renamed ``min_delta`` to ``threshold``.
-        Renamed ``cumulative_delta`` to ``cumulative``.
     .. versionchanged:: 0.5.4
         Added `mode` parameter to support minimization in addition to maximization.
         Added `min_delta_mode` parameter to support both absolute and relative improvements.
 
+    .. versionchanged:: 0.5.5
+        Renamed ``min_delta_mode``  to ``threshold_mode``.
+        Renamed ``min_delta`` to ``threshold``.
+        Renamed ``cumulative_delta`` to ``cumulative``.
     """
 
     _state_dict_all_req_keys = (
