@@ -67,6 +67,7 @@ class EarlyStopping(Serializable, ResettableHandler):
         Renamed ``min_delta_mode``  to ``threshold_mode``.
         Renamed ``min_delta`` to ``threshold``.
         Renamed ``cumulative_delta`` to ``cumulative``.
+        Added :meth:`get_default_score_fn` and :meth:`get_default_event_filter` static helpers.
     .. versionchanged:: 0.5.4
         Added `mode` parameter to support minimization in addition to maximization.
         Added `min_delta_mode` parameter to support both absolute and relative improvements.
@@ -291,3 +292,90 @@ class EarlyStopping(Serializable, ResettableHandler):
         self.counter = state_dict["counter"]
         self.best_score = state_dict["best_score"]
         self.threshold_mode = state_dict.get("threshold_mode", self.threshold_mode)
+
+    @staticmethod
+    def get_default_score_fn(metric_name: str, score_sign: float = 1.0) -> Callable:
+        """Helper method to build a score function from an engine metric name.
+
+        The returned callable reads ``engine.state.metrics[metric_name]`` and multiplies it
+        by ``score_sign``. Use ``score_sign=-1.0`` for error-like metrics (smaller is better)
+        when the handler is configured with ``mode="max"`` so that decreases in the metric
+        register as score improvements.
+
+        Args:
+            metric_name: name of the metric in ``engine.state.metrics``.
+            score_sign: ``1.0`` (default) or ``-1.0``. For error-like metrics where smaller
+                is better, use ``-1.0``.
+
+        Returns:
+            A callable taking an :class:`~ignite.engine.engine.Engine` and returning ``float``.
+
+        Examples:
+            .. code-block:: python
+
+                from ignite.handlers import EarlyStopping
+
+                # Validation accuracy: larger is better, default mode="max"
+                score_fn = EarlyStopping.get_default_score_fn("accuracy")
+                handler = EarlyStopping(patience=5, score_function=score_fn, trainer=trainer)
+
+                # Validation loss: smaller is better, flip the sign so larger is better
+                neg_loss_fn = EarlyStopping.get_default_score_fn("loss", -1.0)
+                handler = EarlyStopping(patience=5, score_function=neg_loss_fn, trainer=trainer)
+
+        .. versionadded:: 0.6.0
+        """
+        if score_sign not in (1.0, -1.0):
+            raise ValueError("Argument score_sign should be 1.0 or -1.0")
+
+        def wrapper(engine: Engine) -> float:
+            return score_sign * engine.state.metrics[metric_name]
+
+        return wrapper
+
+    def get_default_event_filter(self, after: int) -> Callable[[Engine, int], bool]:
+        """Build an event filter that delays early-stopping checks until the trainer
+        has completed at least ``after`` epochs.
+
+        This implements a warmup window for early stopping without coupling the warmup
+        logic to the handler itself, so it composes with any event the handler is
+        attached to (epoch, iteration, custom). The filter consults the trainer's
+        epoch counter (``self.trainer.state.epoch``) rather than the host engine's
+        event count, so the warmup is well-defined even when the handler is attached
+        to an evaluator that re-runs from scratch each epoch.
+
+        Args:
+            after: minimum number of trainer epochs that must have completed before
+                the early-stopping handler is allowed to run. Must be a non-negative
+                integer.
+
+        Returns:
+            A callable matching the ``event_filter`` signature ``(engine, event) -> bool``.
+
+        Examples:
+            .. code-block:: python
+
+                from ignite.engine import Events
+                from ignite.handlers import EarlyStopping
+
+                handler = EarlyStopping(patience=5, score_function=score_fn, trainer=trainer)
+
+                # Skip the first 3 trainer epochs, then enforce early stopping.
+                evaluator.add_event_handler(
+                    Events.COMPLETED(event_filter=handler.get_default_event_filter(after=3)),
+                    handler,
+                )
+
+        .. versionadded:: 0.6.0
+        """
+        if not isinstance(after, int) or after < 0:
+            raise ValueError("Argument after should be a non-negative integer.")
+
+        trainer = self.trainer
+
+        def event_filter(engine: Engine, event: int) -> bool:
+            # The host engine's `event` counter resets per `run()` (e.g. evaluators
+            # called repeatedly), so look at the trainer's epoch counter instead.
+            return trainer.state.epoch > after
+
+        return event_filter
