@@ -1,6 +1,6 @@
 import warnings
-from collections.abc import Callable
-from typing import cast
+from collections.abc import Callable, Mapping, Sequence
+from typing import cast, Union
 
 import torch
 
@@ -9,6 +9,9 @@ from ignite.exceptions import NotComputableError
 from ignite.metrics.metric import Metric, reinit__is_reduced
 
 __all__ = ["EpochMetric"]
+
+# Supported return types for ``EpochMetric``'s ``compute_fn``.
+EpochMetricOutput = Union[int, float, torch.Tensor, Sequence, Mapping]
 
 
 class EpochMetric(Metric):
@@ -30,7 +33,13 @@ class EpochMetric(Metric):
 
     Args:
         compute_fn: a callable which receives two tensors as the `predictions` and `targets`
-            and returns a scalar. Input tensors will be on specified ``device`` (see arg below).
+            and returns the computed metric. Supported return types are: ``int``, ``float``,
+            ``torch.Tensor``, a ``Sequence`` (tuple/list) of these, or a ``Mapping`` (dict) with
+            string keys and these values. An unsupported return type raises a ``TypeError``.
+            Note: in distributed configuration (``world_size > 1``), only scalar and
+            ``torch.Tensor`` outputs are broadcast across processes; tuple/list/mapping outputs
+            are supported only when ``world_size == 1``. Input tensors will be on specified
+            ``device`` (see arg below).
         output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
@@ -93,7 +102,7 @@ class EpochMetric(Metric):
     def reset(self) -> None:
         self._predictions: list[torch.Tensor] = []
         self._targets: list[torch.Tensor] = []
-        self._result: float | None = None
+        self._result: EpochMetricOutput | None = None
 
     def _check_shape(self, output: tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output
@@ -142,7 +151,27 @@ class EpochMetric(Metric):
             except Exception as e:
                 warnings.warn(f"Probably, there can be a problem with `compute_fn`:\n {e}.", EpochMetricWarning)
 
-    def compute(self) -> float:
+    def _check_output_type(self, result: EpochMetricOutput) -> None:
+        # Recursively validate that compute_fn's output is a supported type. ``str``/``bytes``
+        # are rejected explicitly since ``str`` is itself a ``Sequence``.
+        if isinstance(result, (int, float, torch.Tensor)):
+            return
+        if isinstance(result, Mapping):
+            for key, value in result.items():
+                if not isinstance(key, str):
+                    raise TypeError(f"compute_fn output mapping keys should be str, but given {type(key)}.")
+                self._check_output_type(value)
+            return
+        if isinstance(result, Sequence) and not isinstance(result, (str, bytes)):
+            for value in result:
+                self._check_output_type(value)
+            return
+        raise TypeError(
+            f"compute_fn output type {type(result)} is not supported. Supported types are: "
+            "int, float, torch.Tensor, a Sequence of these, or a Mapping with str keys and these values."
+        )
+
+    def compute(self) -> EpochMetricOutput:
         if len(self._predictions) < 1 or len(self._targets) < 1:
             raise NotComputableError(f"{type(self).__name__} must have at least one example before it can be computed.")
 
@@ -156,14 +185,48 @@ class EpochMetric(Metric):
                 _prediction_tensor = cast(torch.Tensor, idist.all_gather(_prediction_tensor))
                 _target_tensor = cast(torch.Tensor, idist.all_gather(_target_tensor))
 
-            self._result = 0.0
+            result: EpochMetricOutput = 0.0
             if idist.get_rank() == 0:
                 # Run compute_fn on zero rank only
-                self._result = self.compute_fn(_prediction_tensor, _target_tensor)
+                result = self.compute_fn(_prediction_tensor, _target_tensor)
 
             if ws > 1:
-                # broadcast result to all processes
-                self._result = cast(float, idist.broadcast(self._result, src=0))
+                # All ranks must take the same path through the collective calls below, otherwise
+                # they would deadlock on mismatched broadcasts. Only rank 0 holds the real result,
+                # so it classifies the result and shares a status code with every rank *before*
+                # broadcasting the result itself. Type/validation problems are surfaced through the
+                # same mechanism so that every rank raises the same exception.
+                _BROADCASTABLE, _UNSUPPORTED_CONTAINER, _UNSUPPORTED_TYPE = 0, 1, 2
+                status = _BROADCASTABLE
+                if idist.get_rank() == 0 and not isinstance(result, (int, float, torch.Tensor)):
+                    try:
+                        self._check_output_type(result)
+                        status = _UNSUPPORTED_CONTAINER
+                    except TypeError:
+                        status = _UNSUPPORTED_TYPE
+                status = int(idist.broadcast(status, src=0))
+
+                if status == _UNSUPPORTED_TYPE:
+                    # Every rank raises the same error; no result broadcast is attempted.
+                    raise TypeError(
+                        "compute_fn output type is not supported. Supported types are: int, float, "
+                        "torch.Tensor, a Sequence of these, or a Mapping with str keys and these values."
+                    )
+                if status == _UNSUPPORTED_CONTAINER:
+                    # Every rank raises the same error; no result broadcast is attempted.
+                    raise NotImplementedError(
+                        "Distributed broadcast of tuple/list/mapping compute_fn outputs is not supported yet. "
+                        "Such outputs are currently supported only in non-distributed (world_size == 1) "
+                        "configuration."
+                    )
+
+                # status == _BROADCASTABLE: every rank performs the matching result broadcast.
+                result = cast(EpochMetricOutput, idist.broadcast(result, src=0, safe_mode=True))
+            else:
+                # Single process: validate directly and surface unsupported types as TypeError.
+                self._check_output_type(result)
+
+            self._result = result
 
         return self._result
 
