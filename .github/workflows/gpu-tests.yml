@@ -144,6 +144,10 @@ jobs:
         run: |
           script=$(cat << EOF
 
+          echo "Downloading CIFAR10 archive from Zenodo..."
+          mkdir -p data
+          curl -L --retry 3 --retry-delay 10 -o data/cifar-10-python.tar.gz "https://zenodo.org/records/10089977/files/cifar-10-python.tar.gz?download=1"
+
           set -xe
 
           # Install additional example dependencies
