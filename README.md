@@ -239,7 +239,7 @@ def function_before_backprop(engine):
     # ...
 ```
 
-- Complete snippet is found [here](https://pytorch.org/ignite/faq.html#creating-custom-events-based-on-forward-backward-pass).
+- Complete snippet is found [here](http://web.archive.org/web/20230207184921/http://web.archive.org/web/20230207184921/https://pytorch.org/ignite/faq.html).
 - Another use-case of custom events: [trainer for Truncated Backprop Through Time](https://pytorch.org/ignite/contrib/engines.html#ignite.contrib.engines.create_supervised_tbptt_trainer).
 
 </details>
