@@ -195,7 +195,7 @@ class CohenKappa(Metric):
     .. versionchanged:: 0.5.1
         ``skip_unrolling`` argument is added.
 
-    .. versionchanged:: 0.6.0
+    .. versionchanged:: 0.5.5
         Replaced scikit-learn dependency with a native PyTorch implementation.
         Added ``num_classes`` argument; routes to a running-confusion-matrix backend when provided.
     """
