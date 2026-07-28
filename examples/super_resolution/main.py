@@ -147,7 +147,9 @@ basic_profiler.attach(trainer)
 
 ProgressBar().attach(trainer, output_transform=lambda x: {"loss": x})
 
-trainer.run(training_data_loader, opt.n_epochs, epoch_length=epoch_length)
 
-results = basic_profiler.get_results()
-basic_profiler.print_results(results)
+if __name__ == "__main__":
+    trainer.run(training_data_loader, opt.n_epochs, epoch_length=epoch_length)
+
+    results = basic_profiler.get_results()
+    basic_profiler.print_results(results)

@@ -50,3 +50,6 @@ conda_build/
 pytest.ini
 
 .vscode/*
+
+# lock files
+*.lock

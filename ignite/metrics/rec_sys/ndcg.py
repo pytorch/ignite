@@ -134,7 +134,7 @@ class NDCG(Metric):
 
             [0.0, 0.19..., 0.19..., 0.32...]
 
-    .. versionadded:: 0.6.0
+    .. versionadded:: 0.5.5
     """
 
     required_output_keys = ("y_pred", "y")

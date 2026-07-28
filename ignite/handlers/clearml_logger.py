@@ -218,6 +218,8 @@ class ClearMLLogger(BaseLogger):
 
     def close(self) -> None:
         self.clearml_logger.flush()
+        if self._task:
+            self._task.close()
 
     def _create_output_handler(self, *args: Any, **kwargs: Any) -> "OutputHandler":
         return OutputHandler(*args, **kwargs)
