@@ -233,3 +233,39 @@ def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
 def test_multinode_distrib_nccl_gpu(distributed_context_multi_node_nccl):
     device = idist.device()
     _test_distrib_integration(device)
+
+
+def test_class_names():
+    # Invalid class_names type
+    with pytest.raises(ValueError, match="class_names must be a list of strings"):
+        Fbeta(beta=1.0, class_names=[1, 2])
+
+    # Mismatched precision and recall class_names
+    p = Precision(average=False, class_names=["cat", "dog"])
+    r = Recall(average=False, class_names=["a", "b"])
+    with pytest.raises(ValueError, match="precision and recall class_names must match"):
+        Fbeta(beta=1.0, precision=p, recall=r)
+
+    # Correct computation passing class_names directly to Fbeta
+    f1 = Fbeta(beta=1.0, class_names=["cat", "dog", "bird"])
+    y_true = torch.tensor([0, 1, 2])
+    y_pred = torch.tensor(
+        [
+            [1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.0, 0.0, 1.0],
+        ]
+    )
+    f1.update((y_pred, y_true))
+    res = f1.compute()
+    assert isinstance(res, dict)
+    assert res == {"cat": 1.0, "dog": 1.0, "bird": 1.0}
+
+    # Correct computation with Precision and Recall having class_names
+    p2 = Precision(average=False, class_names=["cat", "dog", "bird"])
+    r2 = Recall(average=False, class_names=["cat", "dog", "bird"])
+    f2 = Fbeta(beta=1.0, precision=p2, recall=r2)
+    f2.update((y_pred, y_true))
+    res2 = f2.compute()
+    assert isinstance(res2, dict)
+    assert res2 == {"cat": 1.0, "dog": 1.0, "bird": 1.0}

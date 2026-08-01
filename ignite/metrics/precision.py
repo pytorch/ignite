@@ -168,6 +168,8 @@ class _BasePrecisionRecall(_BaseClassification):
             return cast(torch.Tensor, fraction).mean().item()
         else:
             if self._class_names is not None:
+                if isinstance(fraction, torch.Tensor) and fraction.ndim == 0:
+                    return {self._class_names[0]: fraction.item()}
                 return dict(zip(self._class_names, cast(torch.Tensor, fraction).tolist()))
             return fraction
 
@@ -444,9 +446,11 @@ class Precision(_BasePrecisionRecall):
 
             if self._average == "weighted":
                 self._weight += y.sum(dim=0)
-            if self._class_names is not None and len(self._class_names) != self._numerator.shape[0]:
-                raise ValueError(
-                    f"class_names has {len(self._class_names)} entries but the metric computed "
-                    f"{self._numerator.shape[0]} classes."
-                )
+            if self._class_names is not None:
+                num_classes = 1 if self._numerator.ndim == 0 else self._numerator.shape[0]
+                if len(self._class_names) != num_classes:
+                    raise ValueError(
+                        f"class_names has {len(self._class_names)} entries but the metric computed "
+                        f"{num_classes} classes."
+                    )
         self._updated = True
