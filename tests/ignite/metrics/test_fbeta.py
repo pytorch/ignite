@@ -238,16 +238,30 @@ def test_multinode_distrib_nccl_gpu(distributed_context_multi_node_nccl):
 def test_class_names():
     # Invalid class_names type
     with pytest.raises(ValueError, match="class_names must be a list of strings"):
-        Fbeta(beta=1.0, class_names=[1, 2])
+        Fbeta(beta=1.0, average=False, class_names=[1, 2])
+
+    # Early check for average=True when class_names is given
+    with pytest.raises(ValueError, match="class_names is only applicable when average=False or average=None"):
+        Fbeta(beta=1.0, average=True, class_names=["cat", "dog"])
+
+    # Precision metric without class_names passed to Fbeta with class_names
+    p_no_cn = Precision(average=False)
+    with pytest.raises(ValueError, match="precision metric class_names must match Fbeta class_names"):
+        Fbeta(beta=1.0, average=False, class_names=["cat", "dog"], precision=p_no_cn)
+
+    # Recall metric without class_names passed to Fbeta with class_names
+    r_no_cn = Recall(average=False)
+    with pytest.raises(ValueError, match="recall metric class_names must match Fbeta class_names"):
+        Fbeta(beta=1.0, average=False, class_names=["cat", "dog"], recall=r_no_cn)
 
     # Mismatched precision and recall class_names
     p = Precision(average=False, class_names=["cat", "dog"])
     r = Recall(average=False, class_names=["a", "b"])
     with pytest.raises(ValueError, match="precision and recall class_names must match"):
-        Fbeta(beta=1.0, precision=p, recall=r)
+        Fbeta(beta=1.0, average=False, precision=p, recall=r)
 
     # Correct computation passing class_names directly to Fbeta
-    f1 = Fbeta(beta=1.0, class_names=["cat", "dog", "bird"])
+    f1 = Fbeta(beta=1.0, average=False, class_names=["cat", "dog", "bird"])
     y_true = torch.tensor([0, 1, 2])
     y_pred = torch.tensor(
         [
@@ -264,7 +278,7 @@ def test_class_names():
     # Correct computation with Precision and Recall having class_names
     p2 = Precision(average=False, class_names=["cat", "dog", "bird"])
     r2 = Recall(average=False, class_names=["cat", "dog", "bird"])
-    f2 = Fbeta(beta=1.0, precision=p2, recall=r2)
+    f2 = Fbeta(beta=1.0, average=False, precision=p2, recall=r2)
     f2.update((y_pred, y_true))
     res2 = f2.compute()
     assert isinstance(res2, dict)

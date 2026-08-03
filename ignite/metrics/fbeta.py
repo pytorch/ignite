@@ -165,15 +165,28 @@ def Fbeta(
         if not isinstance(class_names, (list, tuple)) or not all(isinstance(n, str) for n in class_names):
             raise ValueError("class_names must be a list of strings")
 
-    if precision is not None and recall is not None:
-        p_cn = getattr(precision, "_class_names", None)
-        r_cn = getattr(recall, "_class_names", None)
-        if p_cn is not None and r_cn is not None and p_cn != r_cn:
-            raise ValueError("precision and recall class_names must match")
-
     target_class_names = (
         class_names or getattr(precision, "_class_names", None) or getattr(recall, "_class_names", None)
     )
+
+    if target_class_names is not None and average is not False and average is not None:
+        raise ValueError(f"class_names is only applicable when average=False or average=None, got average={average!r}.")
+
+    if precision is not None:
+        if precision._average:
+            raise ValueError("Input precision metric should have average=False")
+        if class_names is not None and precision._class_names != class_names:
+            raise ValueError("precision metric class_names must match Fbeta class_names")
+
+    if recall is not None:
+        if recall._average:
+            raise ValueError("Input recall metric should have average=False")
+        if class_names is not None and recall._class_names != class_names:
+            raise ValueError("recall metric class_names must match Fbeta class_names")
+
+    if precision is not None and recall is not None:
+        if precision._class_names != recall._class_names:
+            raise ValueError("precision and recall class_names must match")
 
     if precision is None:
         precision = Precision(
@@ -182,10 +195,6 @@ def Fbeta(
             device=cast(str | torch.device, recall._device if recall else device),
             class_names=target_class_names,
         )
-    elif precision._average:
-        raise ValueError("Input precision metric should have average=False")
-    elif target_class_names is not None:
-        precision._class_names = target_class_names
 
     if recall is None:
         recall = Recall(
@@ -194,10 +203,6 @@ def Fbeta(
             device=cast(str | torch.device, precision._device if precision else device),
             class_names=target_class_names,
         )
-    elif recall._average:
-        raise ValueError("Input recall metric should have average=False")
-    elif target_class_names is not None:
-        recall._class_names = target_class_names
 
     if target_class_names is not None:
 
