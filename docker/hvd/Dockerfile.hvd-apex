@@ -11,8 +11,8 @@ ENV CUDA_HOME=/usr/local/cuda
 ENV PIP_BREAK_SYSTEM_PACKAGES=1
 ENV PIP_ROOT_USER_ACTION=ignore
 
-# Temporary NCCL library setup (missing in pytorch 2.11 image)
-RUN export NCCL_ROOT=$(python -c "import os, nvidia; print(os.path.dirname(nvidia.__file__))")/nccl && \
+# Temporary NCCL library setup (missing in pytorch 2.13 image)
+RUN export NCCL_ROOT=$(python -c "import nvidia; print(nvidia.__path__[0])")/nccl && \
         libnccl_filename=$(ls $NCCL_ROOT/lib) && \
         libnccl_path=$NCCL_ROOT/lib/$libnccl_filename && \
         ln -s $libnccl_path /lib/x86_64-linux-gnu/$libnccl_filename && \
