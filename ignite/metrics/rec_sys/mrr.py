@@ -122,7 +122,7 @@ class MRR(Metric):
         self.top_k = sorted(top_k)
         self.ignore_zero_hits = ignore_zero_hits
         self.relevance_threshold = relevance_threshold
-        super(MRR, self).__init__(output_transform, device=device, skip_unrolling=skip_unrolling)
+        super().__init__(output_transform, device=device, skip_unrolling=skip_unrolling)
 
     @reinit__is_reduced
     def reset(self) -> None:
