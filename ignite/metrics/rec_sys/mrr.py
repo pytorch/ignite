@@ -134,23 +134,23 @@ class MRR(Metric):
         if len(output) != 2:
             raise ValueError(f"output should be in format `(y_pred,y)` but got tuple of {len(output)} tensors.")
 
-        y_pred, y = output
+        y_pred, y = output[0].detach(), output[1].detach()
         if y_pred.shape != y.shape:
             raise ValueError(f"y_pred and y must be in the same shape, got {y_pred.shape} != {y.shape}.")
+
+        if y.shape[0] == 0:
+            return
 
         if self.ignore_zero_hits:
             valid_mask = torch.any(y >= self.relevance_threshold, dim=-1)
             y_pred = y_pred[valid_mask]
             y = y[valid_mask]
 
-        if y.shape[0] == 0:
-            return
+            if y.shape[0] == 0:
+                return
 
-        max_k = self.top_k[-1]
-
-        # stable=True ensures deterministic tie-breaking, consistent with
-        # reference libraries such as ranx.
-        ranked_indices = torch.argsort(y_pred, dim=-1, descending=True, stable=True)[:, :max_k]
+        max_k = min(self.top_k[-1], y_pred.shape[-1])
+        _, ranked_indices = torch.topk(y_pred, k=max_k, dim=-1)
         ranked_labels = torch.gather(y, dim=-1, index=ranked_indices)
 
         for i, k in enumerate(self.top_k):
@@ -164,8 +164,8 @@ class MRR(Metric):
 
             reciprocal_rank = torch.where(
                 has_hit,
-                1.0 / (first_hit_pos.float() + 1.0),
-                torch.zeros_like(first_hit_pos, dtype=torch.float),
+                1 / (first_hit_pos.to(y_pred.dtype) + 1),
+                torch.zeros_like(first_hit_pos, dtype=y_pred.dtype),
             )
 
             self._sum_reciprocal_ranks_per_k[i] += reciprocal_rank.sum().to(self._device)
