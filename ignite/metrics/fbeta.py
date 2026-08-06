@@ -164,29 +164,30 @@ def Fbeta(
     if class_names is not None:
         if not isinstance(class_names, (list, tuple)) or not all(isinstance(n, str) for n in class_names):
             raise ValueError("class_names must be a list of strings")
+        if average is not False and average is not None:
+            raise ValueError(
+                f"class_names is only applicable when average=False or average=None, got average={average!r}."
+            )
 
-    target_class_names = (
-        class_names or getattr(precision, "_class_names", None) or getattr(recall, "_class_names", None)
-    )
+    active_metrics = [m for m in (precision, recall) if m is not None]
+
+    if any(m._average for m in active_metrics):
+        raise ValueError("Input precision and recall metrics should have average=False")
+
+    if class_names is not None and any(m._class_names != class_names for m in active_metrics):
+        raise ValueError("precision and recall metric class_names must match Fbeta class_names")
+
+    if len(active_metrics) == 2 and active_metrics[0]._class_names != active_metrics[1]._class_names:
+        raise ValueError("precision and recall class_names must match")
+
+    target_class_names = class_names
+    if target_class_names is None and precision is not None:
+        target_class_names = precision._class_names
+    if target_class_names is None and recall is not None:
+        target_class_names = recall._class_names
 
     if target_class_names is not None and average is not False and average is not None:
         raise ValueError(f"class_names is only applicable when average=False or average=None, got average={average!r}.")
-
-    if precision is not None:
-        if precision._average:
-            raise ValueError("Input precision metric should have average=False")
-        if class_names is not None and precision._class_names != class_names:
-            raise ValueError("precision metric class_names must match Fbeta class_names")
-
-    if recall is not None:
-        if recall._average:
-            raise ValueError("Input recall metric should have average=False")
-        if class_names is not None and recall._class_names != class_names:
-            raise ValueError("recall metric class_names must match Fbeta class_names")
-
-    if precision is not None and recall is not None:
-        if precision._class_names != recall._class_names:
-            raise ValueError("precision and recall class_names must match")
 
     if precision is None:
         precision = Precision(

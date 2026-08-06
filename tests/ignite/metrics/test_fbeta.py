@@ -15,11 +15,11 @@ def test_wrong_inputs():
     with pytest.raises(ValueError, match=r"Beta should be a positive integer"):
         Fbeta(0.0)
 
-    with pytest.raises(ValueError, match=r"Input precision metric should have average=False"):
+    with pytest.raises(ValueError, match=r"Input precision and recall metrics should have average=False"):
         p = Precision(average="micro")
         Fbeta(1.0, precision=p)
 
-    with pytest.raises(ValueError, match=r"Input recall metric should have average=False"):
+    with pytest.raises(ValueError, match=r"Input precision and recall metrics should have average=False"):
         r = Recall(average="samples")
         Fbeta(1.0, recall=r)
 
@@ -246,12 +246,12 @@ def test_class_names():
 
     # Precision metric without class_names passed to Fbeta with class_names
     p_no_cn = Precision(average=False)
-    with pytest.raises(ValueError, match="precision metric class_names must match Fbeta class_names"):
+    with pytest.raises(ValueError, match="precision and recall metric class_names must match Fbeta class_names"):
         Fbeta(beta=1.0, average=False, class_names=["cat", "dog"], precision=p_no_cn)
 
     # Recall metric without class_names passed to Fbeta with class_names
     r_no_cn = Recall(average=False)
-    with pytest.raises(ValueError, match="recall metric class_names must match Fbeta class_names"):
+    with pytest.raises(ValueError, match="precision and recall metric class_names must match Fbeta class_names"):
         Fbeta(beta=1.0, average=False, class_names=["cat", "dog"], recall=r_no_cn)
 
     # Mismatched precision and recall class_names
@@ -259,6 +259,11 @@ def test_class_names():
     r = Recall(average=False, class_names=["a", "b"])
     with pytest.raises(ValueError, match="precision and recall class_names must match"):
         Fbeta(beta=1.0, average=False, precision=p, recall=r)
+
+    # Input precision metric with average != False
+    p_avg = Precision(average="macro")
+    with pytest.raises(ValueError, match="Input precision and recall metrics should have average=False"):
+        Fbeta(beta=1.0, average=False, precision=p_avg)
 
     # Correct computation passing class_names directly to Fbeta
     f1 = Fbeta(beta=1.0, average=False, class_names=["cat", "dog", "bird"])
