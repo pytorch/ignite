@@ -186,9 +186,6 @@ def Fbeta(
     if target_class_names is None and recall is not None:
         target_class_names = recall._class_names
 
-    if target_class_names is not None and average is not False and average is not None:
-        raise ValueError(f"class_names is only applicable when average=False or average=None, got average={average!r}.")
-
     if precision is None:
         precision = Precision(
             output_transform=(lambda x: x) if output_transform is None else output_transform,
