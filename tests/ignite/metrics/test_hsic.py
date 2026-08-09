@@ -120,6 +120,23 @@ def test_accumulator_detached(available_device):
     assert not hsic._sum_of_hsic.requires_grad
 
 
+@pytest.mark.parametrize("constant_input", ["x", "y", "both"])
+def test_constant_input(constant_input):
+    torch.manual_seed(12)
+    x = torch.randn(10, 3)
+    y = torch.randn(10, 3)
+
+    if constant_input in ("x", "both"):
+        x.zero_()
+    if constant_input in ("y", "both"):
+        y.zero_()
+
+    hsic = HSIC()
+    hsic.update((x, y))
+
+    assert hsic.compute() == pytest.approx(0.0, abs=1e-6)
+
+
 @pytest.mark.usefixtures("distributed")
 class TestDistributed:
     @pytest.mark.parametrize("sigma_x", [-1.0, 1.0])

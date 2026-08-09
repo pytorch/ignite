@@ -136,6 +136,7 @@ class HSIC(Metric):
         if self.sigma_x < 0:
             # vx = torch.quantile(dxx, 0.5)
             vx = torch.quantile(dxx, 0.5)
+            vx = vx.clamp_min(torch.finfo(vx.dtype).tiny)
         else:
             vx = self.sigma_x**2
         K = torch.exp(-0.5 * dxx / vx) * mask
@@ -147,6 +148,7 @@ class HSIC(Metric):
         vy: Tensor | float
         if self.sigma_y < 0:
             vy = torch.quantile(dyy, 0.5)
+            vy = vy.clamp_min(torch.finfo(vy.dtype).tiny)
         else:
             vy = self.sigma_y**2
         L = torch.exp(-0.5 * dyy / vy) * mask
