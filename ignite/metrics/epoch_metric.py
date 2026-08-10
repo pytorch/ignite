@@ -46,11 +46,11 @@ class EpochMetric(Metric):
         compute_fn: a callable which receives two tensors as the `predictions` and `targets`
             and returns the computed metric. Supported return types are: ``int``, ``float``,
             ``torch.Tensor``, a ``Sequence`` (tuple/list) of these, or a ``Mapping`` (dict) with
-            string keys and these values. An unsupported return type raises a ``TypeError``.
-            Note: in distributed configuration (``world_size > 1``), only scalar and
-            ``torch.Tensor`` outputs are broadcast across processes; tuple/list/mapping outputs
-            are supported only when ``world_size == 1``. Input tensors will be on specified
-            ``device`` (see arg below).
+            string keys and these values, including arbitrarily nested combinations of these.
+            An unsupported return type raises a ``TypeError``. These types are also supported
+            in distributed configuration (``world_size > 1``): the result is broadcast from
+            rank 0 to all other ranks. Input tensors will be on specified ``device``
+            (see arg below).
         output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
