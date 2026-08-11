@@ -45,6 +45,8 @@ def Fbeta(
             default, CPU.
         class_names: list of class name strings used to label per-class output. Default: ``None``.
 
+            .. versionadded:: 0.6.0
+
     Returns:
         MetricsLambda, F-beta metric
 

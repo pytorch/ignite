@@ -101,6 +101,9 @@ class Recall(_BasePrecisionRecall):
             or ``average=None``. If provided, ``compute()`` returns a ``dict`` mapping each class
             name to its metric value instead of a tensor. Must match the number of classes inferred
             from the data. Default: ``None``.
+
+            .. versionadded:: 0.6.0
+
     Examples:
 
         For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
@@ -221,6 +224,9 @@ class Recall(_BasePrecisionRecall):
 
     .. versionchanged:: 0.5.1
         ``skip_unrolling`` argument is added.
+
+    .. versionchanged:: 0.6.0
+        ``class_names`` argument is added.
     """
 
     @reinit__is_reduced
