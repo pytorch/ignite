@@ -216,48 +216,56 @@ class EpochMetric(Metric):
                 tag = _TAG_UNSUPPORTED
         else:
             tag = _TAG_INT
-        tag = int(idist.broadcast(tag, src=src))
+        tag = cast(int, idist.broadcast(tag, src=src))
 
         if tag == _TAG_UNSUPPORTED:
             raise TypeError(
-                f"compute_fn output type is not supported. Supported types are: "
+                "compute_fn output type is not supported. Supported types are: "
                 "int, float, torch.Tensor, a Sequence of these, or a Mapping with str keys and these values."
             )
 
-        # Step 2: broadcast content based on type
+        # Step 2: broadcast content based on type. ``result`` is only meaningfully typed on
+        # ``src`` (the tag protocol above guarantees every rank agrees on which branch runs),
+        # so it is cast to the type the tag promises; non-src ranks only need a same-typed
+        # placeholder since their value is discarded by the collective call.
         if tag == _TAG_INT:
-            return int(idist.broadcast(result if rank == src else 0, src=src))
+            int_value = cast(int, result) if rank == src else 0
+            return cast(int, idist.broadcast(int_value, src=src))
         if tag == _TAG_FLOAT:
-            return float(idist.broadcast(result if rank == src else 0.0, src=src))
+            float_value = cast(float, result) if rank == src else 0.0
+            return cast(float, idist.broadcast(float_value, src=src))
         if tag == _TAG_TENSOR:
-            return cast(torch.Tensor, idist.broadcast(result if rank == src else None, src=src, safe_mode=True))
+            tensor_value = cast(torch.Tensor, result) if rank == src else None
+            return cast(torch.Tensor, idist.broadcast(tensor_value, src=src, safe_mode=True))
 
         if tag in (_TAG_TUPLE, _TAG_LIST):
-            length = int(idist.broadcast(len(result) if rank == src else 0, src=src))
+            seq_value = cast(Sequence, result) if rank == src else []
+            length = cast(int, idist.broadcast(len(seq_value) if rank == src else 0, src=src))
             elements = []
             for i in range(length):
-                elem = result[i] if rank == src else None
+                elem = cast(EpochMetricOutput, seq_value[i]) if rank == src else 0
                 elements.append(self._broadcast_result(elem, src=src))
             return tuple(elements) if tag == _TAG_TUPLE else elements
 
         # tag == _TAG_MAPPING
-        src_keys = list(result.keys()) if rank == src else []
-        n_keys = int(idist.broadcast(len(src_keys) if rank == src else 0, src=src))
+        mapping_value = cast(Mapping, result) if rank == src else {}
+        src_keys = list(mapping_value.keys()) if rank == src else []
+        n_keys = cast(int, idist.broadcast(len(src_keys) if rank == src else 0, src=src))
         keys = []
         for i in range(n_keys):
             raw_key = src_keys[i] if rank == src else None
             # Broadcast whether this key is a valid (str) key before broadcasting the key
             # itself: src and non-src ranks must agree on the wire type (str) they are about
             # to exchange, so this can't be decided from a src-only isinstance check.
-            key_valid = int(idist.broadcast(0 if (rank != src or isinstance(raw_key, str)) else -1, src=src))
+            key_valid = cast(int, idist.broadcast(0 if (rank != src or isinstance(raw_key, str)) else -1, src=src))
             if key_valid == _TAG_UNSUPPORTED:
                 detail = f" but given {type(raw_key)}" if rank == src else ""
                 raise TypeError(f"compute_fn output mapping keys should be str{detail}.")
-            key = str(idist.broadcast(raw_key if rank == src else "", src=src))
+            key = cast(str, idist.broadcast(raw_key if rank == src else "", src=src))
             keys.append(key)
         values = []
         for i in range(n_keys):
-            val = result[keys[i]] if rank == src else None
+            val = cast(EpochMetricOutput, mapping_value[keys[i]]) if rank == src else 0
             values.append(self._broadcast_result(val, src=src))
         return dict(zip(keys, values))
 

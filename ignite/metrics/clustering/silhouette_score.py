@@ -127,4 +127,4 @@ class SilhouetteScore(_ClusteringMetricBase):
         np_labels = labels.detach().cpu().numpy()
 
         score = silhouette_score(np_features, np_labels, **self._silhouette_kwargs)
-        return score
+        return float(score)

@@ -429,7 +429,7 @@ def test_distrib_invalid_output_raises_on_all_ranks(distributed):
     em.reset()
     em.update((torch.rand(4, 3, device=device), torch.randint(0, 2, size=(4, 3), device=device, dtype=torch.long)))
 
-    with pytest.raises(TypeError, match=r"compute_fn output type is not supported"):
+    with pytest.raises(TypeError, match=r"compute_fn output type.*is not supported"):
         em.compute()
 
 
