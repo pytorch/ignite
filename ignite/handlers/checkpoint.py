@@ -185,9 +185,9 @@ class Checkpoint(Serializable):
             > checkpoint_12345.pt
 
     Note:
-        This class is distributed configuration-friendly: it is not required to instantiate the class in rank 0 only
-        process. This class supports automatically distributed configuration and if used with
-        :class:`~ignite.handlers.DiskSaver`, checkpoint is stored by rank 0 process.
+        In distributed configurations, instantiate this class on every process. When used with
+        :class:`~ignite.handlers.DiskSaver`, only the process selected by ``save_on_rank`` (rank 0 by default)
+        writes the checkpoint.
 
     .. warning::
 
@@ -828,6 +828,10 @@ class Checkpoint(Serializable):
 
 class DiskSaver(BaseSaveHandler):
     """Handler that saves input checkpoint on a disk.
+
+    In distributed configurations, instantiate this class on every process. ``save_on_rank`` selects which process
+    writes to disk; guarding construction by rank can block while Ignite discovers an externally initialized
+    :mod:`torch.distributed` process group.
 
     Args:
         dirname: Directory path where the checkpoint will be saved
