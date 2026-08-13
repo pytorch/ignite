@@ -154,16 +154,16 @@ def test_multilabel_wrong_inputs():
         acc.update((torch.randint(0, 2, size=(10, 1)), torch.randint(0, 2, size=(10, 1)).long()))
 
 
-def test_subset_accuracy_parameter():
-    with pytest.raises(ValueError, match=r"Argument subset_accuracy should be boolean"):
-        Accuracy(subset_accuracy="macro")
+def test_per_label_parameter():
+    with pytest.raises(ValueError, match=r"Argument per_label should be boolean"):
+        Accuracy(per_label="macro")
 
-    with pytest.raises(ValueError, match=r"Argument subset_accuracy=False is only applicable with is_multilabel=True"):
-        Accuracy(subset_accuracy=False)
+    with pytest.raises(ValueError, match=r"Argument per_label=True is only applicable with is_multilabel=True"):
+        Accuracy(per_label=True)
 
     # both should be fine
-    Accuracy(subset_accuracy=True)
-    Accuracy(subset_accuracy=False, is_multilabel=True)
+    Accuracy(per_label=False)
+    Accuracy(per_label=True, is_multilabel=True)
 
 
 @pytest.mark.parametrize("n_times", range(3))
@@ -188,7 +188,7 @@ def test_multilabel_input(n_times, available_device, test_data_multilabel):
     assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
 
 
-def test_multilabel_input_subset_accuracy_false():
+def test_multilabel_input_per_label():
     y_true = torch.tensor(
         [
             [0, 0, 1, 0, 1],
@@ -208,7 +208,7 @@ def test_multilabel_input_subset_accuracy_false():
         ]
     )
 
-    acc = Accuracy(is_multilabel=True, subset_accuracy=False)
+    acc = Accuracy(is_multilabel=True, per_label=True)
     acc.update((y_pred, y_true))
     result = acc.compute()
 
@@ -220,55 +220,41 @@ def test_multilabel_input_subset_accuracy_false():
     assert torch.allclose(result, torch.tensor([0.4, 0.8, 0.4, 0.8, 0.6]))
 
 
-def test_multilabel_input_subset_accuracy_false_all_correct():
-    y_true = torch.randint(0, 2, size=(8, 3))
-    y_pred = y_true.clone()
-
-    acc = Accuracy(is_multilabel=True, subset_accuracy=False)
-    acc.update((y_pred, y_true))
-    assert torch.allclose(acc.compute(), torch.ones(3))
-
-
-def test_multilabel_input_subset_accuracy_false_all_wrong():
-    y_true = torch.tensor([[0, 1, 0]] * 8)
-    y_pred = torch.tensor([[1, 0, 1]] * 8)
-
-    acc = Accuracy(is_multilabel=True, subset_accuracy=False)
-    acc.update((y_pred, y_true))
-    assert torch.allclose(acc.compute(), torch.zeros(3))
-
-
-def test_multilabel_input_subset_accuracy_false_label_with_no_positives():
-    # label at index 1 has no positive samples in y_true
-    y_true = torch.tensor(
-        [
-            [1, 0, 0],
-            [0, 0, 1],
-            [1, 0, 1],
-            [0, 0, 0],
-        ]
-    )
-    y_pred = torch.tensor(
-        [
-            [1, 0, 0],
-            [0, 1, 1],
-            [1, 0, 0],
-            [0, 0, 1],
-        ]
-    )
-
-    acc = Accuracy(is_multilabel=True, subset_accuracy=False)
+@pytest.mark.parametrize(
+    "y_true, y_pred",
+    [
+        pytest.param(
+            torch.tensor([[1, 0, 1], [0, 1, 0], [1, 1, 0], [0, 0, 1]]),
+            torch.tensor([[1, 0, 1], [0, 1, 0], [1, 1, 0], [0, 0, 1]]),
+            id="all_correct",
+        ),
+        pytest.param(
+            torch.tensor([[0, 1, 0]] * 8),
+            torch.tensor([[1, 0, 1]] * 8),
+            id="all_wrong",
+        ),
+        pytest.param(
+            # label at index 1 has no positive samples in y_true
+            torch.tensor([[1, 0, 0], [0, 0, 1], [1, 0, 1], [0, 0, 0]]),
+            torch.tensor([[1, 0, 0], [0, 1, 1], [1, 0, 0], [0, 0, 1]]),
+            id="label_with_no_positives",
+        ),
+    ],
+)
+def test_multilabel_input_per_label_edge_cases(y_true, y_pred):
+    acc = Accuracy(is_multilabel=True, per_label=True)
     acc.update((y_pred, y_true))
     result = acc.compute()
 
     expected = (y_true == y_pred).float().mean(dim=0)
+    assert isinstance(result, torch.Tensor)
     assert torch.allclose(result, expected)
     assert torch.isfinite(result).all()
 
 
 @pytest.mark.parametrize("n_times", range(3))
-def test_multilabel_input_subset_accuracy_false_batched(n_times, available_device, test_data_multilabel):
-    acc = Accuracy(is_multilabel=True, subset_accuracy=False, device=available_device)
+def test_multilabel_input_per_label_batched(n_times, available_device, test_data_multilabel):
+    acc = Accuracy(is_multilabel=True, per_label=True, device=available_device)
     assert acc._device == torch.device(available_device)
 
     y_pred, y, batch_size = test_data_multilabel
@@ -306,39 +292,6 @@ def test_incorrect_type():
 
     with pytest.raises(RuntimeError):
         acc.update((y_pred, y))
-
-
-@pytest.mark.parametrize("n_epochs", [1, 2])
-def test_engine_integration_multilabel_subset_accuracy_false(n_epochs):
-    # Regression test: reset() must correctly re-initialize the per-label accumulator
-    # at the start of every epoch, not just the first one.
-    n_iters = 10
-    batch_size = 16
-    n_classes = 5
-
-    y_true = torch.randint(0, 2, size=(n_iters * batch_size, n_classes))
-    y_preds = torch.randint(0, 2, size=(n_iters * batch_size, n_classes))
-
-    def update(engine, i):
-        return (
-            y_preds[i * batch_size : (i + 1) * batch_size, :],
-            y_true[i * batch_size : (i + 1) * batch_size, :],
-        )
-
-    engine = Engine(update)
-    acc = Accuracy(is_multilabel=True, subset_accuracy=False)
-    acc.attach(engine, "acc")
-
-    data = list(range(n_iters))
-    engine.run(data=data, max_epochs=n_epochs)
-
-    assert "acc" in engine.state.metrics
-    res = engine.state.metrics["acc"]
-    assert isinstance(res, torch.Tensor)
-    assert res.shape == (n_classes,)
-
-    expected = (y_true == y_preds).float().mean(dim=0)
-    assert torch.allclose(res, expected)
 
 
 @pytest.mark.usefixtures("distributed")
@@ -550,7 +503,7 @@ class TestDistributed:
             assert pytest.approx(res) == true_res
 
     @pytest.mark.parametrize("n_epochs", [1, 2])
-    def test_integration_multilabel_subset_accuracy_false(self, n_epochs):
+    def test_integration_multilabel_per_label(self, n_epochs):
         rank = idist.get_rank()
         torch.manual_seed(12 + rank)
 
@@ -577,7 +530,7 @@ class TestDistributed:
 
             engine = Engine(update)
 
-            acc = Accuracy(is_multilabel=True, subset_accuracy=False, device=metric_device)
+            acc = Accuracy(is_multilabel=True, per_label=True, device=metric_device)
             acc.attach(engine, "acc")
 
             data = list(range(n_iters))
