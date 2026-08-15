@@ -472,6 +472,7 @@ class Checkpoint(Serializable):
                 global_step = engine.state.get_event_attrib_value(Events.ITERATION_COMPLETED)
             priority = global_step
 
+        priority = cast(int | float, priority)
         if self._check_lt_n_saved() or self._compare_fn(priority):
             priority_str = f"{priority}" if isinstance(priority, numbers.Integral) else f"{priority:.4f}"
 
