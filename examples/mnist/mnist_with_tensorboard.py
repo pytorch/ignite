@@ -1,18 +1,18 @@
 """
- MNIST example with training and validation monitoring using Tensorboard.
- Requirements:
-    TensorboardX (https://github.com/lanpa/tensorboard-pytorch): `pip install tensorboardX`
-    or PyTorch >= 1.2 which supports Tensorboard
-    Tensorboard: `pip install tensorflow` (or just install tensorboard without the rest of tensorflow)
- Usage:
-    Start tensorboard:
-    ```bash
-    tensorboard --logdir=/tmp/tensorboard_logs/
-    ```
-    Run the example:
-    ```bash
-    python mnist_with_tensorboard.py --log_dir=/tmp/tensorboard_logs
-    ```
+MNIST example with training and validation monitoring using Tensorboard.
+Requirements:
+   TensorboardX (https://github.com/lanpa/tensorboard-pytorch): `pip install tensorboardX`
+   or PyTorch >= 1.2 which supports Tensorboard
+   Tensorboard: `pip install tensorflow` (or just install tensorboard without the rest of tensorflow)
+Usage:
+   Start tensorboard:
+   ```bash
+   tensorboard --logdir=/tmp/tensorboard_logs/
+   ```
+   Run the example:
+   ```bash
+   python mnist_with_tensorboard.py --log_dir=/tmp/tensorboard_logs
+   ```
 """
 
 from argparse import ArgumentParser

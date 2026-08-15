@@ -421,8 +421,7 @@ class BasicTimeProfiler:
 
         others.update(results["event_handlers_names"])
 
-        output_message: str = (
-            """
+        output_message: str = """
  ----------------------------------------------------
 | Time profiling stats (in seconds):                 |
  ----------------------------------------------------
@@ -455,10 +454,9 @@ Event handlers:
 - Events.COMPLETED: {COMPLETED_names}
 {COMPLETED}
 """.format(
-                processing_stats=odict_to_str(results["processing_stats"]),
-                dataflow_stats=odict_to_str(results["dataflow_stats"]),
-                **others,
-            )
+            processing_stats=odict_to_str(results["processing_stats"]),
+            dataflow_stats=odict_to_str(results["dataflow_stats"]),
+            **others,
         )
         print(output_message)
         return output_message

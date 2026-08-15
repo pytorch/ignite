@@ -790,7 +790,7 @@ def test_removes_each_score_at_most_once(dirname):
 
     # If a score was removed multiple times, the code above would have raise a
     # FileNotFoundError. So this just tests the absence of such a failure
-    # without futher assertions.
+    # without further assertions.
 
 
 def test_with_engine(dirname):

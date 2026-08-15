@@ -198,16 +198,16 @@ def _test_distrib_accumulator_device(device):
     for metric_device in metric_devices:
         cm = MultiLabelConfusionMatrix(num_classes=3, device=metric_device)
         assert cm._device == metric_device
-        assert (
-            cm.confusion_matrix.device == metric_device
-        ), f"{type(cm.confusion_matrix.device)}:{cm._num_correct.device} vs {type(metric_device)}:{metric_device}"
+        assert cm.confusion_matrix.device == metric_device, (
+            f"{type(cm.confusion_matrix.device)}:{cm._num_correct.device} vs {type(metric_device)}:{metric_device}"
+        )
 
         y_true, y_pred = get_y_true_y_pred()
         cm.update((torch.tensor(y_pred), torch.tensor(y_true)))
 
-        assert (
-            cm.confusion_matrix.device == metric_device
-        ), f"{type(cm.confusion_matrix.device)}:{cm._num_correct.device} vs {type(metric_device)}:{metric_device}"
+        assert cm.confusion_matrix.device == metric_device, (
+            f"{type(cm.confusion_matrix.device)}:{cm._num_correct.device} vs {type(metric_device)}:{metric_device}"
+        )
 
 
 def test_simple_2D_input(available_device):

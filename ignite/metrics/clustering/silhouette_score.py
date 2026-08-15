@@ -53,7 +53,7 @@ class SilhouetteScore(_ClusteringMetricBase):
             metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
             non-blocking. By default, CPU.
         skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
-            true for multi-output model, for example, if ``y_pred`` contains multi-ouput as ``(y_pred_a, y_pred_b)``
+            true for multi-output model, for example, if ``y_pred`` contains multi-output as ``(y_pred_a, y_pred_b)``
             Alternatively, ``output_transform`` can be used to handle this.
         silhouette_kwargs: additional arguments passed to ``sklearn.metrics.silhouette_score``.
 
@@ -90,6 +90,11 @@ class SilhouetteScore(_ClusteringMetricBase):
             0.1260736584663391
 
     .. versionadded:: 0.5.2
+
+    .. note::
+        Returns ``float("nan")`` if the number of unique labels is less than 2
+        or if each sample belongs to its own cluster (``n_unique >= n_samples``),
+        as the silhouette score is undefined in these cases.
     """
 
     def __init__(
@@ -112,7 +117,14 @@ class SilhouetteScore(_ClusteringMetricBase):
     def _silhouette_score(self, features: Tensor, labels: Tensor) -> float:
         from sklearn.metrics import silhouette_score
 
-        np_features = features.cpu().numpy()
-        np_labels = labels.cpu().numpy()
+        n_unique = len(torch.unique(labels))
+        n_samples = labels.shape[0]
+
+        if n_unique < 2 or n_unique >= n_samples:
+            return float("nan")
+
+        np_features = features.detach().cpu().numpy()
+        np_labels = labels.detach().cpu().numpy()
+
         score = silhouette_score(np_features, np_labels, **self._silhouette_kwargs)
         return score

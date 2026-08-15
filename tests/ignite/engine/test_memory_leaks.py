@@ -28,7 +28,6 @@ class TestEngineMemoryLeak:
         counter = 0
 
         class EngineForTests(Engine):
-
             def __del__(self):
                 nonlocal counter
                 counter += 1

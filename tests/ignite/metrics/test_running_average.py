@@ -293,9 +293,9 @@ class TestDistributed:
         @trainer.on(usage.COMPLETED)
         def assert_equal_running_avg_output_values(engine):
             it = engine.state.iteration
-            assert (
-                engine.state.running_avg_output == engine.state.metrics["running_avg_output"]
-            ), f"{it}: {engine.state.running_avg_output} vs {engine.state.metrics['running_avg_output']}"
+            assert engine.state.running_avg_output == engine.state.metrics["running_avg_output"], (
+                f"{it}: {engine.state.running_avg_output} vs {engine.state.metrics['running_avg_output']}"
+            )
 
         trainer.run(data, max_epochs=3)
 
@@ -365,9 +365,9 @@ class TestDistributed:
                 if not isinstance(usage, RunningEpochWise) or (
                     (engine.state.iteration > 1) and ((engine.state.iteration % n_iters) == 1)
                 ):
-                    assert (
-                        engine.state.running_avg_acc == engine.state.metrics["running_avg_accuracy"]
-                    ), f"{engine.state.running_avg_acc} vs {engine.state.metrics['running_avg_accuracy']}"
+                    assert engine.state.running_avg_acc == engine.state.metrics["running_avg_accuracy"], (
+                        f"{engine.state.running_avg_acc} vs {engine.state.metrics['running_avg_accuracy']}"
+                    )
 
             trainer.run(data, max_epochs=3)
 
@@ -391,6 +391,6 @@ class TestDistributed:
                 avg.update(torch.tensor(1.0, device=device))
                 avg.compute()
 
-                assert (
-                    avg._value.device == metric_device
-                ), f"{type(avg._value.device)}:{avg._value.device} vs {type(metric_device)}:{metric_device}"
+                assert avg._value.device == metric_device, (
+                    f"{type(avg._value.device)}:{avg._value.device} vs {type(metric_device)}:{metric_device}"
+                )

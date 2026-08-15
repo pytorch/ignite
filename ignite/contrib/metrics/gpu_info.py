@@ -1,4 +1,4 @@
-""" ``ignite.contrib.metrics.gpu_info`` was moved to ``ignite.metrics.gpu_info``.
+"""``ignite.contrib.metrics.gpu_info`` was moved to ``ignite.metrics.gpu_info``.
 Note:
     ``ignite.contrib.metrics.gpu_info`` was moved to ``ignite.metrics.gpu_info``.
     Please refer to :mod:`~ignite.metrics.gpu_info`.

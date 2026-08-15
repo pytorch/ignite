@@ -1,4 +1,4 @@
-from typing import Callable
+from collections.abc import Callable
 
 import torch
 
@@ -30,7 +30,7 @@ class Loss(Metric):
             metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
             non-blocking. By default, CPU.
         skip_unrolling: specifies whether input should be unrolled or not before it is passed to to loss_fn.
-            Should be true for multi-output model, for example, if ``y_pred`` contains multi-ouput as
+            Should be true for multi-output model, for example, if ``y_pred`` contains multi-output as
             ``(y_pred_a, y_pred_b)``
 
     Attributes:

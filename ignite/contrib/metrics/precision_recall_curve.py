@@ -1,4 +1,4 @@
-""" ``ignite.contrib.metrics.precision_recall_curve`` was moved to ``ignite.metrics.precision_recall_curve``.
+"""``ignite.contrib.metrics.precision_recall_curve`` was moved to ``ignite.metrics.precision_recall_curve``.
 Note:
     ``ignite.contrib.metrics.precision_recall_curve`` was moved to ``ignite.metrics.precision_recall_curve``.
     Please refer to :mod:`~ignite.metrics.precision_recall_curve`.

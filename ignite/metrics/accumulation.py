@@ -1,5 +1,5 @@
 import numbers
-from typing import Callable
+from collections.abc import Callable
 
 import torch
 
@@ -35,7 +35,7 @@ class VariableAccumulation(Metric):
             device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
             default, CPU.
         skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
-            true for multi-output model, for example, if ``y_pred`` contains multi-ouput as ``(y_pred_a, y_pred_b)``
+            true for multi-output model, for example, if ``y_pred`` contains multi-output as ``(y_pred_a, y_pred_b)``
             Alternatively, ``output_transform`` can be used to handle this.
 
     .. versionchanged:: 0.5.1
@@ -117,7 +117,7 @@ class Average(VariableAccumulation):
             device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
             default, CPU.
         skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
-            true for multi-output model, for example, if ``y_pred`` contains multi-ouput as ``(y_pred_a, y_pred_b)``
+            true for multi-output model, for example, if ``y_pred`` contains multi-output as ``(y_pred_a, y_pred_b)``
             Alternatively, ``output_transform`` can be used to handle this.
 
     Examples:
@@ -216,7 +216,7 @@ class GeometricAverage(VariableAccumulation):
             device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
             default, CPU.
         skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
-            true for multi-output model, for example, if ``y_pred`` contains multi-ouput as ``(y_pred_a, y_pred_b)``
+            true for multi-output model, for example, if ``y_pred`` contains multi-output as ``(y_pred_a, y_pred_b)``
             Alternatively, ``output_transform`` can be used to handle this.
 
     Note:

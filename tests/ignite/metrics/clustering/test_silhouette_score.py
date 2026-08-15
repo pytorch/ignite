@@ -51,6 +51,24 @@ def test_wrong_output_dtype():
         metric.update((correct_features, wrong_labels))
 
 
+@pytest.mark.parametrize(
+    "labels",
+    [
+        torch.tensor([0, 0, 0], dtype=torch.long),  # single cluster
+        torch.tensor([0, 1, 2], dtype=torch.long),  # each sample is its own cluster
+    ],
+)
+@pytest.mark.parametrize("check_compute_fn", [True, False])
+def test_invalid_cluster_returns_nan(labels, check_compute_fn):
+    import math
+
+    metric = SilhouetteScore(check_compute_fn=check_compute_fn)
+    features = torch.tensor([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])
+    metric.update((features, labels))
+    result = metric.compute()
+    assert math.isnan(result)
+
+
 @pytest.fixture(params=list(range(2)))
 def test_case(request):
     N = 100

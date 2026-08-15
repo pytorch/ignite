@@ -29,7 +29,7 @@ class RunningAverage(Metric):
             use the ``src``'s device. Otherwise, defaults to CPU. Only applicable when the computed value
             from the metric is a tensor.
         skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
-            true for multi-output model, for example, if ``y_pred`` contains multi-ouput as ``(y_pred_a, y_pred_b)``
+            true for multi-output model, for example, if ``y_pred`` contains multi-output as ``(y_pred_a, y_pred_b)``
             Alternatively, ``output_transform`` can be used to handle this.
 
     Examples:
@@ -124,8 +124,7 @@ class RunningAverage(Metric):
         else:
             if output_transform is None:
                 raise ValueError(
-                    "Argument output_transform should not be None if src corresponds "
-                    "to the output of process function."
+                    "Argument output_transform should not be None if src corresponds to the output of process function."
                 )
             self.src = None
             if device is None:

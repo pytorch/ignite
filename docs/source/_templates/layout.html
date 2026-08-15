@@ -157,6 +157,7 @@
           </li>
 
 
+
         </ul>
       </div>
 
@@ -196,9 +197,9 @@
               {% endif %}
             {% endif %}
 
-            <div role="search">
+            <div role="search" id="search-icon-btn">
               <form id="rtd-search-form" class="wy-form" action="{{ pathto('search') }}" method="get">
-                <input type="text" name="q" placeholder="{{ _('Search docs') }}" />
+                <input type="text" name="q" placeholder="{{ _('Search docs') }}" readonly/>
                 <input type="hidden" name="check_keywords" value="yes" />
                 <input type="hidden" name="area" value="default" />
               </form>
@@ -506,6 +507,63 @@
 
   <script type="text/javascript" src="{{ pathto('_static/js/vendor/anchor.min.js', 1) }}"></script>
 
+  <div id="search-overlay">
+    <div class="search-overlay-content">
+      <span id="close-search">&times;</span>
+      <h3 class="search-overlay-title">Search Docs</h3>
+      <form id="overlay-rtd-search-form" class="wy-form" action="{{ pathto('search') }}" method="get">
+        <input type="text" name="q" placeholder="{{ _('Search docs') }}" id="overlay-search-input" />
+        <input type="hidden" name="check_keywords" value="yes" />
+        <input type="hidden" name="area" value="default" />
+        <button type="submit">Search</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var searchBtn = document.getElementById("search-icon-btn");
+      var searchOverlay = document.getElementById("search-overlay");
+      var closeSearch = document.getElementById("close-search");
+      var searchInput = document.getElementById("overlay-search-input");
+
+      if (searchBtn && searchOverlay) {
+        searchBtn.addEventListener("click", function(e) {
+          e.preventDefault();
+          searchOverlay.style.display = "flex";
+          setTimeout(function() { searchInput.focus(); }, 100);
+        });
+
+        closeSearch.addEventListener("click", function() {
+          searchOverlay.style.display = "none";
+        });
+
+        searchOverlay.addEventListener("click", function(e) {
+          if (e.target === searchOverlay) {
+            searchOverlay.style.display = "none";
+          }
+        });
+
+        document.addEventListener("keydown", function(e) {
+          if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+            e.preventDefault();
+            searchOverlay.style.display = "flex";
+            setTimeout(function() { searchInput.focus(); }, 100);
+          } else if (e.key === "Escape" && searchOverlay.style.display === "flex") {
+            e.preventDefault();
+            searchOverlay.style.display = "none";
+          }
+          else if (e.key === "Enter" && searchOverlay.style.display === "flex") {
+            var activeElement = document.activeElement;
+            if (activeElement === searchInput) {
+              e.preventDefault();
+              activeElement.form.submit();
+            }
+          }
+        });
+      }
+    });
+  </script>
   <script type="text/javascript">
     var collapsedSections = []
     $(document).ready(function() {

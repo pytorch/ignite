@@ -145,6 +145,20 @@ class TensorboardLogger(BaseLogger):
                     output_transform=lambda loss: {"loss": loss}
                 )
 
+        Alternatively, you can use :func:`~ignite.handlers.logger_utils.setup_tb_logging` for simplified setup:
+
+        .. code-block:: python
+
+            from ignite.handlers.logger_utils import setup_tb_logging
+            # Assume `trainer`, `evaluator`, and `optimizer` are already defined
+            tb_logger = setup_tb_logging(
+                output_path="experiments/tb_logs",
+                trainer=trainer,
+                optimizers=optimizer,
+                evaluators={"validation": evaluator},
+                log_every_iters=100
+            )
+
     Note:
         :class:`~ignite.handlers.tensorboard_logger.OutputHandler` can handle
         metrics, state attributes and engine output values of the following format:

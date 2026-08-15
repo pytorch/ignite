@@ -3,6 +3,7 @@ from collections import OrderedDict
 from collections.abc import Callable, Mapping, Sequence
 from functools import wraps
 from numbers import Number
+import traceback
 from typing import TYPE_CHECKING, Any, Literal, cast
 
 import torch
@@ -81,7 +82,7 @@ class EpochWise(MetricUsage):
     usage_name: str = "epoch_wise"
 
     def __init__(self) -> None:
-        super(EpochWise, self).__init__(
+        super().__init__(
             started=Events.EPOCH_STARTED,
             completed=Events.EPOCH_COMPLETED,
             iteration_completed=Events.ITERATION_COMPLETED,
@@ -133,7 +134,7 @@ class BatchWise(MetricUsage):
     usage_name: str = "batch_wise"
 
     def __init__(self) -> None:
-        super(BatchWise, self).__init__(
+        super().__init__(
             started=Events.ITERATION_STARTED,
             completed=Events.ITERATION_COMPLETED,
             iteration_completed=Events.ITERATION_COMPLETED,
@@ -212,7 +213,7 @@ class BatchFiltered(MetricUsage):
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super(BatchFiltered, self).__init__(
+        super().__init__(
             started=Events.EPOCH_STARTED,
             completed=Events.EPOCH_COMPLETED,
             iteration_completed=Events.ITERATION_COMPLETED(*args, **kwargs),
@@ -233,7 +234,7 @@ class Metric(Serializable, metaclass=ABCMeta):
             metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
             non-blocking. By default, CPU.
         skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
-            true for multi-output model, for example, if ``y_pred`` contains multi-ouput as ``(y_pred_a, y_pred_b)``
+            true for multi-output model, for example, if ``y_pred`` contains multi-output as ``(y_pred_a, y_pred_b)``
             Alternatively, ``output_transform`` can be used to handle this.
         metrics_result_mode: specifies how to put the computed metrics results into
             ``engine.state.metrics`` dictionary. Valid values are: "flatten", "named", "both".
@@ -261,8 +262,8 @@ class Metric(Serializable, metaclass=ABCMeta):
                             self.cb = cb
 
                         def forward(self,
-                                    y_pred: Tuple[torch.Tensor, torch.Tensor],
-                                    y_true: Tuple[torch.Tensor, torch.Tensor]) -> torch.Tensor:
+                                    y_pred: tuple[torch.Tensor, torch.Tensor],
+                                    y_true: tuple[torch.Tensor, torch.Tensor]) -> torch.Tensor:
                             a_true, b_true = y_true
                             a_pred, b_pred = y_pred
                             return self.ca * F.mse_loss(a_pred, a_true) + self.cb * F.cross_entropy(b_pred, b_true)
@@ -398,7 +399,6 @@ class Metric(Serializable, metaclass=ABCMeta):
 
         By default, this is called at the start of each epoch.
         """
-        pass
 
     @abstractmethod
     def update(self, output: Any) -> None:
@@ -410,7 +410,6 @@ class Metric(Serializable, metaclass=ABCMeta):
         Args:
             output: the is the output from the engine's process function.
         """
-        pass
 
     @abstractmethod
     def compute(self) -> Any:
@@ -427,7 +426,6 @@ class Metric(Serializable, metaclass=ABCMeta):
         Raises:
             NotComputableError: raised when the metric cannot be computed.
         """
-        pass
 
     def started(self, engine: Engine) -> None:
         """Helper method to start data gathering for metric's computation. It is automatically attached to the
@@ -793,8 +791,19 @@ class Metric(Serializable, metaclass=ABCMeta):
         if attr.startswith("__") and attr.endswith("__"):
             return object.__getattribute__(self, attr)
 
+        # Capture the call stack at definition time so that if the attribute
+        # turns out to be invalid (e.g. a typo), we can point the user back
+        # to where they wrote it instead of erroring deep inside compute().
+        definition_trace = "".join(traceback.format_stack()[:-1])
+
         def fn(x: Metric, *args: Any, **kwargs: Any) -> Any:
-            return getattr(x, attr)(*args, **kwargs)
+            try:
+                return getattr(x, attr)(*args, **kwargs)
+            except AttributeError:
+                raise AttributeError(
+                    f"Metric result of type '{type(x)}' has no attribute '{attr}'. "
+                    f"Note: '{attr}' was accessed on the metric at:\n{definition_trace}"
+                ) from None
 
         def wrapper(*args: Any, **kwargs: Any) -> "MetricsLambda":
             return MetricsLambda(fn, self, *args, **kwargs)

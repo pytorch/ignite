@@ -1,4 +1,4 @@
-""" ``ignite.contrib.metrics.roc_auc`` was moved to ``ignite.metrics.roc_auc``.
+"""``ignite.contrib.metrics.roc_auc`` was moved to ``ignite.metrics.roc_auc``.
 Note:
     ``ignite.contrib.metrics.roc_auc`` was moved to ``ignite.metrics.roc_auc``.
     Please refer to :mod:`~ignite.metrics.roc_auc`.

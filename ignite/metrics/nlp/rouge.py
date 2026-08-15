@@ -37,7 +37,7 @@ class Score(NamedTuple):
 
 def compute_ngram_scores(candidate: Sequence[Any], reference: Sequence[Any], n: int = 4) -> Score:
     """
-    Compute the score based on ngram co-occurence of sequences of items
+    Compute the score based on ngram co-occurrence of sequences of items
 
     Args:
         candidate: candidate sequence of items
@@ -45,7 +45,7 @@ def compute_ngram_scores(candidate: Sequence[Any], reference: Sequence[Any], n: 
         n: ngram order
 
     Returns:
-        The score containing the number of ngram co-occurences
+        The score containing the number of ngram co-occurrences
 
     .. versionadded:: 0.4.5
     """
@@ -54,7 +54,7 @@ def compute_ngram_scores(candidate: Sequence[Any], reference: Sequence[Any], n: 
     candidate_counter = ngrams(candidate, n)
     # ngrams of the references
     reference_counter = ngrams(reference, n)
-    # ngram co-occurences in the candidate and the references
+    # ngram co-occurrences in the candidate and the references
     match_counters = candidate_counter & reference_counter
 
     # the score is defined using Fraction
@@ -139,7 +139,7 @@ class _BaseRouge(Metric):
         valid_multiref = ["best", "average"]
         if self._multiref not in valid_multiref:
             raise ValueError(f"multiref : valid values are {valid_multiref} (got : {self._multiref})")
-        self._mutliref_reducer = self._get_multiref_reducer()
+        self._multiref_reducer = self._get_multiref_reducer()
 
     def _get_multiref_reducer(self) -> MultiRefReducer:
         if self._multiref == "average":
@@ -158,7 +158,7 @@ class _BaseRouge(Metric):
         candidates, references = output
         for _candidate, _reference in zip(candidates, references):
             multiref_scores = [self._compute_score(candidate=_candidate, reference=_ref) for _ref in _reference]
-            score = self._mutliref_reducer(multiref_scores)
+            score = self._multiref_reducer(multiref_scores)
             precision = score.precision()
             recall = score.recall()
             self._precision += precision
@@ -171,7 +171,7 @@ class _BaseRouge(Metric):
     @sync_all_reduce("_precision", "_recall", "_fmeasure", "_num_examples")
     def compute(self) -> Mapping:
         if self._num_examples == 0:
-            raise NotComputableError("Rouge metric must have at least one example before be computed")
+            raise NotComputableError("Rouge metric must have at least one example before being computed")
 
         return {
             f"{self._metric_name()}-P": float(self._precision / self._num_examples),
@@ -191,7 +191,7 @@ class _BaseRouge(Metric):
 class RougeN(_BaseRouge):
     r"""Calculates the Rouge-N score.
 
-    The Rouge-N is based on the ngram co-occurences of candidates and references.
+    The Rouge-N is based on the ngram co-occurrences of candidates and references.
 
     More details can be found in `Lin 2004`__.
 

@@ -14,7 +14,7 @@ license-files = ["LICENSE"]
 classifiers = [
     "Programming Language :: Python :: 3",
 ]
-requires-python = ">=3.10,<=3.14"
+requires-python = ">=3.10,<3.15"
 dependencies = [
     "torch>=2.2,<3",
     "packaging"
@@ -122,31 +122,6 @@ docstring-code-format = false
 # This only has an effect when the `docstring-code-format` setting is
 # enabled.
 docstring-code-line-length = "dynamic"
-
-[tool.black]
-line-length = 120
-target-version = ['py311', 'py313']
-include = '\.pyi?$'
-exclude = '''
-
-(
-  /(
-      \.eggs         # exclude a few common directories in the
-    | \.git          # root of the project
-    | \.hg
-    | \.mypy_cache
-    | \.tox
-    | \.venv
-    | _build
-    | buck-out
-    | build
-    | dist
-    | assets
-  )/
-  | foo.py           # also separately exclude a file named foo.py in
-                     # the root of the project
-)
-'''
 
 [tool.pytest.ini_options]
 markers = [

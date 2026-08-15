@@ -1,4 +1,4 @@
-""" ``ignite.contrib.handlers.visdom_logger`` was moved to ``ignite.handlers.visdom_logger``.
+"""``ignite.contrib.handlers.visdom_logger`` was moved to ``ignite.handlers.visdom_logger``.
 Note:
     ``ignite.contrib.handlers.visdom_logger`` was moved to ``ignite.handlers.visdom_logger``.
     Please refer to :mod:`~ignite.handlers.visdom_logger`.

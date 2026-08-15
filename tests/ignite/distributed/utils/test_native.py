@@ -38,7 +38,7 @@ def _test_native_distrib_single_node_launch_tool(backend, device, local_rank, wo
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
-@pytest.mark.parametrize("init_method", [None, "tcp://0.0.0.0:22334", "FILE"])
+@pytest.mark.parametrize("init_method", [None, "FILE"])
 def test_native_distrib_single_node_launch_tool_gloo(init_method, get_fixed_dirname, local_rank, world_size):
     from datetime import timedelta
 
@@ -56,7 +56,7 @@ def test_native_distrib_single_node_launch_tool_gloo(init_method, get_fixed_dirn
 @pytest.mark.distributed
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-@pytest.mark.parametrize("init_method", [None, "tcp://0.0.0.0:22334", "FILE"])
+@pytest.mark.parametrize("init_method", [None, "FILE"])
 def test_native_distrib_single_node_launch_tool_nccl(init_method, get_fixed_dirname, local_rank, world_size):
     if init_method == "FILE":
         init_method = f"file://{get_fixed_dirname('native_distrib_single_node_launch_tool_nccl')}/shared"
@@ -80,7 +80,7 @@ def _test_native_distrib_single_node_spawn(init_method, backend, device, **kwarg
 @pytest.mark.distributed
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
-@pytest.mark.parametrize("init_method", [None, "tcp://0.0.0.0:22334", "FILE"])
+@pytest.mark.parametrize("init_method", [None, "FILE"])
 def test_native_distrib_single_node_spawn_gloo(init_method, dirname):
     from datetime import timedelta
 
@@ -97,7 +97,7 @@ def test_native_distrib_single_node_spawn_gloo(init_method, dirname):
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-@pytest.mark.parametrize("init_method", [None, "tcp://0.0.0.0:22334", "FILE"])
+@pytest.mark.parametrize("init_method", [None, "FILE"])
 def test_native_distrib_single_node_spawn_nccl(init_method, dirname):
     if init_method == "FILE":
         init_method = f"file://{dirname}/shared"

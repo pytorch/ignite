@@ -9,7 +9,8 @@ import random
 import shutil
 import warnings
 from pathlib import Path
-from typing import Any, Callable, cast, TextIO, TypeVar
+from collections.abc import Callable
+from typing import Any, cast, TextIO, TypeVar
 
 import torch
 
@@ -176,7 +177,7 @@ class _CollectionItem:
     def __init__(self, collection: dict | list, key: int | str) -> None:
         if not isinstance(collection, (dict, list)):
             raise TypeError(
-                f"Input type is expected to be a mapping or list, but got {type(collection)} " f"for input key '{key}'."
+                f"Input type is expected to be a mapping or list, but got {type(collection)} for input key '{key}'."
             )
         if isinstance(collection, list) and isinstance(key, str):
             raise ValueError("Key should be int for collection of type list")

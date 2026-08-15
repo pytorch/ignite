@@ -10,20 +10,20 @@ Complete list of generic handlers
     :nosignatures:
     :toctree: generated
 
-    checkpoint.Checkpoint
+    Checkpoint
     checkpoint.CheckpointEvents
     DiskSaver
-    checkpoint.ModelCheckpoint
-    ema_handler.EMAHandler
-    early_stopping.EarlyStopping
-    lr_finder.FastaiLRFinder
-    terminate_on_nan.TerminateOnNan
+    ModelCheckpoint
+    EMAHandler
+    EarlyStopping
+    FastaiLRFinder
+    TerminateOnNan
     TimeLimit
-    time_profilers.BasicTimeProfiler
-    time_profilers.HandlersTimeProfiler
-    timing.Timer
+    BasicTimeProfiler
+    HandlersTimeProfiler
+    Timer
     global_step_from_engine
-    stores.EpochOutputStore
+    EpochOutputStore
 
 .. autosummary::
     :nosignatures:
@@ -88,6 +88,25 @@ Loggers
 
 .. _param-scheduler-label:
 
+Logger setup helpers
+---------------------
+.. automodule:: ignite.handlers.logger_utils
+
+.. currentmodule:: ignite.handlers.logger_utils
+
+.. autosummary::
+    :nosignatures:
+    :toctree: generated
+
+    setup_tb_logging
+    setup_visdom_logging
+    setup_mlflow_logging
+    setup_neptune_logging
+    setup_wandb_logging
+    setup_plx_logging
+    setup_clearml_logging
+    setup_trains_logging
+
 Parameter scheduler
 -------------------
 
@@ -98,6 +117,7 @@ Parameter scheduler
     :toctree: generated
 
     BaseParamScheduler
+    BatchSizeScheduler
     ConcatScheduler
     CosineAnnealingScheduler
     CyclicalScheduler

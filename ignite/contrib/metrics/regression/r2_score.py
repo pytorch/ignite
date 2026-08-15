@@ -1,4 +1,4 @@
-""" ``ignite.contrib.metrics.regression.r2_score`` was moved to ``ignite.metrics.regression.r2_score``. # noqa
+"""``ignite.contrib.metrics.regression.r2_score`` was moved to ``ignite.metrics.regression.r2_score``. # noqa
 Note:
     ``ignite.contrib.metrics.regression.r2_score`` was moved to ``ignite.metrics.regression.r2_score``. # noqa
     Please refer to :mod:`~ignite.metrics.regression.r2_score`.

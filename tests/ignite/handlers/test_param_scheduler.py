@@ -5,9 +5,10 @@ import numpy as np
 import pytest
 import torch
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, ExponentialLR, StepLR
-
+from torch.utils.data import DataLoader, TensorDataset
 from ignite.engine import Engine, Events
 from ignite.handlers.param_scheduler import (
+    BatchSizeScheduler,
     ConcatScheduler,
     CosineAnnealingScheduler,
     create_lr_scheduler_with_warmup,
@@ -1070,12 +1071,12 @@ def test_create_lr_scheduler_with_warmup(
         assert lrs == pytest.approx([v for _, v in simulated_values])
 
         assert lrs[0] == pytest.approx(warmup_start_value), f"lrs={lrs[: warmup_duration + num_iterations]}"
-        assert lrs[warmup_duration - 1] == pytest.approx(
-            expected_warmup_end_value
-        ), f"lrs={lrs[: warmup_duration + num_iterations]}"
-        assert lrs[warmup_duration] == pytest.approx(
-            warmup_end_next_value
-        ), f"lrs={lrs[: warmup_duration + num_iterations]}"
+        assert lrs[warmup_duration - 1] == pytest.approx(expected_warmup_end_value), (
+            f"lrs={lrs[: warmup_duration + num_iterations]}"
+        )
+        assert lrs[warmup_duration] == pytest.approx(warmup_end_next_value), (
+            f"lrs={lrs[: warmup_duration + num_iterations]}"
+        )
         scheduler.load_state_dict(state_dict)
 
 
@@ -1474,3 +1475,56 @@ def test_create_lr_scheduler_with_warmup_cosine(warmup_end_value, T_0, T_mult):
     else:
         np.testing.assert_allclose(np.linspace(warm_start, lr, warm_steps), warm_lrs[:warm_steps])
         assert warm_lrs[real_warm_steps:] == cosine_lrs
+
+
+def test_batch_size_scheduler_asserts():
+    dataset = TensorDataset(torch.arange(100))
+    dataloader = DataLoader(dataset, batch_size=10)
+
+    with pytest.raises(TypeError, match=r"Argument dataloader should be torch.utils.data.DataLoader"):
+        BatchSizeScheduler("not_a_dataloader", scheduler_fn=lambda e: 10)
+
+    with pytest.raises(TypeError, match=r"Argument scheduler_fn should be callable"):
+        BatchSizeScheduler(dataloader, scheduler_fn="not_callable")
+
+    scheduler = BatchSizeScheduler(dataloader, scheduler_fn=lambda e: -1)
+    with pytest.raises(ValueError, match=r"Batch size returned by scheduler_fn should be a positive integer"):
+        scheduler(None)
+
+
+@pytest.mark.parametrize("save_history", [False, True])
+def test_batch_size_scheduler(save_history):
+    dataset = TensorDataset(torch.arange(100))
+    dataloader = DataLoader(dataset, batch_size=10)
+
+    scheduler = BatchSizeScheduler(dataloader, scheduler_fn=lambda e: 10 + e * 10, save_history=save_history)
+
+    trainer = Engine(lambda engine, batch: None)
+    trainer.add_event_handler(Events.EPOCH_STARTED, scheduler)
+    trainer.run([0] * 20, max_epochs=3)
+
+    assert dataloader.batch_sampler.batch_size == 30
+    if save_history:
+        assert trainer.state.param_history["batch_size"] == [10, 20, 30]
+
+
+def test_batch_size_scheduler_simulate_values():
+    values = BatchSizeScheduler.simulate_values(5, scheduler_fn=lambda e: 10 + e * 5)
+    assert values == [[0, 10], [1, 15], [2, 20], [3, 25], [4, 30]]
+
+
+def test_batch_size_scheduler_state_dict():
+    dataset = TensorDataset(torch.arange(100))
+    dataloader = DataLoader(dataset, batch_size=10)
+
+    scheduler = BatchSizeScheduler(dataloader, scheduler_fn=lambda e: 10 + e * 10)
+    trainer = Engine(lambda engine, batch: None)
+    trainer.add_event_handler(Events.EPOCH_STARTED, scheduler)
+    trainer.run([0] * 20, max_epochs=2)
+
+    sd = scheduler.state_dict()
+    assert sd["event_index"] == 2
+
+    new_scheduler = BatchSizeScheduler(dataloader, scheduler_fn=lambda e: 10 + e * 10)
+    new_scheduler.load_state_dict(sd)
+    assert new_scheduler.event_index == 2

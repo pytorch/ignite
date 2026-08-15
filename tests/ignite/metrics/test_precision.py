@@ -457,15 +457,15 @@ class TestDistributed:
 
             assert pr._updated is True
 
-            assert (
-                pr._numerator.device == metric_device
-            ), f"{type(pr._numerator.device)}:{pr._numerator.device} vs {type(metric_device)}:{metric_device}"
+            assert pr._numerator.device == metric_device, (
+                f"{type(pr._numerator.device)}:{pr._numerator.device} vs {type(metric_device)}:{metric_device}"
+            )
 
             if average != "samples":
                 # For average='samples', `_denominator` is of type `int` so it has not `device` member.
-                assert (
-                    pr._denominator.device == metric_device
-                ), f"{type(pr._denominator.device)}:{pr._denominator.device} vs {type(metric_device)}:{metric_device}"
+                assert pr._denominator.device == metric_device, (
+                    f"{type(pr._denominator.device)}:{pr._denominator.device} vs {type(metric_device)}:{metric_device}"
+                )
 
             if average == "weighted":
                 assert pr._weight.device == metric_device, f"{type(pr._weight.device)}:{pr._weight.device} vs "
@@ -490,15 +490,15 @@ class TestDistributed:
 
             assert pr._updated is True
 
-            assert (
-                pr._numerator.device == metric_device
-            ), f"{type(pr._numerator.device)}:{pr._numerator.device} vs {type(metric_device)}:{metric_device}"
+            assert pr._numerator.device == metric_device, (
+                f"{type(pr._numerator.device)}:{pr._numerator.device} vs {type(metric_device)}:{metric_device}"
+            )
 
             if average != "samples":
                 # For average='samples', `_denominator` is of type `int` so it has not `device` member.
-                assert (
-                    pr._denominator.device == metric_device
-                ), f"{type(pr._denominator.device)}:{pr._denominator.device} vs {type(metric_device)}:{metric_device}"
+                assert pr._denominator.device == metric_device, (
+                    f"{type(pr._denominator.device)}:{pr._denominator.device} vs {type(metric_device)}:{metric_device}"
+                )
 
             if average == "weighted":
                 assert pr._weight.device == metric_device, f"{type(pr._weight.device)}:{pr._weight.device} vs "

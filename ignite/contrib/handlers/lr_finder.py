@@ -1,4 +1,4 @@
-""" ``ignite.contrib.handlers.lr_finder`` was moved to ``ignite.handlers.lr_finder``.
+"""``ignite.contrib.handlers.lr_finder`` was moved to ``ignite.handlers.lr_finder``.
 Note:
     ``ignite.contrib.handlers.lr_finder`` was moved to ``ignite.handlers.lr_finder``.
     Please refer to :mod:`~ignite.handlers.lr_finder`.

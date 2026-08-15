@@ -17,10 +17,8 @@ class CorpusForTest:
         self.cand_2a = preproc(
             "It is a guide to action which ensures that the military always obeys the commands of the party"
         )
-        self.cand_2b = preproc("It is to insure the troops forever hearing the activity guidebook that " "party direct")
-        self.ref_2a = preproc(
-            "It is a guide to action that ensures that the military will forever heed " "Party commands"
-        )
+        self.cand_2b = preproc("It is to insure the troops forever hearing the activity guidebook that party direct")
+        self.ref_2a = preproc("It is a guide to action that ensures that the military will forever heed Party commands")
         self.ref_2b = preproc(
             "It is the guiding principle which guarantees the military forces always being under the command of "
             "the Party"

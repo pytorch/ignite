@@ -1,4 +1,4 @@
-""" ``ignite.contrib.handlers.mlflow_logger`` was moved to ``ignite.handlers.mlflow_logger``.
+"""``ignite.contrib.handlers.mlflow_logger`` was moved to ``ignite.handlers.mlflow_logger``.
 Note:
     ``ignite.contrib.handlers.mlflow_logger`` was moved to ``ignite.handlers.mlflow_logger``.
     Please refer to :mod:`~ignite.handlers.mlflow_logger`.

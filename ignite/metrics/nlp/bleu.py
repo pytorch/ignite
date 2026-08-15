@@ -165,8 +165,7 @@ class Bleu(Metric):
     ) -> tuple[int, int]:
         if len(references) != len(candidates):
             raise ValueError(
-                f"nb of candidates should be equal to nb of reference lists ({len(candidates)} != "
-                f"{len(references)})"
+                f"nb of candidates should be equal to nb of reference lists ({len(candidates)} != {len(references)})"
             )
 
         hyp_lengths = 0

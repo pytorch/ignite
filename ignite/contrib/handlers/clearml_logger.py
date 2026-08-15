@@ -1,4 +1,4 @@
-""" ``ignite.contrib.handlers.clearml_logger`` was moved to ``ignite.handlers.clearml_logger``.
+"""``ignite.contrib.handlers.clearml_logger`` was moved to ``ignite.handlers.clearml_logger``.
 Note:
     ``ignite.contrib.handlers.clearml_logger`` was moved to ``ignite.handlers.clearml_logger``.
     Please refer to :mod:`~ignite.handlers.clearml_logger`.

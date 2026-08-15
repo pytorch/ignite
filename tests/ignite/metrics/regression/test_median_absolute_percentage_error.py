@@ -13,7 +13,8 @@ from ignite.metrics.regression import MedianAbsolutePercentageError
 def test_zero_sample():
     m = MedianAbsolutePercentageError()
     with pytest.raises(
-        NotComputableError, match=r"EpochMetric must have at least one example before it can be computed"
+        NotComputableError,
+        match=r"MedianAbsolutePercentageError must have at least one example before it can be computed",
     ):
         m.compute()
 

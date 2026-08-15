@@ -121,6 +121,19 @@ class WandBLogger(BaseLogger):
             )
             evaluator.add_event_handler(Events.COMPLETED, model_checkpoint, {'model': model})
 
+        Alternatively, you can use :func:`~ignite.handlers.logger_utils.setup_wandb_logging` for simplified setup:
+
+        .. code-block:: python
+
+            from ignite.handlers.logger_utils import setup_wandb_logging
+            # Assume `trainer`, `evaluator`, and `optimizer` are already defined
+            wandb_logger = setup_wandb_logging(
+                trainer=trainer,
+                optimizers=optimizer,
+                evaluators={"validation": evaluator},
+                log_every_iters=100
+            )
+
     Note:
         :class:`~ignite.handlers.wandb_logger.OutputHandler` can handle
         metrics, state attributes and engine output values of the following format:

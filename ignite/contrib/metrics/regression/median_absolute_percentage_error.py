@@ -1,4 +1,4 @@
-""" ``ignite.contrib.metrics.regression.median_absolute_percentage_error`` was moved to ``ignite.metrics.regression.median_absolute_percentage_error``. # noqa
+"""``ignite.contrib.metrics.regression.median_absolute_percentage_error`` was moved to ``ignite.metrics.regression.median_absolute_percentage_error``. # noqa
 Note:
     ``ignite.contrib.metrics.regression.median_absolute_percentage_error`` was moved to ``ignite.metrics.regression.median_absolute_percentage_error``. # noqa
     Please refer to :mod:`~ignite.metrics.regression.median_absolute_percentage_error`.

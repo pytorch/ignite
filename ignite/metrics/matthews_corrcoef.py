@@ -49,7 +49,7 @@ class MatthewsCorrCoef(EpochMetric):
             check_compute_fn: if True, compute_fn is run on the first batch of data to ensure there are no issues.
                 If issues exist, user is warned that there might be an issue with the compute_fn. Default, True.
             skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
-                true for multi-output model, for example, if ``y_pred`` contains multi-ouput as ``(y_pred_a, y_pred_b)``
+                true for multi-output model, for example, if ``y_pred`` contains multi-output as ``(y_pred_a, y_pred_b)``
                 Alternatively, ``output_transform`` can be used to handle this.
 
             Examples:
@@ -72,7 +72,7 @@ class MatthewsCorrCoef(EpochMetric):
 
                 -0.33...
 
-        .. versionadded:: 0.6.0
+        .. versionadded:: 0.5.4
 
     """
 

@@ -165,8 +165,7 @@ class EMAHandler:
 
         if not isinstance(model, nn.Module):
             raise ValueError(
-                f"model should be an instance of nn.Module or its subclasses, but got"
-                f"model: {model.__class__.__name__}"
+                f"model should be an instance of nn.Module or its subclasses, but gotmodel: {model.__class__.__name__}"
             )
 
         if isinstance(model, nn.parallel.DistributedDataParallel):
@@ -179,7 +178,7 @@ class EMAHandler:
 
         if handle_buffers not in ("copy", "update", "ema_train"):
             raise ValueError(
-                f"handle_buffers can only be one of 'copy', 'update', 'ema_train', " f"but got {handle_buffers}"
+                f"handle_buffers can only be one of 'copy', 'update', 'ema_train', but got {handle_buffers}"
             )
 
         self.handle_buffers = handle_buffers

@@ -226,7 +226,7 @@ class FID(_BaseInceptionMetric):
         self._test_total = torch.zeros(self._num_features, dtype=self._double_dtype, device=self._device)
         self._num_examples: int = 0
 
-        super(FID, self).reset()  # type: ignore
+        super().reset()  # type: ignore
 
     @reinit__is_reduced
     def update(self, output: Sequence[torch.Tensor]) -> None:
