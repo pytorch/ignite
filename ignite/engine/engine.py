@@ -325,6 +325,9 @@ class Engine(Serializable):
             return RemovableEventHandle(event_name, handler, self)
         if isinstance(event_name, CallableEventWithFilter) and event_name.filter is not None:
             event_filter = event_name.filter
+            once = getattr(event_filter, "_once", None)
+            if once is not None:
+                event_filter = Events.once_event_filter(list(once))
             handler = self._handler_wrapper(handler, event_name, event_filter)
 
         self._assert_allowed_event(event_name)
