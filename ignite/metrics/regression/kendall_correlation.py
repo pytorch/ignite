@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
 
 import torch
 
@@ -20,7 +20,7 @@ def _get_kendall_tau(variant: str = "b") -> Callable[[Tensor, Tensor], float]:
         np_preds = predictions.flatten().cpu().numpy()
         np_targets = targets.flatten().cpu().numpy()
         r = kendalltau(np_preds, np_targets, variant=variant).statistic
-        return r
+        return float(r)
 
     return _tau
 
@@ -121,4 +121,4 @@ class KendallRankCorrelation(EpochMetric):
         if len(self._predictions) < 1 or len(self._targets) < 1:
             raise NotComputableError("KendallRankCorrelation must have at least one example before it can be computed.")
 
-        return super().compute()
+        return cast(float, super().compute())

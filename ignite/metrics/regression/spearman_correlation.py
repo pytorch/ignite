@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, cast
 from collections.abc import Callable
 
 import torch
@@ -16,7 +16,7 @@ def _spearman_r(predictions: Tensor, targets: Tensor) -> float:
     np_preds = predictions.flatten().cpu().numpy()
     np_targets = targets.flatten().cpu().numpy()
     r = spearmanr(np_preds, np_targets).statistic
-    return r
+    return float(r)
 
 
 class SpearmanRankCorrelation(EpochMetric):
@@ -110,4 +110,4 @@ class SpearmanRankCorrelation(EpochMetric):
                 "SpearmanRankCorrelation must have at least one example before it can be computed."
             )
 
-        return super().compute()
+        return cast(float, super().compute())

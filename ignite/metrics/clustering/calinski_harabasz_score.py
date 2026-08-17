@@ -20,7 +20,7 @@ def _calinski_harabasz_score(features: Tensor, labels: Tensor) -> float:
     np_features = features.cpu().numpy()
     np_labels = labels.cpu().numpy()
     score = calinski_harabasz_score(np_features, np_labels)
-    return score
+    return float(score)
 
 
 class CalinskiHarabaszScore(_ClusteringMetricBase):
