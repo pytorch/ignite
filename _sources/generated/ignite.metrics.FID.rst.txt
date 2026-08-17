@@ -1,0 +1,47 @@
+﻿FID
+===
+
+.. currentmodule:: ignite.metrics
+
+.. autoclass:: FID
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~FID.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~FID.reset
+   
+   
+   
+   
+   
+   
+   
+      ~FID.update
+   
+   
+   
+   

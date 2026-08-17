@@ -1,0 +1,6 @@
+﻿Fbeta
+=====
+
+.. currentmodule:: ignite.metrics
+
+.. autofunction:: Fbeta

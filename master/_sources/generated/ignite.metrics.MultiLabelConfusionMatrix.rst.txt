@@ -1,0 +1,47 @@
+﻿MultiLabelConfusionMatrix
+=========================
+
+.. currentmodule:: ignite.metrics
+
+.. autoclass:: MultiLabelConfusionMatrix
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~MultiLabelConfusionMatrix.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~MultiLabelConfusionMatrix.reset
+   
+   
+   
+   
+   
+   
+   
+      ~MultiLabelConfusionMatrix.update
+   
+   
+   
+   

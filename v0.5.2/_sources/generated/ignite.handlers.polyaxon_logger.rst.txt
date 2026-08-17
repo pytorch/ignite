@@ -1,0 +1,33 @@
+﻿polyaxon\_logger
+================
+
+.. automodule:: ignite.handlers.polyaxon_logger
+   :members:
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :nosignatures:
+   
+      OptimizerParamsHandler
+      OutputHandler
+      PolyaxonLogger
+   
+   
+
+   
+   
+   
+
+
+

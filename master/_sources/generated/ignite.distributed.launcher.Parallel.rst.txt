@@ -1,0 +1,23 @@
+﻿Parallel
+========
+
+.. currentmodule:: ignite.distributed.launcher
+
+.. autoclass:: Parallel
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+      ~Parallel.run
+   
+   
+   
+   

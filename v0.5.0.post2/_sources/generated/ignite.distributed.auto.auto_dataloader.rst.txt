@@ -1,0 +1,6 @@
+﻿auto\_dataloader
+================
+
+.. currentmodule:: ignite.distributed.auto
+
+.. autofunction:: auto_dataloader

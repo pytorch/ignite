@@ -1,0 +1,33 @@
+﻿ReduceLROnPlateauScheduler
+==========================
+
+.. currentmodule:: ignite.handlers.param_scheduler
+
+.. autoclass:: ReduceLROnPlateauScheduler
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+      ~ReduceLROnPlateauScheduler.get_param
+   
+   
+   
+   
+   
+   
+   
+      ~ReduceLROnPlateauScheduler.simulate_values
+   
+   
+   
+   
+   
+   

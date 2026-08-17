@@ -1,0 +1,47 @@
+﻿SSIM
+====
+
+.. currentmodule:: ignite.metrics
+
+.. autoclass:: SSIM
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~SSIM.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~SSIM.reset
+   
+   
+   
+   
+   
+   
+   
+      ~SSIM.update
+   
+   
+   
+   

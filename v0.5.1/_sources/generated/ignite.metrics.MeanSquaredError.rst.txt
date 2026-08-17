@@ -1,0 +1,47 @@
+﻿MeanSquaredError
+================
+
+.. currentmodule:: ignite.metrics
+
+.. autoclass:: MeanSquaredError
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~MeanSquaredError.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~MeanSquaredError.reset
+   
+   
+   
+   
+   
+   
+   
+      ~MeanSquaredError.update
+   
+   
+   
+   

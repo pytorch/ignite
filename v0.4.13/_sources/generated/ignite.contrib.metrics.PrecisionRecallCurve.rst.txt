@@ -1,0 +1,43 @@
+﻿PrecisionRecallCurve
+====================
+
+.. currentmodule:: ignite.contrib.metrics
+
+.. autoclass:: PrecisionRecallCurve
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~PrecisionRecallCurve.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   

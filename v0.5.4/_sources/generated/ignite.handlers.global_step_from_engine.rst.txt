@@ -1,0 +1,6 @@
+﻿global\_step\_from\_engine
+==========================
+
+.. currentmodule:: ignite.handlers
+
+.. autofunction:: global_step_from_engine

@@ -1,0 +1,6 @@
+﻿supervised\_training\_step\_apex
+================================
+
+.. currentmodule:: ignite.engine
+
+.. autofunction:: supervised_training_step_apex

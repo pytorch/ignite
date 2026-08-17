@@ -1,0 +1,6 @@
+﻿auto\_optim
+===========
+
+.. currentmodule:: ignite.distributed.auto
+
+.. autofunction:: auto_optim
