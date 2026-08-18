@@ -78,15 +78,20 @@ class PearsonCorrelation(_BaseRegression):
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._sum_of_y_preds = torch.tensor(0.0, device=self._device)
-        self._sum_of_ys = torch.tensor(0.0, device=self._device)
-        self._sum_of_y_pred_squares = torch.tensor(0.0, device=self._device)
-        self._sum_of_y_squares = torch.tensor(0.0, device=self._device)
-        self._sum_of_products = torch.tensor(0.0, device=self._device)
+        # Use float64 accumulators to avoid catastrophic cancellation in
+        # E[X^2] - (E[X])^2 when values have large magnitude.  MPS does not
+        # support float64, so fall back to float32 there.
+        acc_dtype = torch.float64 if self._device.type != "mps" else torch.float32
+        self._sum_of_y_preds = torch.tensor(0.0, dtype=acc_dtype, device=self._device)
+        self._sum_of_ys = torch.tensor(0.0, dtype=acc_dtype, device=self._device)
+        self._sum_of_y_pred_squares = torch.tensor(0.0, dtype=acc_dtype, device=self._device)
+        self._sum_of_y_squares = torch.tensor(0.0, dtype=acc_dtype, device=self._device)
+        self._sum_of_products = torch.tensor(0.0, dtype=acc_dtype, device=self._device)
         self._num_examples = 0
 
     def _update(self, output: tuple[torch.Tensor, torch.Tensor]) -> None:
-        y_pred, y = output[0].detach(), output[1].detach()
+        y_pred = output[0].detach().to(dtype=self._sum_of_y_preds.dtype)
+        y = output[1].detach().to(dtype=self._sum_of_y_preds.dtype)
         self._sum_of_y_preds += y_pred.sum().to(self._device)
         self._sum_of_ys += y.sum().to(self._device)
         self._sum_of_y_pred_squares += y_pred.square().sum().to(self._device)
