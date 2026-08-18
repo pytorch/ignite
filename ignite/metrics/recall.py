@@ -97,6 +97,12 @@ class Recall(_BasePrecisionRecall):
         skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
             true for multi-output model, for example, if ``y_pred`` contains multi-output as ``(y_pred_a, y_pred_b)``
             Alternatively, ``output_transform`` can be used to handle this.
+        class_names: list of class name strings used to label per-class output when ``average=False``
+            or ``average=None``. If provided, ``compute()`` returns a ``dict`` mapping each class
+            name to its metric value instead of a tensor. Must match the number of classes inferred
+            from the data. Default: ``None``.
+
+            .. versionadded:: 0.6.0
 
     Examples:
 
@@ -218,6 +224,9 @@ class Recall(_BasePrecisionRecall):
 
     .. versionchanged:: 0.5.1
         ``skip_unrolling`` argument is added.
+
+    .. versionchanged:: 0.6.0
+        ``class_names`` argument is added.
     """
 
     @reinit__is_reduced
@@ -240,5 +249,12 @@ class Recall(_BasePrecisionRecall):
 
             if self._average == "weighted":
                 self._weight += y.sum(dim=0)
+            if self._class_names is not None:
+                num_classes = 1 if self._numerator.ndim == 0 else self._numerator.shape[0]
+                if len(self._class_names) != num_classes:
+                    raise ValueError(
+                        f"class_names has {len(self._class_names)} entries but the metric computed "
+                        f"{num_classes} classes."
+                    )
 
         self._updated = True

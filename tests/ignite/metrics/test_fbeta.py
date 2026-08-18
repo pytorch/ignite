@@ -15,11 +15,11 @@ def test_wrong_inputs():
     with pytest.raises(ValueError, match=r"Beta should be a positive integer"):
         Fbeta(0.0)
 
-    with pytest.raises(ValueError, match=r"Input precision metric should have average=False"):
+    with pytest.raises(ValueError, match=r"Input precision and recall metrics should have average=False"):
         p = Precision(average="micro")
         Fbeta(1.0, precision=p)
 
-    with pytest.raises(ValueError, match=r"Input recall metric should have average=False"):
+    with pytest.raises(ValueError, match=r"Input precision and recall metrics should have average=False"):
         r = Recall(average="samples")
         Fbeta(1.0, recall=r)
 
@@ -233,3 +233,58 @@ def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
 def test_multinode_distrib_nccl_gpu(distributed_context_multi_node_nccl):
     device = idist.device()
     _test_distrib_integration(device)
+
+
+def test_class_names():
+    # Invalid class_names type
+    with pytest.raises(ValueError, match="class_names must be a list of strings"):
+        Fbeta(beta=1.0, average=False, class_names=[1, 2])
+
+    # Early check for average=True when class_names is given
+    with pytest.raises(ValueError, match="class_names is only applicable when average=False or average=None"):
+        Fbeta(beta=1.0, average=True, class_names=["cat", "dog"])
+
+    # Precision metric without class_names passed to Fbeta with class_names
+    p_no_cn = Precision(average=False)
+    with pytest.raises(ValueError, match="precision and recall metric class_names must match Fbeta class_names"):
+        Fbeta(beta=1.0, average=False, class_names=["cat", "dog"], precision=p_no_cn)
+
+    # Recall metric without class_names passed to Fbeta with class_names
+    r_no_cn = Recall(average=False)
+    with pytest.raises(ValueError, match="precision and recall metric class_names must match Fbeta class_names"):
+        Fbeta(beta=1.0, average=False, class_names=["cat", "dog"], recall=r_no_cn)
+
+    # Mismatched precision and recall class_names
+    p = Precision(average=False, class_names=["cat", "dog"])
+    r = Recall(average=False, class_names=["a", "b"])
+    with pytest.raises(ValueError, match="precision and recall class_names must match"):
+        Fbeta(beta=1.0, average=False, precision=p, recall=r)
+
+    # Input precision metric with average != False
+    p_avg = Precision(average="macro")
+    with pytest.raises(ValueError, match="Input precision and recall metrics should have average=False"):
+        Fbeta(beta=1.0, average=False, precision=p_avg)
+
+    # Correct computation passing class_names directly to Fbeta
+    f1 = Fbeta(beta=1.0, average=False, class_names=["cat", "dog", "bird"])
+    y_true = torch.tensor([0, 1, 2])
+    y_pred = torch.tensor(
+        [
+            [1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.0, 0.0, 1.0],
+        ]
+    )
+    f1.update((y_pred, y_true))
+    res = f1.compute()
+    assert isinstance(res, dict)
+    assert res == {"cat": 1.0, "dog": 1.0, "bird": 1.0}
+
+    # Correct computation with Precision and Recall having class_names
+    p2 = Precision(average=False, class_names=["cat", "dog", "bird"])
+    r2 = Recall(average=False, class_names=["cat", "dog", "bird"])
+    f2 = Fbeta(beta=1.0, average=False, precision=p2, recall=r2)
+    f2.update((y_pred, y_true))
+    res2 = f2.compute()
+    assert isinstance(res2, dict)
+    assert res2 == {"cat": 1.0, "dog": 1.0, "bird": 1.0}

@@ -17,6 +17,7 @@ def Fbeta(
     recall: Recall | None = None,
     output_transform: Callable | None = None,
     device: str | torch.device | None = None,
+    class_names: list[str] | None = None,
 ) -> MetricsLambda:
     r"""Calculates F-beta score.
 
@@ -42,6 +43,9 @@ def Fbeta(
         device: specifies which device updates are accumulated on. Setting the metric's
             device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
             default, CPU.
+        class_names: list of class name strings used to label per-class output. Default: ``None``.
+
+            .. versionadded:: 0.6.0
 
     Returns:
         MetricsLambda, F-beta metric
@@ -159,23 +163,58 @@ def Fbeta(
     if precision is None and recall is None and device is None:
         device = torch.device("cpu")
 
+    if class_names is not None:
+        if not isinstance(class_names, (list, tuple)) or not all(isinstance(n, str) for n in class_names):
+            raise ValueError("class_names must be a list of strings")
+        if average is not False and average is not None:
+            raise ValueError(
+                f"class_names is only applicable when average=False or average=None, got average={average!r}."
+            )
+
+    active_metrics = [m for m in (precision, recall) if m is not None]
+
+    if any(m._average for m in active_metrics):
+        raise ValueError("Input precision and recall metrics should have average=False")
+
+    if class_names is not None and any(m._class_names != class_names for m in active_metrics):
+        raise ValueError("precision and recall metric class_names must match Fbeta class_names")
+
+    if len(active_metrics) == 2 and active_metrics[0]._class_names != active_metrics[1]._class_names:
+        raise ValueError("precision and recall class_names must match")
+
+    target_class_names = class_names
+    if target_class_names is None and precision is not None:
+        target_class_names = precision._class_names
+    if target_class_names is None and recall is not None:
+        target_class_names = recall._class_names
+
     if precision is None:
         precision = Precision(
             output_transform=(lambda x: x) if output_transform is None else output_transform,
             average=False,
             device=cast(str | torch.device, recall._device if recall else device),
+            class_names=target_class_names,
         )
-    elif precision._average:
-        raise ValueError("Input precision metric should have average=False")
 
     if recall is None:
         recall = Recall(
             output_transform=(lambda x: x) if output_transform is None else output_transform,
             average=False,
             device=cast(str | torch.device, precision._device if precision else device),
+            class_names=target_class_names,
         )
-    elif recall._average:
-        raise ValueError("Input recall metric should have average=False")
+
+    if target_class_names is not None:
+
+        def _fbeta_with_class_names(p: dict, r: dict) -> dict:
+            p_vals = torch.tensor(list(p.values()))
+            r_vals = torch.tensor(list(r.values()))
+            scores = (1.0 + beta**2) * p_vals * r_vals / (beta**2 * p_vals + r_vals + 1e-15)
+            if scores.ndim == 0:
+                return {target_class_names[0]: scores.item()}
+            return dict(zip(target_class_names, scores.tolist()))
+
+        return MetricsLambda(_fbeta_with_class_names, precision, recall)
 
     fbeta = (1.0 + beta**2) * precision * recall / (beta**2 * precision + recall + 1e-15)
 
