@@ -167,6 +167,11 @@ class Accuracy(_BaseClassification):
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
+        per_label: if False (default), computes subset accuracy for multilabel data
+            (a sample is correct only if all labels match exactly), returning a single float.
+            If True, computes per-label accuracy for multilabel data, returning a tensor
+            of shape ``(num_labels,)`` where each element is the fraction of samples correctly
+            predicted for that label. Only applicable when ``is_multilabel=True``.
         is_multilabel: flag to use in multilabel case. By default, False.
         device: specifies which device updates are accumulated on. Setting the metric's
             device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
@@ -246,6 +251,33 @@ class Accuracy(_BaseClassification):
 
             0.2
 
+        Multilabel case, per-label accuracy
+
+        .. testcode:: 5
+
+            metric = Accuracy(is_multilabel=True, per_label=True)
+            metric.attach(default_evaluator, "label_accuracy")
+            y_true = torch.tensor([
+                [0, 0, 1, 0, 1],
+                [1, 0, 1, 0, 0],
+                [0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 1],
+                [0, 1, 1, 0, 1],
+            ])
+            y_pred = torch.tensor([
+                [1, 1, 0, 0, 0],
+                [1, 0, 1, 0, 0],
+                [1, 0, 0, 0, 0],
+                [1, 0, 1, 1, 1],
+                [1, 1, 0, 0, 1],
+            ])
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics["label_accuracy"])
+
+        .. testoutput:: 5
+
+            tensor([0.4000, 0.8000, 0.4000, 0.8000, 0.6000])
+
         In binary and multilabel cases, the elements of `y` and `y_pred` should have 0 or 1 values. Thresholding of
         predictions can be done as below:
 
@@ -269,6 +301,9 @@ class Accuracy(_BaseClassification):
 
     .. versionchanged:: 0.5.1
         ``skip_unrolling`` argument is added.
+
+    .. versionchanged:: 0.6.0
+        ``per_label`` argument is added.
     """
 
     _state_dict_all_req_keys = ("_num_correct", "_num_examples")
@@ -276,10 +311,16 @@ class Accuracy(_BaseClassification):
     def __init__(
         self,
         output_transform: Callable = lambda x: x,
+        per_label: bool = False,
         is_multilabel: bool = False,
         device: str | torch.device = torch.device("cpu"),
         skip_unrolling: bool = False,
     ):
+        if type(per_label) is not bool:
+            raise ValueError("Argument per_label should be boolean.")
+        if per_label and not is_multilabel:
+            raise ValueError("Argument per_label=True is only applicable with is_multilabel=True.")
+        self._per_label = per_label
         super().__init__(
             output_transform=output_transform, is_multilabel=is_multilabel, device=device, skip_unrolling=skip_unrolling
         )
@@ -307,6 +348,12 @@ class Accuracy(_BaseClassification):
             last_dim = y_pred.ndimension()
             y_pred = torch.transpose(y_pred, 1, last_dim - 1).reshape(-1, num_classes)
             y = torch.transpose(y, 1, last_dim - 1).reshape(-1, num_classes)
+            if self._per_label:
+                correct = (y == y_pred.type_as(y)).float()
+                self._num_correct = self._num_correct + correct.sum(dim=0).to(self._device)
+                self._num_examples += correct.shape[0]
+                return
+            # Default: subset accuracy — entire label vector must match exactly
             correct = torch.all(y == y_pred.type_as(y), dim=-1)
         else:
             raise ValueError(f"Unexpected type: {self._type}")
@@ -315,7 +362,9 @@ class Accuracy(_BaseClassification):
         self._num_examples += correct.shape[0]
 
     @sync_all_reduce("_num_examples", "_num_correct")
-    def compute(self) -> float:
+    def compute(self) -> float | torch.Tensor:
         if self._num_examples == 0:
             raise NotComputableError("Accuracy must have at least one example before it can be computed.")
+        if self._per_label:
+            return self._num_correct / self._num_examples
         return self._num_correct.item() / self._num_examples
