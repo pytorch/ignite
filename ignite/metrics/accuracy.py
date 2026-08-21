@@ -1,5 +1,4 @@
 from collections.abc import Callable, Sequence, Iterable
-from typing import cast
 
 import torch
 
@@ -328,7 +327,7 @@ class Accuracy(_BaseClassification):
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._num_correct: int | torch.Tensor = 0
+        self._num_correct = torch.tensor(0, device=self._device)
         self._num_examples = 0
         super().reset()
 
@@ -351,7 +350,7 @@ class Accuracy(_BaseClassification):
             y = torch.transpose(y, 1, last_dim - 1).reshape(-1, num_classes)
             if self._per_label:
                 correct = (y == y_pred.type_as(y)).float()
-                self._num_correct += correct.sum(dim=0).to(self._device)
+                self._num_correct = self._num_correct + correct.sum(dim=0).to(self._device)
                 self._num_examples += correct.shape[0]
                 return
             # Default: subset accuracy — entire label vector must match exactly
@@ -368,4 +367,4 @@ class Accuracy(_BaseClassification):
             raise NotComputableError("Accuracy must have at least one example before it can be computed.")
         if self._per_label:
             return self._num_correct / self._num_examples
-        return cast(torch.Tensor, self._num_correct).item() / self._num_examples
+        return self._num_correct.item() / self._num_examples

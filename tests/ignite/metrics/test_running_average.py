@@ -121,9 +121,7 @@ def test_integration_batchwise(usage):
     acc_metric.load_state_dict(metric_state)
     assert acc_metric._value == saved__value
     assert acc_metric.src._num_examples == saved_src__num_examples
-    # `_num_correct` may be a plain int (right after reset(), before any update()) or a tensor,
-    # depending on whether `src` was updated since its last reset — compare in a type-agnostic way.
-    assert torch.equal(torch.as_tensor(acc_metric.src._num_correct), torch.as_tensor(saved_src__num_correct))
+    assert (acc_metric.src._num_correct == saved_src__num_correct).all()
 
     metric_state = avg_output.state_dict()
     saved__value = avg_output._value
