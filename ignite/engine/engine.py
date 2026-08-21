@@ -673,11 +673,14 @@ class Engine(Serializable):
         self.should_terminate_single_epoch = "skip_epoch_completed" if skip_epoch_completed else True
 
     def terminate_iteration(self) -> None:
-        """Signals that the current iteration should end without firing
+        """Signals that the current iteration should finish without firing
         :attr:`~ignite.engine.events.Events.ITERATION_COMPLETED`.
 
-        This can be used from the process function to ignore a batch without triggering handlers
-        that consume ``state.output``.
+        This can be used to ignore a batch without triggering handlers that consume ``state.output``.
+        The iteration counter is still incremented, and other events such as
+        :attr:`~ignite.engine.events.Events.ITERATION_STARTED` are still fired.
+
+        .. versionadded:: 0.6.0
         """
         self.logger.info("Terminate current iteration is signaled.")
         self.should_terminate_single_iteration = True

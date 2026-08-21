@@ -53,18 +53,14 @@ class TestEngine:
             assert engine.should_terminate == True  # noqa: E712
 
     def test_terminate_iteration(self):
-        def process(engine, batch):
-            if batch % 2 == 0:
-                engine.terminate_iteration()
-            return batch
-
-        engine = Engine(process)
-        completed_batches = []
-        engine.add_event_handler(Events.ITERATION_COMPLETED, lambda e: completed_batches.append(e.state.output))
+        engine = Engine(lambda engine, batch: batch)
+        completed_iterations = []
+        engine.add_event_handler(Events.ITERATION_STARTED(every=2), lambda e: e.terminate_iteration())
+        engine.add_event_handler(Events.ITERATION_COMPLETED, lambda e: completed_iterations.append(e.state.iteration))
 
         state = engine.run(range(4))
 
-        assert completed_batches == [1, 3]
+        assert completed_iterations == [1, 3]
         assert state.iteration == 4
         assert not engine.should_terminate_single_iteration
 
