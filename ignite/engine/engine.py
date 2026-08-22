@@ -1166,10 +1166,9 @@ class Engine(Serializable):
                 yield from self._maybe_terminate_or_interrupt()
 
                 self.state.output = self._process_function(self, self.state.batch)
-                if self.should_terminate_single_iteration:
-                    self.should_terminate_single_iteration = False
-                else:
+                if not self.should_terminate_single_iteration:
                     self._fire_event(Events.ITERATION_COMPLETED)
+                self.should_terminate_single_iteration = False
                 yield from self._maybe_terminate_or_interrupt()
 
                 if self.state.epoch_length is not None and iter_counter == self.state.epoch_length:
@@ -1357,10 +1356,9 @@ class Engine(Serializable):
                 self._maybe_terminate_legacy()
 
                 self.state.output = self._process_function(self, self.state.batch)
-                if self.should_terminate_single_iteration:
-                    self.should_terminate_single_iteration = False
-                else:
+                if not self.should_terminate_single_iteration:
                     self._fire_event(Events.ITERATION_COMPLETED)
+                self.should_terminate_single_iteration = False
                 self._maybe_terminate_legacy()
 
                 if self.state.epoch_length is not None and iter_counter == self.state.epoch_length:
