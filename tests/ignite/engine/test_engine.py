@@ -54,6 +54,18 @@ class TestEngine:
         else:
             assert engine.should_terminate == True  # noqa: E712
 
+    def test_terminate_iteration(self):
+        engine = Engine(lambda engine, batch: batch)
+        completed_iterations = []
+        engine.add_event_handler(Events.ITERATION_STARTED(every=2), lambda e: e.terminate_iteration())
+        engine.add_event_handler(Events.ITERATION_COMPLETED, lambda e: completed_iterations.append(e.state.iteration))
+
+        state = engine.run(range(4))
+
+        assert completed_iterations == [1, 3]
+        assert state.iteration == 4
+        assert not engine.should_terminate_single_iteration
+
     def test_invalid_process_raises_with_invalid_signature(self):
         with pytest.raises(ValueError, match=r"Engine must be given a processing function in order to run"):
             Engine(None)
