@@ -71,7 +71,12 @@ class CharacterErrorRate(Metric):
             0.1379
 
     .. versionadded:: 0.5.2
+
+    .. versionchanged:: 0.6.0
+        Made metric state checkpointable and computation robust to distributed ranks without local examples.
     """
+
+    _state_dict_all_req_keys = ("_num_errors", "_num_refs", "_num_examples")
 
     def __init__(
         self,
@@ -110,7 +115,7 @@ class CharacterErrorRate(Metric):
         self._num_refs += refs
         self._num_examples += 1
 
-    @sync_all_reduce("_num_errors", "_num_refs")
+    @sync_all_reduce("_num_errors", "_num_refs", "_num_examples")
     def compute(self) -> Number:
         if self._num_examples == 0:
             raise NotComputableError("CharacterErrorRate must have at least one example before it can be computed.")

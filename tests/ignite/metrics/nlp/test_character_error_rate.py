@@ -1,4 +1,6 @@
 import pytest
+
+import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
 from ignite.metrics.nlp import CharacterErrorRate
 
@@ -109,3 +111,24 @@ def test_cer_unicode():
     cer = CharacterErrorRate()
     cer.update((["cafe"], ["café"]))
     assert cer.compute() == pytest.approx(1 / 4)
+
+
+def test_state_dict_round_trip():
+    cer = CharacterErrorRate()
+    cer.update((["helo"], ["hello"]))
+
+    restored = CharacterErrorRate()
+    restored.load_state_dict(cer.state_dict())
+
+    assert restored.compute() == pytest.approx(1 / 5)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+@pytest.mark.usefixtures("distributed")
+def test_distributed_with_empty_rank():
+    cer = CharacterErrorRate()
+    if idist.get_rank() == 0:
+        cer.update((["bat"], ["cat"]))
+
+    assert cer.compute() == pytest.approx(1 / 3)
