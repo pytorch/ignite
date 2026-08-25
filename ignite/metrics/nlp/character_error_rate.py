@@ -71,9 +71,6 @@ class CharacterErrorRate(Metric):
             0.1379
 
     .. versionadded:: 0.5.2
-
-    .. versionchanged:: 0.6.0
-        Made metric state checkpointable and computation robust to distributed ranks without local examples.
     """
 
     _state_dict_all_req_keys = ("_num_errors", "_num_refs", "_num_examples")
