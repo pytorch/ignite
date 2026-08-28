@@ -29,9 +29,9 @@ class PolyaxonLogger(BaseLogger):
 
     Args:
         args: Positional arguments accepted from
-            `Experiment <https://polyaxon.com/docs/experimentation/tracking/client/>`_.
+            `Experiment <https://polyaxon.com/docs/references/python-library/tracking/client/>`_.
         kwargs: Keyword arguments accepted from
-            `Experiment <https://polyaxon.com/docs/experimentation/tracking/client/>`_.
+            `Experiment <https://polyaxon.com/docs/references/python-library/tracking/client/>`_.
 
     Examples:
         .. code-block:: python
