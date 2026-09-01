@@ -38,6 +38,24 @@ class FakeParamScheduler(ParamScheduler):
         return [0]
 
 
+def test_linear_scheduler_with_tuple_value():
+    parameter = torch.nn.Parameter(torch.tensor(1.0))
+    optimizer = torch.optim.Adam([parameter], betas=(0.9, 0.999))
+    scheduler = LinearCyclicalScheduler(optimizer, "betas", (0.9, 0.999), (0.7, 0.999), cycle_size=4)
+
+    values = []
+    for _ in range(5):
+        scheduler(None)
+        values.append(optimizer.param_groups[0]["betas"])
+        optimizer.zero_grad()
+        parameter.square().backward()
+        optimizer.step()
+
+    assert all(isinstance(value, tuple) for value in values)
+    assert [value[0] for value in values] == pytest.approx([0.9, 0.8, 0.7, 0.8, 0.9])
+    assert [value[1] for value in values] == pytest.approx([0.999] * 5)
+
+
 def test_param_scheduler_asserts():
     t1 = torch.zeros([1], requires_grad=True)
     t2 = torch.zeros([1], requires_grad=True)
@@ -64,6 +82,12 @@ def test_linear_scheduler_asserts():
 
     tensor = torch.zeros([1], requires_grad=True)
     optimizer = torch.optim.SGD([tensor], lr=0.0)
+
+    with pytest.raises(TypeError, match="start_value and end_value should both be tuples"):
+        LinearCyclicalScheduler(optimizer, "lr", (1.0,), 0.0, cycle_size=2)
+
+    with pytest.raises(ValueError, match="start_value and end_value should have the same length"):
+        LinearCyclicalScheduler(optimizer, "lr", (1.0,), (0.0, 0.5), cycle_size=2)
 
     with pytest.raises(ValueError, match=r"Argument cycle_size should be positive and larger than 1"):
         LinearCyclicalScheduler(optimizer, "lr", 1, 0, cycle_size=0)
