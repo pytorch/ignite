@@ -368,6 +368,8 @@ Complete list of metrics
     AveragePrecision
     CohenKappa
     GpuInfo
+    HausdorffDistance
+    HausdorffDistance95
     PrecisionRecallCurve
     RocCurve
     ROC_AUC
