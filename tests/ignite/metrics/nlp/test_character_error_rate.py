@@ -123,20 +123,13 @@ def test_state_dict_round_trip():
     assert restored.compute() == pytest.approx(1 / 5)
 
 
-def test_legacy_empty_state_dict_load():
-    cer = CharacterErrorRate()
-
-    cer.load_state_dict({"__metric_state_per_rank": [{}]})
-
-    with pytest.raises(NotComputableError):
-        cer.compute()
-
-
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.usefixtures("distributed")
-def test_distributed_with_empty_rank():
+def test_distributed_with_uneven_input_shards():
     cer = CharacterErrorRate()
+    # Every rank must enter compute() because it performs collective reductions, even when an uneven input shard
+    # leaves a rank with no local batches.
     if idist.get_rank() == 0:
         cer.update((["bat"], ["cat"]))
 

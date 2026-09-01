@@ -1,4 +1,3 @@
-from collections.abc import Mapping
 from typing import Callable, Sequence
 
 import torch
@@ -112,13 +111,6 @@ class CharacterErrorRate(Metric):
         self._num_errors += errors
         self._num_refs += refs
         self._num_examples += 1
-
-    def _load_state_dict_per_rank(self, state_dict: Mapping) -> None:
-        # Older CharacterErrorRate checkpoints contain an empty per-rank state
-        # because the metric did not expose any required state attributes.
-        if not state_dict:
-            return
-        super()._load_state_dict_per_rank(state_dict)
 
     @sync_all_reduce("_num_errors", "_num_refs", "_num_examples")
     def compute(self) -> Number:
