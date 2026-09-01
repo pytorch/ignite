@@ -83,6 +83,9 @@ class FID(_BaseInceptionMetric):
     Args:
         num_features: number of features predicted by the model or the reduced feature vector of the image.
             Default value is 1000.
+            The default Inception model uses its 1000-dimensional output logits as features. To match
+            `pytorch_fid` results, provide a feature extractor that returns the 2048-dimensional pool3
+            features instead; see the example below.
         feature_extractor: a torch Module for extracting the features from the input data.
             It returns a tensor of shape (batch_size, num_features).
             If neither ``num_features`` nor ``feature_extractor`` are defined, by default we use an ImageNet
