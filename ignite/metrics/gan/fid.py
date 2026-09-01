@@ -42,7 +42,7 @@ def fid_score(
     if np.iscomplexobj(covmean):
         if not np.allclose(np.diagonal(covmean).imag, 0, atol=1e-3):
             m = np.max(np.abs(covmean.imag))
-            raise ValueError("Imaginary component {}".format(m))
+            raise ValueError(f"Imaginary component {m}")
         covmean = covmean.real
 
     tr_covmean = np.trace(covmean)
