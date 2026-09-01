@@ -1,6 +1,6 @@
 from ignite.engine import Engine
 from ignite.engine.events import Events
-from ignite.handlers.checkpoint import Checkpoint, DiskSaver, ModelCheckpoint
+from ignite.handlers.checkpoint import Checkpoint, DCPSaver, DiskSaver, ModelCheckpoint
 from ignite.handlers.clearml_logger import ClearMLLogger
 from ignite.handlers.early_stopping import EarlyStopping
 from ignite.handlers.ema_handler import EMAHandler
@@ -48,6 +48,7 @@ __all__ = [
     "ModelCheckpoint",
     "Checkpoint",
     "DiskSaver",
+    "DCPSaver",
     "Timer",
     "EarlyStopping",
     "TerminateOnNan",
