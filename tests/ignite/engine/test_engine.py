@@ -61,12 +61,12 @@ class TestEngine:
         trainer = Engine(process)
         completed_iterations = []
         trainer.add_event_handler(Events.ITERATION_COMPLETED, lambda e: completed_iterations.append(e.state.iteration))
-        RunningAverage(output_transform=lambda output: output, alpha=0.5).attach(trainer, "running_average")
+        RunningAverage(output_transform=lambda output: output).attach(trainer, "running_average")
 
         state = trainer.run(range(1, 5))
 
         assert completed_iterations == [1, 3]
-        assert state.metrics["running_average"] == pytest.approx(2.0)
+        assert state.metrics["running_average"] == pytest.approx(1.04)
         assert state.iteration == 4
         assert not trainer.should_terminate_single_iteration
 
