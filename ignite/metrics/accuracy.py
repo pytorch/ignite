@@ -167,11 +167,6 @@ class Accuracy(_BaseClassification):
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
-        per_label: if False (default), computes subset accuracy for multilabel data
-            (a sample is correct only if all labels match exactly), returning a single float.
-            If True, computes per-label accuracy for multilabel data, returning a tensor
-            of shape ``(num_labels,)`` where each element is the fraction of samples correctly
-            predicted for that label. Only applicable when ``is_multilabel=True``.
         is_multilabel: flag to use in multilabel case. By default, False.
         device: specifies which device updates are accumulated on. Setting the metric's
             device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
@@ -179,6 +174,11 @@ class Accuracy(_BaseClassification):
         skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
             true for multi-output model, for example, if ``y_pred`` contains multi-output as ``(y_pred_a, y_pred_b)``
             Alternatively, ``output_transform`` can be used to handle this.
+        per_label: if False (default), computes subset accuracy for multilabel data
+            (a sample is correct only if all labels match exactly), returning a single float.
+            If True, computes per-label accuracy for multilabel data, returning a tensor
+            of shape ``(num_labels,)`` where each element is the fraction of samples correctly
+            predicted for that label. Only applicable when ``is_multilabel=True``.
 
     Examples:
 
@@ -311,13 +311,11 @@ class Accuracy(_BaseClassification):
     def __init__(
         self,
         output_transform: Callable = lambda x: x,
-        per_label: bool = False,
         is_multilabel: bool = False,
         device: str | torch.device = torch.device("cpu"),
         skip_unrolling: bool = False,
+        per_label: bool = False,
     ):
-        if type(per_label) is not bool:
-            raise ValueError("Argument per_label should be boolean.")
         if per_label and not is_multilabel:
             raise ValueError("Argument per_label=True is only applicable with is_multilabel=True.")
         self._per_label = per_label
@@ -337,6 +335,7 @@ class Accuracy(_BaseClassification):
         self._check_type(output)
         y_pred, y = output[0].detach(), output[1].detach()
 
+        sum_dim: int | None = None
         if self._type == "binary":
             correct = torch.eq(y_pred.view(-1).to(y), y.view(-1))
         elif self._type == "multiclass":
@@ -349,22 +348,23 @@ class Accuracy(_BaseClassification):
             y_pred = torch.transpose(y_pred, 1, last_dim - 1).reshape(-1, num_classes)
             y = torch.transpose(y, 1, last_dim - 1).reshape(-1, num_classes)
             if self._per_label:
+                # Keep the label dimension so each column gets its own accuracy
                 correct = (y == y_pred.type_as(y)).float()
-                self._num_correct = self._num_correct + correct.sum(dim=0).to(self._device)
-                self._num_examples += correct.shape[0]
-                return
-            # Default: subset accuracy — entire label vector must match exactly
-            correct = torch.all(y == y_pred.type_as(y), dim=-1)
+                sum_dim = 0
+            else:
+                # Subset accuracy — entire label vector must match exactly
+                correct = torch.all(y == y_pred.type_as(y), dim=-1)
         else:
             raise ValueError(f"Unexpected type: {self._type}")
 
-        self._num_correct += torch.sum(correct).to(self._device)
+        # Non-in-place: on the first per-label update, this grows `_num_correct` from a
+        # 0-dim tensor to shape (num_labels,), which in-place `+=` cannot broadcast into.
+        self._num_correct = self._num_correct + torch.sum(correct, dim=sum_dim).to(self._device)
         self._num_examples += correct.shape[0]
 
     @sync_all_reduce("_num_examples", "_num_correct")
     def compute(self) -> float | torch.Tensor:
         if self._num_examples == 0:
             raise NotComputableError("Accuracy must have at least one example before it can be computed.")
-        if self._per_label:
-            return self._num_correct / self._num_examples
-        return self._num_correct.item() / self._num_examples
+        num_correct = self._num_correct if self._per_label else self._num_correct.item()
+        return num_correct / self._num_examples

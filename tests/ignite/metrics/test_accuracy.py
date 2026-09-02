@@ -155,9 +155,6 @@ def test_multilabel_wrong_inputs():
 
 
 def test_per_label_parameter():
-    with pytest.raises(ValueError, match=r"Argument per_label should be boolean"):
-        Accuracy(per_label="macro")
-
     with pytest.raises(ValueError, match=r"Argument per_label=True is only applicable with is_multilabel=True"):
         Accuracy(per_label=True)
 
