@@ -176,6 +176,21 @@ def test_multilabel_input(n_times, available_device, test_data_multilabel):
     assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
 
 
+def test_multilabel_average_false():
+    y_pred = torch.tensor([[1, 0, 0], [0, 1, 0], [1, 0, 0]], dtype=torch.long)
+    y = torch.tensor([[1, 0, 1], [0, 1, 0], [1, 1, 0]], dtype=torch.long)
+
+    acc = Accuracy(is_multilabel=True, average=False)
+    acc.update((y_pred, y))
+
+    expected = torch.tensor([1.0, 2.0 / 3.0, 1.0 / 3.0], dtype=torch.float64)
+    assert torch.allclose(acc.compute(), expected)
+
+    acc = Accuracy(is_multilabel=True)
+    acc.update((y_pred, y))
+    assert isinstance(acc.compute(), float)
+
+
 def test_incorrect_type():
     acc = Accuracy()
 
