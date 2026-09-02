@@ -1,4 +1,5 @@
 from collections.abc import Callable, Sequence, Iterable
+from typing import cast
 
 import torch
 
@@ -325,7 +326,7 @@ class Accuracy(_BaseClassification):
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._num_correct = torch.tensor(0, device=self._device)
+        self._num_correct: int | torch.Tensor = 0
         self._num_examples = 0
         super().reset()
 
@@ -357,14 +358,12 @@ class Accuracy(_BaseClassification):
         else:
             raise ValueError(f"Unexpected type: {self._type}")
 
-        # Non-in-place: on the first per-label update, this grows `_num_correct` from a
-        # 0-dim tensor to shape (num_labels,), which in-place `+=` cannot broadcast into.
-        self._num_correct = self._num_correct + torch.sum(correct, dim=sum_dim).to(self._device)
+        self._num_correct += torch.sum(correct, dim=sum_dim).to(self._device)
         self._num_examples += correct.shape[0]
 
     @sync_all_reduce("_num_examples", "_num_correct")
     def compute(self) -> float | torch.Tensor:
         if self._num_examples == 0:
             raise NotComputableError("Accuracy must have at least one example before it can be computed.")
-        num_correct = self._num_correct if self._per_label else self._num_correct.item()
+        num_correct = self._num_correct if self._per_label else cast(torch.Tensor, self._num_correct).item()
         return num_correct / self._num_examples

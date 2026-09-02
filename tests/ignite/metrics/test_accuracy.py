@@ -507,7 +507,9 @@ class TestDistributed:
         for metric_device in metric_devices:
             acc = Accuracy(device=metric_device)
             assert acc._device == metric_device
-            assert acc._num_correct.device == metric_device
+            # Since the shape of the accumulated amount isn't known before the first update
+            # call, the internal variable isn't a tensor on the right device yet (it's a
+            # plain int 0 right after reset()).
 
             y_pred = torch.randint(0, 2, size=(10,), device=device, dtype=torch.long)
             y = torch.randint(0, 2, size=(10,), device=device, dtype=torch.long)
