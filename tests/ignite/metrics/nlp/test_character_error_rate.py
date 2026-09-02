@@ -1,5 +1,4 @@
 import pytest
-
 from ignite.exceptions import NotComputableError
 from ignite.metrics.nlp import CharacterErrorRate
 
