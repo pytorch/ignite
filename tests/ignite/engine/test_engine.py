@@ -61,7 +61,7 @@ class TestEngine:
         trainer = Engine(process)
         completed_iterations = []
         trainer.add_event_handler(Events.ITERATION_COMPLETED, lambda e: completed_iterations.append(e.state.iteration))
-        RunningAverage().attach(trainer, "running_average")
+        RunningAverage(output_transform=lambda output: output).attach(trainer, "running_average")
 
         state = trainer.run(range(1, 5))
 
