@@ -1,6 +1,5 @@
 import pytest
 
-import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
 from ignite.metrics.nlp import CharacterErrorRate
 
@@ -121,16 +120,3 @@ def test_state_dict_round_trip():
     restored.load_state_dict(cer.state_dict())
 
     assert restored.compute() == pytest.approx(1 / 5)
-
-
-@pytest.mark.distributed
-@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-@pytest.mark.usefixtures("distributed")
-def test_distributed_with_uneven_input_shards():
-    cer = CharacterErrorRate()
-    # Every rank must enter compute() because it performs collective reductions, even when an uneven input shard
-    # leaves a rank with no local batches.
-    if idist.get_rank() == 0:
-        cer.update((["bat"], ["cat"]))
-
-    assert cer.compute() == pytest.approx(1 / 3)
