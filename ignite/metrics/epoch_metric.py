@@ -1,5 +1,6 @@
 import warnings
 from collections.abc import Callable, Mapping, Sequence
+from numbers import Number
 from typing import Union, cast
 
 import torch
@@ -7,22 +8,12 @@ import torch
 import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
 from ignite.metrics.metric import Metric, reinit__is_reduced
+from ignite.utils import apply_to_type
 
 # Supported return types for ``EpochMetric``'s ``compute_fn``.
 EpochMetricOutput = Union[int, float, torch.Tensor, Sequence, Mapping]
 
 __all__ = ["EpochMetric"]
-
-# Type tags used by ``EpochMetric._broadcast_result`` to let every rank agree on how to
-# decode the next value(s) coming out of the collective calls. ``_TAG_UNSUPPORTED`` is also
-# reused to reject non-str mapping keys, since both cases mean "every rank should raise".
-_TAG_INT = 0
-_TAG_FLOAT = 1
-_TAG_TENSOR = 2
-_TAG_TUPLE = 3
-_TAG_LIST = 4
-_TAG_MAPPING = 5
-_TAG_UNSUPPORTED = -1
 
 
 class EpochMetric(Metric):
@@ -44,13 +35,13 @@ class EpochMetric(Metric):
 
     Args:
         compute_fn: a callable which receives two tensors as the `predictions` and `targets`
-            and returns the computed metric. Supported return types are: ``int``, ``float``,
-            ``torch.Tensor``, a ``Sequence`` (tuple/list) of these, or a ``Mapping`` (dict) with
-            string keys and these values, including arbitrarily nested combinations of these.
-            An unsupported return type raises a ``TypeError``. These types are also supported
-            in distributed configuration (``world_size > 1``): the result is broadcast from
-            rank 0 to all other ranks. Input tensors will be on specified ``device``
-            (see arg below).
+            and returns the computed metric. Supported return types are: a number,
+            ``torch.Tensor``, a ``Sequence`` (tuple/list) or a ``Mapping`` (dict) of these,
+            including arbitrarily nested combinations. An unsupported return type raises a
+            ``TypeError``. In distributed configuration (``world_size > 1``) the result is
+            shared from rank 0 to all other ranks; container return types are not supported
+            on the ``xla`` backend, which has no object collective. Input tensors will be on
+            specified ``device`` (see arg below).
         output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
@@ -165,12 +156,10 @@ class EpochMetric(Metric):
     def _check_output_type(self, result: EpochMetricOutput) -> None:
         # Recursively validate that compute_fn's output is a supported type. ``str``/``bytes``
         # are rejected explicitly since ``str`` is itself a ``Sequence``.
-        if isinstance(result, (int, float, torch.Tensor)):
+        if isinstance(result, (Number, torch.Tensor)):
             return
         if isinstance(result, Mapping):
-            for key, value in result.items():
-                if not isinstance(key, str):
-                    raise TypeError(f"compute_fn output mapping keys should be str, but given {type(key)}.")
+            for value in result.values():
                 self._check_output_type(value)
             return
         if isinstance(result, Sequence) and not isinstance(result, (str, bytes)):
@@ -179,95 +168,8 @@ class EpochMetric(Metric):
             return
         raise TypeError(
             f"compute_fn output type {type(result)} is not supported. Supported types are: "
-            "int, float, torch.Tensor, a Sequence of these, or a Mapping with str keys and these values."
+            "a number, torch.Tensor, or a Sequence/Mapping of these."
         )
-
-    def _broadcast_result(self, result: EpochMetricOutput, src: int = 0) -> EpochMetricOutput:
-        """Recursively broadcast compute_fn output from src rank to all ranks.
-
-        Each step only broadcasts types that ``idist.broadcast`` natively supports
-        (int, float, torch.Tensor, str), so containers are transmitted by first
-        synchronising their structure (type tag, length, dict keys) and then
-        broadcasting each leaf individually.
-
-        Every rank must take the same path through the collective calls below, so any
-        rejection (unsupported type, non-str mapping key) is decided from a value that has
-        already been broadcast to all ranks, never from a check that only src has run. This
-        way every rank raises together instead of some ranks hanging on a broadcast that src
-        never issues.
-        """
-        rank = idist.get_rank()
-
-        # Step 1: broadcast type tag so all ranks know what to expect
-        if rank == src:
-            if isinstance(result, int):
-                tag = _TAG_INT
-            elif isinstance(result, float):
-                tag = _TAG_FLOAT
-            elif isinstance(result, torch.Tensor):
-                tag = _TAG_TENSOR
-            elif isinstance(result, tuple):
-                tag = _TAG_TUPLE
-            elif isinstance(result, list):
-                tag = _TAG_LIST
-            elif isinstance(result, Mapping):
-                tag = _TAG_MAPPING
-            else:
-                tag = _TAG_UNSUPPORTED
-        else:
-            tag = _TAG_INT
-        tag = cast(int, idist.broadcast(tag, src=src))
-
-        if tag == _TAG_UNSUPPORTED:
-            raise TypeError(
-                "compute_fn output type is not supported. Supported types are: "
-                "int, float, torch.Tensor, a Sequence of these, or a Mapping with str keys and these values."
-            )
-
-        # Step 2: broadcast content based on type. ``result`` is only meaningfully typed on
-        # ``src`` (the tag protocol above guarantees every rank agrees on which branch runs),
-        # so it is cast to the type the tag promises; non-src ranks only need a same-typed
-        # placeholder since their value is discarded by the collective call.
-        if tag == _TAG_INT:
-            int_value = cast(int, result) if rank == src else 0
-            return cast(int, idist.broadcast(int_value, src=src))
-        if tag == _TAG_FLOAT:
-            float_value = cast(float, result) if rank == src else 0.0
-            return cast(float, idist.broadcast(float_value, src=src))
-        if tag == _TAG_TENSOR:
-            tensor_value = cast(torch.Tensor, result) if rank == src else None
-            return cast(torch.Tensor, idist.broadcast(tensor_value, src=src, safe_mode=True))
-
-        if tag in (_TAG_TUPLE, _TAG_LIST):
-            seq_value = cast(Sequence, result) if rank == src else []
-            length = cast(int, idist.broadcast(len(seq_value) if rank == src else 0, src=src))
-            elements = []
-            for i in range(length):
-                elem = cast(EpochMetricOutput, seq_value[i]) if rank == src else 0
-                elements.append(self._broadcast_result(elem, src=src))
-            return tuple(elements) if tag == _TAG_TUPLE else elements
-
-        # tag == _TAG_MAPPING
-        mapping_value = cast(Mapping, result) if rank == src else {}
-        src_keys = list(mapping_value.keys()) if rank == src else []
-        n_keys = cast(int, idist.broadcast(len(src_keys) if rank == src else 0, src=src))
-        keys = []
-        for i in range(n_keys):
-            raw_key = src_keys[i] if rank == src else None
-            # Broadcast whether this key is a valid (str) key before broadcasting the key
-            # itself: src and non-src ranks must agree on the wire type (str) they are about
-            # to exchange, so this can't be decided from a src-only isinstance check.
-            key_valid = cast(int, idist.broadcast(0 if (rank != src or isinstance(raw_key, str)) else -1, src=src))
-            if key_valid == _TAG_UNSUPPORTED:
-                detail = f" but given {type(raw_key)}" if rank == src else ""
-                raise TypeError(f"compute_fn output mapping keys should be str{detail}.")
-            key = cast(str, idist.broadcast(raw_key if rank == src else "", src=src))
-            keys.append(key)
-        values = []
-        for i in range(n_keys):
-            val = cast(EpochMetricOutput, mapping_value[keys[i]]) if rank == src else 0
-            values.append(self._broadcast_result(val, src=src))
-        return dict(zip(keys, values))
 
     def compute(self) -> EpochMetricOutput:
         if len(self._predictions) < 1 or len(self._targets) < 1:
@@ -289,16 +191,35 @@ class EpochMetric(Metric):
                 result = self.compute_fn(_prediction_tensor, _target_tensor)
 
             if ws > 1:
-                # Type/key validation happens inside `_broadcast_result` itself (via the tag
-                # protocol), so every rank reaches the same TypeError together. Do not
-                # pre-validate on rank 0 alone here: that would let rank 0 raise and return
-                # before issuing the first broadcast, leaving other ranks waiting on a
-                # collective call rank 0 never makes.
-                result = self._broadcast_result(result, src=0)
-            else:
-                self._check_output_type(result)
+                # compute_fn runs on rank 0 only, so its output has to be shared. Numbers and
+                # tensors go through `idist.broadcast`; containers need an object collective,
+                # which `idist.all_gather` provides on every backend but xla. Non-src ranks
+                # hold a placeholder instead of the result, so they cannot tell which of the
+                # two to call -- rank 0 shares that choice first to keep all ranks on one path.
+                is_leaf = bool(idist.broadcast(int(isinstance(result, (Number, torch.Tensor))), src=0))
+                if is_leaf:
+                    leaf = cast(Union[torch.Tensor, float], result)
+                    result = cast(EpochMetricOutput, idist.broadcast(leaf, src=0, safe_mode=True))
+                else:
+                    # wrapped in a list so that all_gather takes its object path: a bare number
+                    # or tensor would be treated as data to concatenate across ranks
+                    result = cast(list, idist.all_gather([result]))[0][0]
 
-            self._result = result
+            # Every rank holds the real result by now, so this raises on all of them together.
+            self._check_output_type(result)
+
+            if ws > 1 and not isinstance(result, (Number, torch.Tensor)):
+                # An object collective pickles tensors together with their device, so on this
+                # rank they would come back pointing at rank 0's device. `Number` is part of
+                # ``input_type`` only to stop the recursion on non-tensor leaves.
+                moved = apply_to_type(
+                    result,
+                    (torch.Tensor, Number),
+                    lambda value: value.to(self._device) if isinstance(value, torch.Tensor) else value,
+                )
+                result = cast(EpochMetricOutput, moved)
+
+            self._result = cast(EpochMetricOutput, result)
 
         return self._result
 

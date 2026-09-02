@@ -16,7 +16,7 @@ def _spearman_r(predictions: Tensor, targets: Tensor) -> float:
     np_preds = predictions.flatten().cpu().numpy()
     np_targets = targets.flatten().cpu().numpy()
     r = spearmanr(np_preds, np_targets).statistic
-    return float(r)
+    return r
 
 
 class SpearmanRankCorrelation(EpochMetric):

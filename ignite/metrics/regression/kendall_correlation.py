@@ -20,7 +20,7 @@ def _get_kendall_tau(variant: str = "b") -> Callable[[Tensor, Tensor], float]:
         np_preds = predictions.flatten().cpu().numpy()
         np_targets = targets.flatten().cpu().numpy()
         r = kendalltau(np_preds, np_targets, variant=variant).statistic
-        return float(r)
+        return r
 
     return _tau
 

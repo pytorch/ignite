@@ -20,7 +20,7 @@ def _davies_bouldin_score(features: Tensor, labels: Tensor) -> float:
     np_features = features.cpu().numpy()
     np_labels = labels.cpu().numpy()
     score = davies_bouldin_score(np_features, np_labels)
-    return float(score)
+    return score
 
 
 class DaviesBouldinScore(_ClusteringMetricBase):
