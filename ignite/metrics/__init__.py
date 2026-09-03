@@ -5,6 +5,7 @@ import ignite.metrics.regression
 from ignite.metrics.accumulation import Average, GeometricAverage, VariableAccumulation
 from ignite.metrics.accuracy import Accuracy
 from ignite.metrics.average_precision import AveragePrecision
+from ignite.metrics.calibration import ExpectedCalibrationError
 from ignite.metrics.classification_report import ClassificationReport
 from ignite.metrics.cohen_kappa import CohenKappa
 from ignite.metrics.confusion_matrix import ConfusionMatrix, DiceCoefficient, IoU, JaccardIndex, mIoU
@@ -112,4 +113,5 @@ __all__ = [
     "coco_tensor_list_to_dict_list",
     "HitRate",
     "NDCG",
+    "ExpectedCalibrationError",
 ]
