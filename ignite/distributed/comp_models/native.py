@@ -167,7 +167,7 @@ if has_native_dist_support:
                     "Please file an issue: https://github.com/pytorch/ignite/issues"
                 )
             tensor = torch.tensor([local_rank + 1]).to("cpu")
-            dist.all_reduce(tensor, dist.ReduceOp.MAX, group=gloo_group)
+            dist.all_reduce(tensor, op=dist.ReduceOp.MAX, group=gloo_group)
             dist.destroy_process_group(gloo_group)
             return int(tensor.item())
 
