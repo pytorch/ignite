@@ -162,7 +162,10 @@ if has_native_dist_support:
             # badly configured NCCL
             gloo_group = dist.new_group(backend="gloo")
             if gloo_group == dist.GroupMember.NON_GROUP_MEMBER:
-                raise RuntimeError("Current process is not in the temporary gloo process group")
+                raise RuntimeError(
+                    "Internal error. Current process is not in the temporary gloo process group. "
+                    "Please file an issue: https://github.com/pytorch/ignite/issues"
+                )
             tensor = torch.tensor([local_rank + 1]).to("cpu")
             dist.all_reduce(tensor, dist.ReduceOp.MAX, group=gloo_group)
             dist.destroy_process_group(gloo_group)
