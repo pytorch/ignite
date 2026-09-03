@@ -161,6 +161,11 @@ if has_native_dist_support:
             # Create new cpu group to get nproc_per_node such we avoid using
             # badly configured NCCL
             gloo_group = dist.new_group(backend="gloo")
+            if gloo_group == dist.GroupMember.NON_GROUP_MEMBER:
+                raise RuntimeError(
+                    "Internal error. Current process is not in the temporary gloo process group. "
+                    "Please file an issue: https://github.com/pytorch/ignite/issues"
+                )
             tensor = torch.tensor([local_rank + 1]).to("cpu")
             dist.all_reduce(tensor, op=dist.ReduceOp.MAX, group=gloo_group)
             dist.destroy_process_group(gloo_group)
@@ -425,7 +430,7 @@ if has_native_dist_support:
                 raise ValueError(
                     f"Argument group should be list of int or ProcessGroup, got {type(group)}, group={group}"
                 )
-            return group
+            return cast(dist.ProcessGroup, group)
 
         _reduce_op_map = {
             "SUM": dist.ReduceOp.SUM,
