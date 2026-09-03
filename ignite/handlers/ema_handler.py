@@ -248,7 +248,7 @@ class EMAHandler:
             setattr(engine.state, name, self.momentum)
 
         if self._momentum_lambda_obj is not None:
-            self.momentum_scheduler = LambdaStateScheduler(self._momentum_lambda_obj, param_name="ema_momentum")
+            self.momentum_scheduler = LambdaStateScheduler(self._momentum_lambda_obj, param_name=name)
 
             # first update the momentum and then update the EMA model
             self.momentum_scheduler.attach(engine, event)
