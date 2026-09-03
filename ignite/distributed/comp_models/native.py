@@ -503,6 +503,11 @@ if has_native_dist_support:
             dist.broadcast(tensor, src=src)
             return tensor
 
+        def _do_broadcast_object_list(self, tensor: Any, src: int) -> Any:
+            object_list = [tensor]
+            dist.broadcast_object_list(object_list, src=src, device=self.device())
+            return object_list[0]
+
         def barrier(self) -> None:
             dist.barrier()
 
