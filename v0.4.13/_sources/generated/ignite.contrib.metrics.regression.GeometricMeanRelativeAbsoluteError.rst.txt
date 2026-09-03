@@ -1,0 +1,45 @@
+﻿GeometricMeanRelativeAbsoluteError
+==================================
+
+.. currentmodule:: ignite.contrib.metrics.regression
+
+.. autoclass:: GeometricMeanRelativeAbsoluteError
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~GeometricMeanRelativeAbsoluteError.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~GeometricMeanRelativeAbsoluteError.reset
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   

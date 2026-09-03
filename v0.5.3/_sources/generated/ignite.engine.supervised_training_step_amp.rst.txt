@@ -1,0 +1,6 @@
+﻿supervised\_training\_step\_amp
+===============================
+
+.. currentmodule:: ignite.engine
+
+.. autofunction:: supervised_training_step_amp

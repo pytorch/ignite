@@ -1,0 +1,41 @@
+﻿SilhouetteScore
+===============
+
+.. currentmodule:: ignite.metrics.clustering
+
+.. autoclass:: SilhouetteScore
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   

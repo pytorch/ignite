@@ -1,0 +1,33 @@
+﻿wandb\_logger
+=============
+
+.. automodule:: ignite.handlers.wandb_logger
+   :members:
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :nosignatures:
+   
+      OptimizerParamsHandler
+      OutputHandler
+      WandBLogger
+   
+   
+
+   
+   
+   
+
+
+
