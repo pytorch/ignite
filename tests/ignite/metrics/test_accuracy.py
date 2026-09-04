@@ -154,6 +154,11 @@ def test_multilabel_wrong_inputs():
         acc.update((torch.randint(0, 2, size=(10, 1)), torch.randint(0, 2, size=(10, 1)).long()))
 
 
+def test_per_label_parameter():
+    with pytest.raises(ValueError, match=r"Argument per_label=True is only applicable with is_multilabel=True"):
+        Accuracy(per_label=True)
+
+
 @pytest.mark.parametrize("n_times", range(3))
 def test_multilabel_input(n_times, available_device, test_data_multilabel):
     acc = Accuracy(is_multilabel=True, device=available_device)
@@ -174,6 +179,48 @@ def test_multilabel_input(n_times, available_device, test_data_multilabel):
     assert acc._type == "multilabel"
     assert isinstance(acc.compute(), float)
     assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
+
+
+def test_multilabel_input_per_label():
+    y_true = torch.tensor(
+        [
+            [0, 0, 1, 0, 1],
+            [1, 0, 1, 0, 0],
+            [0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 1],
+            [0, 1, 1, 0, 1],
+        ]
+    )
+    y_pred = torch.tensor(
+        [
+            [1, 1, 0, 0, 0],
+            [1, 0, 1, 0, 0],
+            [1, 0, 0, 0, 0],
+            [1, 0, 1, 1, 1],
+            [1, 1, 0, 0, 1],
+        ]
+    )
+
+    acc = Accuracy(is_multilabel=True, per_label=True)
+    acc.update((y_pred, y_true))
+    result = acc.compute()
+
+    assert isinstance(result, torch.Tensor)
+    assert result.shape == (5,)
+
+    assert torch.allclose(result, torch.tensor([0.4, 0.8, 0.4, 0.8, 0.6]))
+
+
+def test_multilabel_input_per_label_batched(available_device):
+    y_true = torch.tensor([[0, 1, 0], [1, 0, 1], [1, 1, 0], [0, 0, 1]])
+    y_pred = torch.tensor([[0, 0, 0], [1, 0, 0], [0, 1, 0], [1, 0, 1]])
+    acc = Accuracy(is_multilabel=True, per_label=True, device=available_device)
+
+    acc.update((y_pred[:2], y_true[:2]))
+    acc.update((y_pred[2:], y_true[2:]))
+
+    expected = (y_true == y_pred).float().mean(dim=0).to(available_device)
+    assert torch.allclose(acc.compute(), expected)
 
 
 def test_incorrect_type():
@@ -400,6 +447,57 @@ class TestDistributed:
 
             assert pytest.approx(res) == true_res
 
+    def test_integration_multilabel_per_label(self):
+        rank = idist.get_rank()
+        torch.manual_seed(12 + rank)
+
+        n_iters = 80
+        batch_size = 16
+        n_classes = 10
+
+        metric_devices = [torch.device("cpu")]
+        device = idist.device()
+        if device.type != "xla":
+            metric_devices.append(device)
+
+        for metric_device in metric_devices:
+            metric_device = torch.device(metric_device)
+
+            y_true = torch.randint(0, 2, size=(n_iters * batch_size, n_classes, 8, 10)).to(device)
+            y_preds = torch.randint(0, 2, size=(n_iters * batch_size, n_classes, 8, 10)).to(device)
+
+            def update(engine, i):
+                return (
+                    y_preds[i * batch_size : (i + 1) * batch_size, ...],
+                    y_true[i * batch_size : (i + 1) * batch_size, ...],
+                )
+
+            engine = Engine(update)
+
+            acc = Accuracy(is_multilabel=True, per_label=True, device=metric_device)
+            acc.attach(engine, "acc")
+
+            data = list(range(n_iters))
+            engine.run(data=data, max_epochs=2)
+
+            y_true = idist.all_gather(y_true)
+            y_preds = idist.all_gather(y_preds)
+
+            assert acc._num_correct.device == metric_device, (
+                f"{type(acc._num_correct.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
+            )
+
+            assert "acc" in engine.state.metrics
+            res = engine.state.metrics["acc"]
+            assert isinstance(res, torch.Tensor)
+            assert res.shape == (n_classes,)
+
+            np_y_true = to_numpy_multilabel(y_true)
+            np_y_preds = to_numpy_multilabel(y_preds)
+            expected = (np_y_true == np_y_preds).mean(axis=0)
+
+            assert res.cpu().numpy().tolist() == pytest.approx(expected.tolist())
+
     def test_accumulator_device(self):
         metric_devices = [torch.device("cpu")]
         device = idist.device()
@@ -409,9 +507,9 @@ class TestDistributed:
         for metric_device in metric_devices:
             acc = Accuracy(device=metric_device)
             assert acc._device == metric_device
-            assert acc._num_correct.device == metric_device, (
-                f"{type(acc._num_correct.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
-            )
+            # Since the shape of the accumulated amount isn't known before the first update
+            # call, the internal variable isn't a tensor on the right device yet (it's a
+            # plain int 0 right after reset()).
 
             y_pred = torch.randint(0, 2, size=(10,), device=device, dtype=torch.long)
             y = torch.randint(0, 2, size=(10,), device=device, dtype=torch.long)
