@@ -897,7 +897,7 @@ class _CosineAnnealingWarmRestarts:
                 self._lr_scheduler.T_i = self._lr_scheduler.T_i * T_mult
         else:
             if epoch < 0:
-                raise ValueError("Expected non-negative epoch, but got {}".format(epoch))
+                raise ValueError(f"Expected non-negative epoch, but got {epoch}")
             if epoch >= self._lr_scheduler.T_0:
                 if T_mult == 1:
                     self._lr_scheduler.T_cur = epoch % self._lr_scheduler.T_0

@@ -109,3 +109,13 @@ def test_cer_unicode():
     cer = CharacterErrorRate()
     cer.update((["cafe"], ["café"]))
     assert cer.compute() == pytest.approx(1 / 4)
+
+
+def test_state_dict_round_trip():
+    cer = CharacterErrorRate()
+    cer.update((["helo"], ["hello"]))
+
+    restored = CharacterErrorRate()
+    restored.load_state_dict(cer.state_dict())
+
+    assert restored.compute() == pytest.approx(1 / 5)

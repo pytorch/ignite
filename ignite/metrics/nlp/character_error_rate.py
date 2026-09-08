@@ -73,6 +73,8 @@ class CharacterErrorRate(Metric):
     .. versionadded:: 0.5.2
     """
 
+    _state_dict_all_req_keys = ("_num_errors", "_num_refs", "_num_examples")
+
     def __init__(
         self,
         output_transform: Callable = lambda x: x,
@@ -110,7 +112,7 @@ class CharacterErrorRate(Metric):
         self._num_refs += refs
         self._num_examples += 1
 
-    @sync_all_reduce("_num_errors", "_num_refs")
+    @sync_all_reduce("_num_errors", "_num_refs", "_num_examples")
     def compute(self) -> Number:
         if self._num_examples == 0:
             raise NotComputableError("CharacterErrorRate must have at least one example before it can be computed.")
