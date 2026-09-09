@@ -505,3 +505,33 @@ class TestDistributed:
             if average == "weighted":
                 assert re._weight.device == metric_device, f"{type(re._weight.device)}:{re._weight.device} vs "
                 f"{type(metric_device)}:{metric_device}"
+
+
+def test_class_names():
+    # Invalid class_names type
+    with pytest.raises(ValueError, match="class_names must be a list of strings"):
+        Recall(average=False, class_names=[1, 2])
+
+    # Incompatible average mode
+    with pytest.raises(ValueError, match="class_names is only applicable when average=False or average=None"):
+        Recall(average="macro", class_names=["cat", "dog"])
+
+    # Correct computation returning dict
+    re = Recall(average=False, class_names=["cat", "dog", "bird"])
+    y_true = torch.tensor([0, 1, 2])
+    y_pred = torch.tensor(
+        [
+            [1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.0, 0.0, 1.0],
+        ]
+    )
+    re.update((y_pred, y_true))
+    res = re.compute()
+    assert isinstance(res, dict)
+    assert res == {"cat": 1.0, "dog": 1.0, "bird": 1.0}
+
+    # Class names length mismatch
+    re_mismatch = Recall(average=False, class_names=["cat", "dog"])
+    with pytest.raises(ValueError, match="class_names has 2 entries but the metric computed 3 classes."):
+        re_mismatch.update((y_pred, y_true))

@@ -1,4 +1,5 @@
 from collections.abc import Callable, Sequence, Iterable
+from typing import cast
 
 import torch
 
@@ -174,6 +175,11 @@ class Accuracy(_BaseClassification):
         skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
             true for multi-output model, for example, if ``y_pred`` contains multi-output as ``(y_pred_a, y_pred_b)``
             Alternatively, ``output_transform`` can be used to handle this.
+        per_label: if False (default), computes subset accuracy for multilabel data
+            (a sample is correct only if all labels match exactly), returning a single float.
+            If True, computes per-label accuracy for multilabel data, returning a tensor
+            of shape ``(num_labels,)`` where each element is the fraction of samples correctly
+            predicted for that label. Only applicable when ``is_multilabel=True``.
 
     Examples:
 
@@ -246,6 +252,33 @@ class Accuracy(_BaseClassification):
 
             0.2
 
+        Multilabel case, per-label accuracy
+
+        .. testcode:: 5
+
+            metric = Accuracy(is_multilabel=True, per_label=True)
+            metric.attach(default_evaluator, "label_accuracy")
+            y_true = torch.tensor([
+                [0, 0, 1, 0, 1],
+                [1, 0, 1, 0, 0],
+                [0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 1],
+                [0, 1, 1, 0, 1],
+            ])
+            y_pred = torch.tensor([
+                [1, 1, 0, 0, 0],
+                [1, 0, 1, 0, 0],
+                [1, 0, 0, 0, 0],
+                [1, 0, 1, 1, 1],
+                [1, 1, 0, 0, 1],
+            ])
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics["label_accuracy"])
+
+        .. testoutput:: 5
+
+            tensor([0.4000, 0.8000, 0.4000, 0.8000, 0.6000])
+
         In binary and multilabel cases, the elements of `y` and `y_pred` should have 0 or 1 values. Thresholding of
         predictions can be done as below:
 
@@ -269,6 +302,9 @@ class Accuracy(_BaseClassification):
 
     .. versionchanged:: 0.5.1
         ``skip_unrolling`` argument is added.
+
+    .. versionchanged:: 0.6.0
+        ``per_label`` argument is added.
     """
 
     _state_dict_all_req_keys = ("_num_correct", "_num_examples")
@@ -279,14 +315,18 @@ class Accuracy(_BaseClassification):
         is_multilabel: bool = False,
         device: str | torch.device = torch.device("cpu"),
         skip_unrolling: bool = False,
+        per_label: bool = False,
     ):
+        if per_label and not is_multilabel:
+            raise ValueError("Argument per_label=True is only applicable with is_multilabel=True.")
+        self._per_label = per_label
         super().__init__(
             output_transform=output_transform, is_multilabel=is_multilabel, device=device, skip_unrolling=skip_unrolling
         )
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._num_correct = torch.tensor(0, device=self._device)
+        self._num_correct: int | torch.Tensor = 0
         self._num_examples = 0
         super().reset()
 
@@ -296,6 +336,7 @@ class Accuracy(_BaseClassification):
         self._check_type(output)
         y_pred, y = output[0].detach(), output[1].detach()
 
+        sum_dim: int | None = None
         if self._type == "binary":
             correct = torch.eq(y_pred.view(-1).to(y), y.view(-1))
         elif self._type == "multiclass":
@@ -307,15 +348,22 @@ class Accuracy(_BaseClassification):
             last_dim = y_pred.ndimension()
             y_pred = torch.transpose(y_pred, 1, last_dim - 1).reshape(-1, num_classes)
             y = torch.transpose(y, 1, last_dim - 1).reshape(-1, num_classes)
-            correct = torch.all(y == y_pred.type_as(y), dim=-1)
+            if self._per_label:
+                # Keep the label dimension so each column gets its own accuracy
+                correct = (y == y_pred.type_as(y)).float()
+                sum_dim = 0
+            else:
+                # Subset accuracy — entire label vector must match exactly
+                correct = torch.all(y == y_pred.type_as(y), dim=-1)
         else:
             raise ValueError(f"Unexpected type: {self._type}")
 
-        self._num_correct += torch.sum(correct).to(self._device)
+        self._num_correct += torch.sum(correct, dim=sum_dim).to(self._device)
         self._num_examples += correct.shape[0]
 
     @sync_all_reduce("_num_examples", "_num_correct")
-    def compute(self) -> float:
+    def compute(self) -> float | torch.Tensor:
         if self._num_examples == 0:
             raise NotComputableError("Accuracy must have at least one example before it can be computed.")
-        return self._num_correct.item() / self._num_examples
+        num_correct = self._num_correct if self._per_label else cast(torch.Tensor, self._num_correct).item()
+        return num_correct / self._num_examples

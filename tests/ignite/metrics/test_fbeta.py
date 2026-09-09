@@ -39,6 +39,26 @@ def test_wrong_inputs():
         r = Recall(average=False)
         Fbeta(1.0, recall=r, output_transform=lambda x: x)
 
+    # class_names validation
+    with pytest.raises(ValueError, match="class_names must be a list of strings"):
+        Fbeta(beta=1.0, average=False, class_names=[1, 2])
+
+    with pytest.raises(ValueError, match="class_names is only applicable when average=False or average=None"):
+        Fbeta(beta=1.0, average=True, class_names=["cat", "dog"])
+
+    p_no_cn = Precision(average=False)
+    with pytest.raises(ValueError, match="precision and recall metric class_names must match Fbeta class_names"):
+        Fbeta(beta=1.0, average=False, class_names=["cat", "dog"], precision=p_no_cn)
+
+    r_no_cn = Recall(average=False)
+    with pytest.raises(ValueError, match="precision and recall metric class_names must match Fbeta class_names"):
+        Fbeta(beta=1.0, average=False, class_names=["cat", "dog"], recall=r_no_cn)
+
+    p = Precision(average=False, class_names=["cat", "dog"])
+    r = Recall(average=False, class_names=["a", "b"])
+    with pytest.raises(ValueError, match="precision and recall class_names must match"):
+        Fbeta(beta=1.0, average=False, precision=p, recall=r)
+
 
 def _output_transform(output):
     return output["y_pred"], output["y"]
@@ -233,3 +253,36 @@ def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
 def test_multinode_distrib_nccl_gpu(distributed_context_multi_node_nccl):
     device = idist.device()
     _test_distrib_integration(device)
+
+
+@pytest.mark.parametrize(
+    "precision_cls, recall_cls, class_names",
+    [
+        (None, None, ["cat", "dog", "bird"]),
+        (
+            lambda device: Precision(average=False, device=device, class_names=["cat", "dog", "bird"]),
+            lambda device: Recall(average=False, device=device, class_names=["cat", "dog", "bird"]),
+            None,
+        ),
+    ],
+)
+def test_class_names_integration(precision_cls, recall_cls, class_names, available_device):
+    p = precision_cls(available_device) if precision_cls else None
+    r = recall_cls(available_device) if recall_cls else None
+
+    y_true = torch.tensor([0, 1, 2])
+    y_pred = torch.tensor(
+        [
+            [1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.0, 0.0, 1.0],
+        ]
+    )
+
+    device = None if p is not None and r is not None else available_device
+    f1 = Fbeta(beta=1.0, average=False, precision=p, recall=r, class_names=class_names, device=device)
+    f1.update((y_pred, y_true))
+    res = f1.compute()
+    assert isinstance(res, dict)
+    assert list(res.keys()) == ["cat", "dog", "bird"]
+    assert res == {"cat": 1.0, "dog": 1.0, "bird": 1.0}
