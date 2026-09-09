@@ -1,0 +1,45 @@
+﻿CanberraMetric
+==============
+
+.. currentmodule:: ignite.contrib.metrics.regression
+
+.. autoclass:: CanberraMetric
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~CanberraMetric.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~CanberraMetric.reset
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   

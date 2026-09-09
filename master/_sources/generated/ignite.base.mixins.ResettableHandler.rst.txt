@@ -1,0 +1,27 @@
+﻿ResettableHandler
+=================
+
+.. currentmodule:: ignite.base.mixins
+
+.. autoclass:: ResettableHandler
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+      ~ResettableHandler.attach
+   
+   
+   
+      ~ResettableHandler.reset
+   
+   
+   
+   

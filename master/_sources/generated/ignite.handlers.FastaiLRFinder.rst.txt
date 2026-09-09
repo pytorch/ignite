@@ -1,0 +1,39 @@
+﻿FastaiLRFinder
+==============
+
+.. currentmodule:: ignite.handlers
+
+.. autoclass:: FastaiLRFinder
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+      ~FastaiLRFinder.apply_suggested_lr
+   
+   
+   
+      ~FastaiLRFinder.attach
+   
+   
+   
+      ~FastaiLRFinder.get_results
+   
+   
+   
+      ~FastaiLRFinder.lr_suggestion
+   
+   
+   
+      ~FastaiLRFinder.plot
+   
+   
+   
+   

@@ -1,0 +1,35 @@
+﻿HandlersTimeProfiler
+====================
+
+.. currentmodule:: ignite.handlers
+
+.. autoclass:: HandlersTimeProfiler
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+      ~HandlersTimeProfiler.attach
+   
+   
+   
+      ~HandlersTimeProfiler.get_results
+   
+   
+   
+      ~HandlersTimeProfiler.print_results
+   
+   
+   
+      ~HandlersTimeProfiler.write_results
+   
+   
+   
+   

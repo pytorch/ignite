@@ -1,0 +1,47 @@
+﻿Entropy
+=======
+
+.. currentmodule:: ignite.metrics
+
+.. autoclass:: Entropy
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~Entropy.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~Entropy.reset
+   
+   
+   
+   
+   
+   
+   
+      ~Entropy.update
+   
+   
+   
+   

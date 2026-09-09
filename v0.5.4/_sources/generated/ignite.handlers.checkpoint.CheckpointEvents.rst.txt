@@ -1,0 +1,11 @@
+﻿CheckpointEvents
+================
+
+.. currentmodule:: ignite.handlers.checkpoint
+
+.. autoclass:: CheckpointEvents
+   :members:
+
+   
+   
+   

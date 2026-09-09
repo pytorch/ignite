@@ -1,0 +1,6 @@
+﻿setup\_tb\_logging
+==================
+
+.. currentmodule:: ignite.handlers.logger_utils
+
+.. autofunction:: setup_tb_logging

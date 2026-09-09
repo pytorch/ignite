@@ -1,0 +1,47 @@
+﻿MaximumMeanDiscrepancy
+======================
+
+.. currentmodule:: ignite.metrics
+
+.. autoclass:: MaximumMeanDiscrepancy
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~MaximumMeanDiscrepancy.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~MaximumMeanDiscrepancy.reset
+   
+   
+   
+   
+   
+   
+   
+      ~MaximumMeanDiscrepancy.update
+   
+   
+   
+   

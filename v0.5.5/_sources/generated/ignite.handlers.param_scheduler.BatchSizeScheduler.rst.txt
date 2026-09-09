@@ -1,0 +1,37 @@
+﻿BatchSizeScheduler
+==================
+
+.. currentmodule:: ignite.handlers.param_scheduler
+
+.. autoclass:: BatchSizeScheduler
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+      ~BatchSizeScheduler.attach
+   
+   
+   
+      ~BatchSizeScheduler.get_param
+   
+   
+   
+   
+   
+   
+   
+      ~BatchSizeScheduler.simulate_values
+   
+   
+   
+   
+   
+   

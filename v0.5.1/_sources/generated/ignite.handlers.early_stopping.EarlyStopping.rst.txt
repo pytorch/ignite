@@ -1,0 +1,27 @@
+﻿EarlyStopping
+=============
+
+.. currentmodule:: ignite.handlers.early_stopping
+
+.. autoclass:: EarlyStopping
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+      ~EarlyStopping.load_state_dict
+   
+   
+   
+      ~EarlyStopping.state_dict
+   
+   
+   
+   

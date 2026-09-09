@@ -1,0 +1,45 @@
+﻿FractionalAbsoluteError
+=======================
+
+.. currentmodule:: ignite.contrib.metrics.regression
+
+.. autoclass:: FractionalAbsoluteError
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~FractionalAbsoluteError.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~FractionalAbsoluteError.reset
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   

@@ -1,0 +1,43 @@
+﻿SubgroupDifference
+==================
+
+.. currentmodule:: ignite.metrics.fairness
+
+.. autoclass:: SubgroupDifference
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~SubgroupDifference.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   

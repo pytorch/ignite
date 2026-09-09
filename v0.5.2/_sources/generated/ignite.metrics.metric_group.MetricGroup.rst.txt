@@ -1,0 +1,47 @@
+﻿MetricGroup
+===========
+
+.. currentmodule:: ignite.metrics.metric_group
+
+.. autoclass:: MetricGroup
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~MetricGroup.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~MetricGroup.reset
+   
+   
+   
+   
+   
+   
+   
+      ~MetricGroup.update
+   
+   
+   
+   

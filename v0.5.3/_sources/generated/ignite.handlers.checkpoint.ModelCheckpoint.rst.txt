@@ -1,0 +1,33 @@
+﻿ModelCheckpoint
+===============
+
+.. currentmodule:: ignite.handlers.checkpoint
+
+.. autoclass:: ModelCheckpoint
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   

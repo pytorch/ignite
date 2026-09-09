@@ -1,0 +1,35 @@
+﻿BasicTimeProfiler
+=================
+
+.. currentmodule:: ignite.handlers
+
+.. autoclass:: BasicTimeProfiler
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+      ~BasicTimeProfiler.attach
+   
+   
+   
+      ~BasicTimeProfiler.get_results
+   
+   
+   
+      ~BasicTimeProfiler.print_results
+   
+   
+   
+      ~BasicTimeProfiler.write_results
+   
+   
+   
+   

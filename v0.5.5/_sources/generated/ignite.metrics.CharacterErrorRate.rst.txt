@@ -1,0 +1,47 @@
+﻿CharacterErrorRate
+==================
+
+.. currentmodule:: ignite.metrics
+
+.. autoclass:: CharacterErrorRate
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~CharacterErrorRate.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~CharacterErrorRate.reset
+   
+   
+   
+   
+   
+   
+   
+      ~CharacterErrorRate.update
+   
+   
+   
+   

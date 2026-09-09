@@ -1,0 +1,47 @@
+﻿CohenKappa
+==========
+
+.. currentmodule:: ignite.metrics
+
+.. autoclass:: CohenKappa
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~CohenKappa.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~CohenKappa.reset
+   
+   
+   
+   
+   
+   
+   
+      ~CohenKappa.update
+   
+   
+   
+   

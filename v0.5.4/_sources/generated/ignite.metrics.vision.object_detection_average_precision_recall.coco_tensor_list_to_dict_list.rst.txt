@@ -1,0 +1,6 @@
+﻿coco\_tensor\_list\_to\_dict\_list
+==================================
+
+.. currentmodule:: ignite.metrics.vision.object_detection_average_precision_recall
+
+.. autofunction:: coco_tensor_list_to_dict_list

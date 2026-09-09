@@ -1,0 +1,47 @@
+﻿SelectionRate
+=============
+
+.. currentmodule:: ignite.metrics.fairness
+
+.. autoclass:: SelectionRate
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~SelectionRate.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~SelectionRate.reset
+   
+   
+   
+   
+   
+   
+   
+      ~SelectionRate.update
+   
+   
+   
+   

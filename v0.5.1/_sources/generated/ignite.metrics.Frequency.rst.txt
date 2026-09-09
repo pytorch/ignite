@@ -1,0 +1,51 @@
+﻿Frequency
+=========
+
+.. currentmodule:: ignite.metrics
+
+.. autoclass:: Frequency
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+      ~Frequency.attach
+   
+   
+   
+      ~Frequency.completed
+   
+   
+   
+      ~Frequency.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~Frequency.reset
+   
+   
+   
+   
+   
+   
+   
+      ~Frequency.update
+   
+   
+   
+   

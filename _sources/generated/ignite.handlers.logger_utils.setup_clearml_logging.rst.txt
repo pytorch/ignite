@@ -1,0 +1,6 @@
+﻿setup\_clearml\_logging
+=======================
+
+.. currentmodule:: ignite.handlers.logger_utils
+
+.. autofunction:: setup_clearml_logging
