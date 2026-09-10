@@ -44,7 +44,6 @@ def test_wrong_input_shapes():
 def test_degenerated_sample(available_device):
     if available_device == "mps":
         pytest.skip(reason="PearsonCorrelation.compute returns nan on mps")
-        # r = cov / torch.clamp(torch.sqrt(y_pred_var * y_var), min=self.eps)
 
     # one sample
     m = PearsonCorrelation(device=available_device)
@@ -98,6 +97,35 @@ def test_pearson_correlation(available_device):
         assert m.compute() == pytest.approx(expected, rel=1e-4)
 
 
+def test_numerical_stability(available_device):
+    """Test that Welford's algorithm handles large-mean, small-variance data
+    that would cause catastrophic cancellation with the naive formula."""
+    if available_device == "mps":
+        pytest.skip(reason="float64 not supported on mps")
+
+    m = PearsonCorrelation(device=available_device)
+
+    torch.manual_seed(42)
+    # Large offset with small variance: naive E[x^2] - E[x]^2 would fail in float32
+    offset = 1e6
+    n = 1000
+    x = torch.randn(n, dtype=torch.float32) + offset
+    y = x + torch.randn(n, dtype=torch.float32) * 0.1  # highly correlated
+
+    # Feed in small batches to stress accumulation
+    batch_size = 10
+    for i in range(0, n, batch_size):
+        m.update((x[i : i + batch_size], y[i : i + batch_size]))
+
+    result = m.compute()
+    expected = pearsonr(x.numpy(), y.numpy()).statistic
+
+    assert result == pytest.approx(expected, rel=1e-5), (
+        f"Numerical instability detected: got {result}, expected {expected}"
+    )
+    assert result > 0.99, f"Correlation should be near 1.0 for highly correlated data, got {result}"
+
+
 @pytest.fixture(params=list(range(2)))
 def test_case(request):
     # correlated sample
@@ -148,11 +176,11 @@ def test_accumulator_detached(available_device):
     assert all(
         (not accumulator.requires_grad)
         for accumulator in (
-            corr._sum_of_products,
-            corr._sum_of_y_pred_squares,
-            corr._sum_of_y_preds,
-            corr._sum_of_y_squares,
-            corr._sum_of_ys,
+            corr._mean_x,
+            corr._mean_y,
+            corr._m2_x,
+            corr._m2_y,
+            corr._cxy,
         )
     )
 
@@ -240,11 +268,11 @@ class TestDistributed:
 
             devices = (
                 corr._device,
-                corr._sum_of_products.device,
-                corr._sum_of_y_pred_squares.device,
-                corr._sum_of_y_preds.device,
-                corr._sum_of_y_squares.device,
-                corr._sum_of_ys.device,
+                corr._mean_x.device,
+                corr._mean_y.device,
+                corr._m2_x.device,
+                corr._m2_y.device,
+                corr._cxy.device,
             )
             for dev in devices:
                 assert dev == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
@@ -255,11 +283,11 @@ class TestDistributed:
 
             devices = (
                 corr._device,
-                corr._sum_of_products.device,
-                corr._sum_of_y_pred_squares.device,
-                corr._sum_of_y_preds.device,
-                corr._sum_of_y_squares.device,
-                corr._sum_of_ys.device,
+                corr._mean_x.device,
+                corr._mean_y.device,
+                corr._m2_x.device,
+                corr._m2_y.device,
+                corr._cxy.device,
             )
             for dev in devices:
                 assert dev == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
