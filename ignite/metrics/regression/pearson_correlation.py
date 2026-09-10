@@ -68,56 +68,112 @@ class PearsonCorrelation(_BaseRegression):
         self.eps = eps
 
     _state_dict_all_req_keys = (
-        "_sum_of_y_preds",
-        "_sum_of_ys",
-        "_sum_of_y_pred_squares",
-        "_sum_of_y_squares",
-        "_sum_of_products",
+        "_mean_x",
+        "_mean_y",
+        "_var_x",
+        "_var_y",
+        "_cov",
         "_num_examples",
     )
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._sum_of_y_preds = torch.tensor(0.0, device=self._device)
-        self._sum_of_ys = torch.tensor(0.0, device=self._device)
-        self._sum_of_y_pred_squares = torch.tensor(0.0, device=self._device)
-        self._sum_of_y_squares = torch.tensor(0.0, device=self._device)
-        self._sum_of_products = torch.tensor(0.0, device=self._device)
+        self._mean_x = torch.tensor(0.0, dtype=self._double_dtype, device=self._device)
+        self._mean_y = torch.tensor(0.0, dtype=self._double_dtype, device=self._device)
+        self._var_x = torch.tensor(0.0, dtype=self._double_dtype, device=self._device)
+        self._var_y = torch.tensor(0.0, dtype=self._double_dtype, device=self._device)
+        self._cov = torch.tensor(0.0, dtype=self._double_dtype, device=self._device)
         self._num_examples = 0
 
     def _update(self, output: tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output[0].detach(), output[1].detach()
-        self._sum_of_y_preds += y_pred.sum().to(self._device)
-        self._sum_of_ys += y.sum().to(self._device)
-        self._sum_of_y_pred_squares += y_pred.square().sum().to(self._device)
-        self._sum_of_y_squares += y.square().sum().to(self._device)
-        self._sum_of_products += (y_pred * y).sum().to(self._device)
-        self._num_examples += y.shape[0]
 
-    @sync_all_reduce(
-        "_sum_of_y_preds",
-        "_sum_of_ys",
-        "_sum_of_y_pred_squares",
-        "_sum_of_y_squares",
-        "_sum_of_products",
-        "_num_examples",
-    )
+        n_B = y.shape[0]
+        if n_B == 0:
+            return
+
+        mean_x_B = y_pred.mean(dtype=self._double_dtype)
+        mean_y_B = y.mean(dtype=self._double_dtype)
+
+        y_pred_d = y_pred.to(self._double_dtype)
+        y_d = y.to(self._double_dtype)
+
+        var_x_B = ((y_pred_d - mean_x_B) ** 2).sum()
+        var_y_B = ((y_d - mean_y_B) ** 2).sum()
+        cov_B = ((y_pred_d - mean_x_B) * (y_d - mean_y_B)).sum()
+
+        if self._num_examples == 0:
+            self._mean_x = mean_x_B
+            self._mean_y = mean_y_B
+            self._var_x = var_x_B
+            self._var_y = var_y_B
+            self._cov = cov_B
+            self._num_examples = n_B
+        else:
+            n_A = self._num_examples
+            n_AB = n_A + n_B
+            delta_x = mean_x_B - self._mean_x
+            delta_y = mean_y_B - self._mean_y
+
+            self._var_x += var_x_B + delta_x ** 2 * (n_A * n_B) / n_AB
+            self._var_y += var_y_B + delta_y ** 2 * (n_A * n_B) / n_AB
+            self._cov += cov_B + delta_x * delta_y * (n_A * n_B) / n_AB
+
+            self._mean_x += delta_x * (n_B / n_AB)
+            self._mean_y += delta_y * (n_B / n_AB)
+            self._num_examples = n_AB
+
     def compute(self) -> float:
-        n = self._num_examples
-        if n == 0:
+        if self._num_examples == 0:
             raise NotComputableError("PearsonCorrelation must have at least one example before it can be computed.")
 
-        # cov = E[xy] - E[x]*E[y]
-        cov = self._sum_of_products / n - self._sum_of_y_preds * self._sum_of_ys / (n * n)
+        import ignite.distributed as idist
 
-        # var = E[x^2] - E[x]^2
-        y_pred_mean = self._sum_of_y_preds / n
-        y_pred_var = self._sum_of_y_pred_squares / n - y_pred_mean * y_pred_mean
-        y_pred_var = torch.clamp(y_pred_var, min=0.0)
+        if idist.get_world_size() > 1:
+            state = torch.stack([
+                self._mean_x,
+                self._mean_y,
+                self._var_x,
+                self._var_y,
+                self._cov,
+                torch.tensor(self._num_examples, dtype=self._double_dtype, device=self._device)
+            ]).unsqueeze(0)
 
-        y_mean = self._sum_of_ys / n
-        y_var = self._sum_of_y_squares / n - y_mean * y_mean
-        y_var = torch.clamp(y_var, min=0.0)
+            gathered_state = idist.all_gather(state)
 
-        r = cov / torch.clamp(torch.sqrt(y_pred_var * y_var), min=self.eps)
+            total_mean_x = gathered_state[0, 0].clone()
+            total_mean_y = gathered_state[0, 1].clone()
+            total_var_x = gathered_state[0, 2].clone()
+            total_var_y = gathered_state[0, 3].clone()
+            total_cov = gathered_state[0, 4].clone()
+            total_n = gathered_state[0, 5].item()
+
+            for i in range(1, idist.get_world_size()):
+                n_B = gathered_state[i, 5].item()
+                if n_B == 0:
+                    continue
+
+                n_A = total_n
+                total_n = n_A + n_B
+                delta_x = gathered_state[i, 0] - total_mean_x
+                delta_y = gathered_state[i, 1] - total_mean_y
+
+                total_var_x += gathered_state[i, 2] + delta_x**2 * (n_A * n_B) / total_n
+                total_var_y += gathered_state[i, 3] + delta_y**2 * (n_A * n_B) / total_n
+                total_cov += gathered_state[i, 4] + delta_x * delta_y * (n_A * n_B) / total_n
+
+                total_mean_x += delta_x * (n_B / total_n)
+                total_mean_y += delta_y * (n_B / total_n)
+        else:
+            total_n = self._num_examples
+            total_var_x = self._var_x
+            total_var_y = self._var_y
+            total_cov = self._cov
+
+        # var_x and var_y are sum of squared differences, so variance is var_x / total_n
+        y_pred_var = torch.clamp(total_var_x / total_n, min=0.0)
+        y_var = torch.clamp(total_var_y / total_n, min=0.0)
+        cov_val = total_cov / total_n
+
+        r = cov_val / torch.clamp(torch.sqrt(y_pred_var * y_var), min=self.eps)
         return float(r.item())
