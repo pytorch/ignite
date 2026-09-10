@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, cast
 from collections.abc import Callable
 
 import torch
@@ -110,4 +110,4 @@ class SpearmanRankCorrelation(EpochMetric):
                 "SpearmanRankCorrelation must have at least one example before it can be computed."
             )
 
-        return super().compute()
+        return cast(float, super().compute())
