@@ -131,6 +131,11 @@ def test_output_handler_metric_names():
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
     mock_logger.log.assert_called_once_with({f"tag/a/{i}": v for i, v in enumerate(data)}, step=7)
 
+    wrapper = OutputHandler("tag", metric_names=["a"], flatten_sequences=False)
+    mock_logger.log = MagicMock()
+    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+    mock_logger.log.assert_called_once_with({"tag/a": data}, step=7)
+
     wrapper = OutputHandler("tag", metric_names="all")
     mock_engine = MagicMock()
     mock_engine.state = State(
