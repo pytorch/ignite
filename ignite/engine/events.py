@@ -140,12 +140,15 @@ class CallableEventWithFilter:
     @staticmethod
     def once_event_filter(once: list) -> Callable:
         """A wrapper for once event filter."""
+        remaining = set(once)
 
         def wrapper(engine: "Engine", event: int) -> bool:
-            if event in once:
+            if event in remaining:
+                remaining.remove(event)
                 return True
             return False
 
+        wrapper._once = tuple(once)  # type: ignore[attr-defined]
         return wrapper
 
     @staticmethod

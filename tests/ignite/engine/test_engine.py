@@ -395,6 +395,7 @@ class TestEngine:
 
             epoch_completed_events = [e for e in engine.called_events if e[2] == Events.EPOCH_COMPLETED.name]
             assert len(epoch_completed_events) == max_epochs - skip_epoch_completed
+            assert call_count == 1
 
     @pytest.mark.parametrize("data", [None, "mock_data_loader"])
     def test_iteration_events_are_fired(self, data):
