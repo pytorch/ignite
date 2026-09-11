@@ -1,9 +1,11 @@
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
 import torch
 
+from ignite.engine import Engine
 from ignite.metrics import Metric
+from ignite.metrics.metric import _is_list_of_tensors_or_numbers, _to_batched_tensor
 
 
 class MetricGroup(Metric):
@@ -57,7 +59,37 @@ class MetricGroup(Metric):
         for m in self.metrics.values():
             m.reset()
 
-    def update(self, output: Sequence[torch.Tensor]) -> None:
+    def iteration_completed(self, engine: Engine) -> None:
+        # Overridden because, unlike a "leaf" metric, a MetricGroup does not itself consume a
+        # ``(y_pred, y)``-shaped output: each metric in the group applies its own
+        # ``output_transform`` in ``update`` to pull whatever it needs out of the group's
+        # (transformed) output. So, unlike ``Metric.iteration_completed``, a mapping output is
+        # passed straight through to ``update`` rather than being validated/unpacked against
+        # ``required_output_keys``, which only makes sense for a single metric's ``(y_pred, y)``.
+        output = self._output_transform(engine.state.output)
+        if isinstance(output, Mapping):
+            self.update(output)
+            return
+
+        if (
+            (not self._skip_unrolling)
+            and isinstance(output, Sequence)
+            and all(_is_list_of_tensors_or_numbers(o) for o in output)
+        ):
+            if not (len(output) == 2 and len(output[0]) == len(output[1])):
+                raise ValueError(
+                    f"Output should have 2 items of the same length, "
+                    f"got {len(output)} and {len(output[0])}, {len(output[1])}"
+                )
+            for o1, o2 in zip(output[0], output[1]):
+                # o1 and o2 are list of tensors or numbers
+                tensor_o1 = _to_batched_tensor(o1)
+                tensor_o2 = _to_batched_tensor(o2, device=tensor_o1.device)
+                self.update((tensor_o1, tensor_o2))
+        else:
+            self.update(output)
+
+    def update(self, output: Sequence[torch.Tensor] | Mapping[Any, Any]) -> None:
         for m in self.metrics.values():
             m.update(m._output_transform(output))
 
