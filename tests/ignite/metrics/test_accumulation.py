@@ -520,3 +520,12 @@ def test_multinode_distrib_nccl_gpu(distributed_context_multi_node_nccl):
     _test_distrib_geom_average(device)
     _test_distrib_integration(device)
     _test_distrib_accumulator_device(device)
+
+
+@pytest.mark.parametrize("value", [1e-100, 1e100, 1.234567891234567])
+def test_geometric_average_preserves_python_scalar_precision(value):
+    scalar_metric = GeometricAverage()
+    tensor_metric = GeometricAverage()
+    scalar_metric.update(value)
+    tensor_metric.update(torch.tensor(value, dtype=torch.float64))
+    assert scalar_metric.compute() == pytest.approx(tensor_metric.compute(), rel=1e-12, abs=0)
