@@ -34,11 +34,11 @@ class TimeLimit:
             raise ValueError("Argument limit_sec should be a positive integer.")
 
         self.limit_sec = limit_sec
-        self.start_time = time.time()
+        self.start_time = time.monotonic()
         self.logger = setup_logger(__name__ + "." + self.__class__.__name__)
 
     def __call__(self, engine: Engine) -> None:
-        elapsed_time = time.time() - self.start_time
+        elapsed_time = time.monotonic() - self.start_time
         if elapsed_time > self.limit_sec:
             self.logger.info(f"Reached the time limit: {self.limit_sec} sec. Stop training")
             engine.terminate()
