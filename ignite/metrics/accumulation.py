@@ -298,7 +298,7 @@ class GeometricAverage(VariableAccumulation):
     ):
         def _geom_op(a: torch.Tensor, x: float | torch.Tensor) -> torch.Tensor:
             if not isinstance(x, torch.Tensor):
-                x = torch.tensor(x)
+                x = torch.tensor(x, dtype=a.dtype, device=a.device)
             x = torch.log(x)
             if x.ndim > 1:
                 x = x.sum(dim=0)
