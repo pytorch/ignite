@@ -41,7 +41,8 @@ class TerminateOnNan:
 
         def raise_error(x: float | torch.Tensor) -> None:
             if isinstance(x, numbers.Number):
-                x = torch.tensor(x)
+                dtype = torch.float64 if isinstance(x, numbers.Real) else torch.complex128
+                x = torch.tensor(x, dtype=dtype)
 
             if isinstance(x, torch.Tensor) and not bool(torch.isfinite(x).all()):
                 raise RuntimeError("Infinite or NaN tensor found.")

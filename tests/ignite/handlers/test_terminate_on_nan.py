@@ -10,6 +10,10 @@ from ignite.handlers import TerminateOnNan
     "state_output,should_terminate",
     [
         (1.0, False),
+        (1e100, False),
+        (-1e100, False),
+        (complex(1e100, 1e100), False),
+        ({"loss": 1e100}, False),
         (torch.tensor(123.45), False),
         (torch.asin(torch.tensor([1.0, 2.0, 0.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0])), True),
         (torch.asin(torch.randn(4, 4)), True),
