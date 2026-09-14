@@ -147,6 +147,41 @@ def test__native_dist_model_create_from_backend_bad_slurm_config():
     del os.environ["RANK"]
 
 
+@pytest.mark.distributed
+@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
+def test__native_dist_model_create_from_backend_slurm_local_rank_exceeds_device_count(clean_env):
+    import warnings
+    from datetime import timedelta
+    from unittest.mock import patch
+
+    slurm_env = {
+        "SLURM_JOB_ID": "12345",
+        "SLURM_PROCID": "0",
+        "SLURM_LOCALID": "3",
+        "SLURM_NTASKS": "1",
+        "SLURM_JOB_NODELIST": "localhost",
+        "SLURM_JOB_NUM_NODES": "1",
+    }
+
+    # A single GPU is visible to the task while SLURM_LOCALID keeps counting tasks of the node
+    with (
+        patch.dict(os.environ, slurm_env),
+        patch("torch.cuda.is_available", return_value=True),
+        patch("torch.cuda.device_count", return_value=1),
+        patch("torch.cuda.current_device", return_value=0),
+        patch("torch.cuda.set_device") as mock_set_device,
+    ):
+        model = _NativeDistModel.create_from_backend(backend="gloo", timeout=timedelta(seconds=10))
+        try:
+            assert model.get_local_rank() == 3
+            mock_set_device.assert_called_once_with(0)
+            with warnings.catch_warnings():
+                warnings.simplefilter("error")
+                assert model.device() == torch.device("cuda:0")
+        finally:
+            model.finalize()
+
+
 def _assert_model(model, true_conf):
     assert model.device() == torch.device(true_conf["device"])
     assert model.get_local_rank() == true_conf["local_rank"]
