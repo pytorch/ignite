@@ -68,38 +68,61 @@ class PearsonCorrelation(_BaseRegression):
         self.eps = eps
 
     _state_dict_all_req_keys = (
-        "_sum_of_y_preds",
-        "_sum_of_ys",
-        "_sum_of_y_pred_squares",
-        "_sum_of_y_squares",
-        "_sum_of_products",
+        "_mean_y_preds",
+        "_mean_ys",
+        "_var_y_preds",
+        "_var_ys",
+        "_cov",
         "_num_examples",
     )
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._sum_of_y_preds = torch.tensor(0.0, device=self._device)
-        self._sum_of_ys = torch.tensor(0.0, device=self._device)
-        self._sum_of_y_pred_squares = torch.tensor(0.0, device=self._device)
-        self._sum_of_y_squares = torch.tensor(0.0, device=self._device)
-        self._sum_of_products = torch.tensor(0.0, device=self._device)
+        self._mean_y_preds = torch.tensor(0.0, dtype=torch.float64, device=self._device)
+        self._mean_ys = torch.tensor(0.0, dtype=torch.float64, device=self._device)
+        self._var_y_preds = torch.tensor(0.0, dtype=torch.float64, device=self._device)
+        self._var_ys = torch.tensor(0.0, dtype=torch.float64, device=self._device)
+        self._cov = torch.tensor(0.0, dtype=torch.float64, device=self._device)
         self._num_examples = 0
 
     def _update(self, output: tuple[torch.Tensor, torch.Tensor]) -> None:
-        y_pred, y = output[0].detach(), output[1].detach()
-        self._sum_of_y_preds += y_pred.sum().to(self._device)
-        self._sum_of_ys += y.sum().to(self._device)
-        self._sum_of_y_pred_squares += y_pred.square().sum().to(self._device)
-        self._sum_of_y_squares += y.square().sum().to(self._device)
-        self._sum_of_products += (y_pred * y).sum().to(self._device)
-        self._num_examples += y.shape[0]
+        y_pred, y = output[0].detach().to(torch.float64), output[1].detach().to(torch.float64)
+        
+        m = y.shape[0]
+        n = self._num_examples
+        
+        y_pred_mean = y_pred.mean()
+        y_mean = y.mean()
+        
+        y_pred_sq = ((y_pred - y_pred_mean) ** 2).sum()
+        y_sq = ((y - y_mean) ** 2).sum()
+        prod = ((y_pred - y_pred_mean) * (y - y_mean)).sum()
+        
+        if n == 0:
+            self._mean_y_preds += y_pred_mean
+            self._mean_ys += y_mean
+            self._var_y_preds += y_pred_sq
+            self._var_ys += y_sq
+            self._cov += prod
+        else:
+            delta_y_preds = y_pred_mean - self._mean_y_preds
+            delta_ys = y_mean - self._mean_ys
+            
+            self._mean_y_preds += delta_y_preds * m / (n + m)
+            self._mean_ys += delta_ys * m / (n + m)
+            
+            self._var_y_preds += y_pred_sq + (delta_y_preds ** 2) * n * m / (n + m)
+            self._var_ys += y_sq + (delta_ys ** 2) * n * m / (n + m)
+            self._cov += prod + delta_y_preds * delta_ys * n * m / (n + m)
+            
+        self._num_examples += m
 
     @sync_all_reduce(
-        "_sum_of_y_preds",
-        "_sum_of_ys",
-        "_sum_of_y_pred_squares",
-        "_sum_of_y_squares",
-        "_sum_of_products",
+        "_mean_y_preds",
+        "_mean_ys",
+        "_var_y_preds",
+        "_var_ys",
+        "_cov",
         "_num_examples",
     )
     def compute(self) -> float:
@@ -107,17 +130,9 @@ class PearsonCorrelation(_BaseRegression):
         if n == 0:
             raise NotComputableError("PearsonCorrelation must have at least one example before it can be computed.")
 
-        # cov = E[xy] - E[x]*E[y]
-        cov = self._sum_of_products / n - self._sum_of_y_preds * self._sum_of_ys / (n * n)
-
-        # var = E[x^2] - E[x]^2
-        y_pred_mean = self._sum_of_y_preds / n
-        y_pred_var = self._sum_of_y_pred_squares / n - y_pred_mean * y_pred_mean
-        y_pred_var = torch.clamp(y_pred_var, min=0.0)
-
-        y_mean = self._sum_of_ys / n
-        y_var = self._sum_of_y_squares / n - y_mean * y_mean
-        y_var = torch.clamp(y_var, min=0.0)
+        y_pred_var = torch.clamp(self._var_y_preds / n, min=0.0)
+        y_var = torch.clamp(self._var_ys / n, min=0.0)
+        cov = self._cov / n
 
         r = cov / torch.clamp(torch.sqrt(y_pred_var * y_var), min=self.eps)
         return float(r.item())
