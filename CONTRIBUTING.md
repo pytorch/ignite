@@ -17,12 +17,12 @@ into the following categories:
 3. You would like to improve the documentation. This is no less important than improving the library itself!
    If you find a typo in the documentation, do not hesitate to submit a GitHub pull request.
 
-4. You would like propose a new feature and implement it
+4. You would like to propose a new feature and implement it
 
    - Post about your intended feature, and we shall discuss the design and
      implementation. Once we agree that the plan looks good, go ahead and implement it.
 
-5. You would like implement a feature or bug-fix for an outstanding issue
+5. You would like to implement a feature or bug-fix for an outstanding issue
    - Look at the issues labelled as ["help wanted"](https://github.com/pytorch/ignite/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22)
    - Pick an issue and comment on the task that you want to work on this feature.
    - If you need more context on a particular issue, please ask and we shall provide.
@@ -174,7 +174,7 @@ pre-commit install
 ```bash
 git add .
 git commit -m "Added awesome feature"
-# DONT'T WORRY IF ERRORS ARE RAISED.
+# DON'T WORRY IF ERRORS ARE RAISED.
 # YOUR CODE IS NOT COMPLIANT WITH ruff format
 # Fix any errors by following their suggestions
 # again for committing
@@ -304,7 +304,7 @@ pip install -r requirements.txt
 
 [Katex](https://katex.org/) is also needed to build the documentation.
 To install katex, you need to have [nodejs](https://nodejs.org/en/) installed.
-Optionaly, we can install `nodejs/npm` using conda: `conda install nodejs`.
+Optionally, we can install `nodejs/npm` using conda: `conda install nodejs`.
 Then you can install katex with [npm](https://www.npmjs.com/) or [yarn](https://yarnpkg.com/) (if installed).
 
 ```bash
@@ -359,7 +359,7 @@ should be under `.. testcode::` and expected output should be under
 
 If the floating point results are needed for assertion and the results can vary per operating systems and PyTorch versions, we could assert the results up to 4 or 6 decimal places and match the rest of the results with `...`. Learn more about `sphinx.ext.doctest` in [the official documentation](https://www.sphinx-doc.org/en/master/usage/extensions/doctest.html).
 
-To make writing doctests easy, there are some configuratons defined in `conf.py`. Search `doctest_global_setup` in [conf.py](docs/source/conf.py) to see which variables and functions are available.
+To make writing doctests easy, there are some configurations defined in `conf.py`. Search `doctest_global_setup` in [conf.py](docs/source/conf.py) to see which variables and functions are available.
 
 To run doctests locally:
 
