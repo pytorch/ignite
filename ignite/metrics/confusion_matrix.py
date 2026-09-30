@@ -321,6 +321,9 @@ def cmAccuracy(cm: ConfusionMatrix) -> MetricsLambda:
     Returns:
         MetricsLambda
     """
+    if cm.average not in (None, "samples"):
+        raise ValueError("ConfusionMatrix should have average attribute either None or 'samples'")
+
     # Increase floating point precision and pass to CPU
     cm = cm.to(torch.double)
     accuracy: MetricsLambda = cm.diag().sum() / (cm.sum() + 1e-15)
@@ -336,6 +339,8 @@ def cmPrecision(cm: ConfusionMatrix, average: bool = True) -> MetricsLambda:
     Returns:
         MetricsLambda
     """
+    if cm.average not in (None, "samples"):
+        raise ValueError("ConfusionMatrix should have average attribute either None or 'samples'")
 
     # Increase floating point precision and pass to CPU
     cm = cm.to(torch.double)
@@ -355,6 +360,8 @@ def cmRecall(cm: ConfusionMatrix, average: bool = True) -> MetricsLambda:
     Returns:
         MetricsLambda
     """
+    if cm.average not in (None, "samples"):
+        raise ValueError("ConfusionMatrix should have average attribute either None or 'samples'")
 
     # Increase floating point precision and pass to CPU
     cm = cm.to(torch.double)
@@ -402,6 +409,9 @@ def DiceCoefficient(cm: ConfusionMatrix, ignore_index: int | None = None) -> Met
 
     if not isinstance(cm, ConfusionMatrix):
         raise TypeError(f"Argument cm should be instance of ConfusionMatrix, but given {type(cm)}")
+
+    if cm.average not in (None, "samples"):
+        raise ValueError("ConfusionMatrix should have average attribute either None or 'samples'")
 
     if ignore_index is not None:
         if not (isinstance(ignore_index, numbers.Integral) and 0 <= ignore_index < cm.num_classes):
