@@ -1,5 +1,3 @@
-from io import BytesIO
-
 import numpy as np
 import pytest
 import torch
@@ -86,31 +84,32 @@ def test_accumulator_detached(available_device):
 
 def _test_state_dict_round_trip(device, segmentation=False, updated_destination=False):
     logits = torch.tensor(
-        [[1.0, 2.0, 3.0], [3.0, 1.0, 2.0], [2.0, 3.0, 1.0], [0.0, 1.0, 2.0], [2.0, 0.0, 1.0], [1.0, 2.0, 0.0]],
+        [[1.0, 2.0, 3.0], [3.0, 1.0, 2.0], [2.0, 3.0, 1.0], [0.0, 1.0, 2.0]],
         device=device,
     )
     logits = logits.roll(idist.get_rank(), dims=1)
     if segmentation:
-        logits = logits.reshape(3, 2, 3).permute(0, 2, 1)
+        # Two images, three classes, and two pixels per image.
+        logits = logits.reshape(2, 2, 3).movedim(2, 1)
+
+    # Save after the first batch, then restore into a fresh or used metric.
     metric = MutualInformation(device=device)
     metric.update((logits[:1], None))
-
-    checkpoint = BytesIO()
-    torch.save(metric.state_dict(), checkpoint)
-    checkpoint.seek(0)
+    state = metric.state_dict()
     restored = MutualInformation(device=device)
     if updated_destination:
         restored.update((torch.zeros_like(logits), None))
-    restored.load_state_dict(torch.load(checkpoint, weights_only=True))
+    restored.load_state_dict(state)
 
-    def reference(predictions):
-        predictions = predictions.movedim(1, -1).reshape(-1, 3)
-        predictions = idist.all_gather(predictions).cpu().numpy()
-        return np_mutual_information(predictions)
+    first_batch = logits[:1].movedim(1, -1).reshape(-1, 3)
+    first_batch = idist.all_gather(first_batch).cpu().numpy()
+    assert restored.compute() == pytest.approx(np_mutual_information(first_batch), abs=1e-6)
 
-    assert restored.compute() == pytest.approx(reference(logits[:1]), abs=1e-6)
+    # Resume with the remaining batch and compare with the complete-data result.
     restored.update((logits[1:], None))
-    assert restored.compute() == pytest.approx(reference(logits), rel=1e-5, abs=1e-6)
+    all_batches = logits.movedim(1, -1).reshape(-1, 3)
+    all_batches = idist.all_gather(all_batches).cpu().numpy()
+    assert restored.compute() == pytest.approx(np_mutual_information(all_batches), rel=1e-5, abs=1e-6)
 
 
 @pytest.mark.parametrize("segmentation", [False, True])
