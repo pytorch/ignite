@@ -1,0 +1,143 @@
+name: Build docs
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    paths-ignore:
+      - "tests/**"
+      - "docker/**"
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  build-deploy:
+    permissions:
+      contents: write
+    if: (github.ref == 'refs/heads/master' && github.event_name == 'push') || github.event_name == 'release'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      max-parallel: 10
+      fail-fast: false
+      matrix:
+        os: ["ubuntu-latest"]
+        python-version: ["3.12"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Get year & week number
+        id: get-date
+        run: |
+          echo "date=$(/bin/date "+%Y-%U")" >> $GITHUB_OUTPUT
+
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "latest"
+          python-version: "${{ matrix.python-version }}"
+          activate-environment: true
+          enable-cache: true
+          cache-suffix: "${{ steps.get-date.outputs.date }}-${{ hashFiles('requirements-dev.txt') }}-${{ hashFiles('docs/requirements.txt') }}"
+          cache-dependency-glob: |
+            **/docs/requirements.txt
+            **/requirements-dev.txt
+            **/pyproject.toml
+
+      - run: sudo npm install katex -g
+
+      - name: Install docs deps
+        run: bash .github/workflows/install_docs_deps.sh
+
+      - name: Build docs
+        run: bash .github/workflows/build_docs.sh
+
+      - name: Deploy docs
+        uses: peaceiris/actions-gh-pages@84c30a85c19949d7eee79c4ff27748b70285e453 # v4.1.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: docs/build/html
+          publish_branch: gh-pages
+          commit_message: Deploy pytorch/ignite docs
+          force_orphan: true
+
+  linkcheck:
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      max-parallel: 10
+      fail-fast: false
+      matrix:
+        os: ["ubuntu-latest"]
+        python-version: ["3.12"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Get year & week number
+        id: get-date
+        run: |
+          echo "date=$(/bin/date "+%Y-%U")" >> $GITHUB_OUTPUT
+
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "latest"
+          python-version: ${{ matrix.python-version }}
+          activate-environment: true
+          enable-cache: true
+          cache-suffix: "${{ steps.get-date.outputs.date }}-${{ hashFiles('requirements-dev.txt') }}-${{ hashFiles('docs/requirements.txt') }}"
+          cache-dependency-glob: |
+            **/docs/requirements.txt
+            **/requirements-dev.txt
+            **/pyproject.toml
+
+      - name: Install docs deps
+        run: bash .github/workflows/install_docs_deps.sh
+
+      - name: make linkcheck
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
+        with:
+          max_attempts: 3
+          timeout_minutes: 10
+          command: cd ./docs/ && make linkcheck
+
+  doctest:
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      max-parallel: 10
+      fail-fast: false
+      matrix:
+        os: ["ubuntu-latest"]
+        python-version: ["3.12"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Get year & week number
+        id: get-date
+        run: |
+          echo "date=$(/bin/date "+%Y-%U")" >> $GITHUB_OUTPUT
+
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "latest"
+          python-version: "${{ matrix.python-version }}"
+          activate-environment: true
+          enable-cache: true
+          cache-suffix: "${{ steps.get-date.outputs.date }}-${{ hashFiles('requirements-dev.txt') }}-${{ hashFiles('docs/requirements.txt') }}"
+          cache-dependency-glob: |
+            **/docs/requirements.txt
+            **/requirements-dev.txt
+            **/pyproject.toml
+
+      - run: sudo npm install katex -g
+
+      - name: Install docs deps
+        run: bash .github/workflows/install_docs_deps.sh
+
+      - name: make doctest
+        working-directory: ./docs/
+        run: |
+          make html
+          make doctest
+          make coverage

@@ -1,0 +1,444 @@
+import numbers
+import warnings
+from functools import partial
+from collections.abc import Callable, Iterable, Mapping, Sequence
+from typing import Any, cast
+
+import torch
+import torch.nn as nn
+from torch.optim.optimizer import Optimizer
+from torch.utils.data.distributed import DistributedSampler
+
+# https://github.com/pytorch/ignite/issues/2773
+try:
+    from torch.optim.lr_scheduler import LRScheduler as PyTorchLRScheduler
+except ImportError:
+    from torch.optim.lr_scheduler import _LRScheduler as PyTorchLRScheduler
+
+import ignite.distributed as idist
+from ignite.engine import Engine, Events
+from ignite.handlers.logger_utils import (
+    _setup_logging,
+    setup_clearml_logging,
+    setup_mlflow_logging,
+    setup_neptune_logging,
+    setup_plx_logging,
+    setup_tb_logging,
+    setup_trains_logging,
+    setup_visdom_logging,
+    setup_wandb_logging,
+)
+
+# The above imports are re-exports for backward compatibility and may appear unused
+# to linters — ignore unused-import (F401).
+# ruff: noqa: F401
+from ignite.handlers import (
+    Checkpoint,
+    DiskSaver,
+    EarlyStopping,
+    global_step_from_engine,
+    ProgressBar,
+    TerminateOnNan,
+)
+from ignite.handlers.base_logger import BaseLogger
+from ignite.handlers.checkpoint import BaseSaveHandler
+from ignite.handlers.param_scheduler import ParamScheduler
+from ignite.metrics import GpuInfo, RunningAverage
+from ignite.metrics.metric import RunningBatchWise
+from ignite.utils import deprecated
+
+
+def setup_common_training_handlers(
+    trainer: Engine,
+    train_sampler: DistributedSampler | None = None,
+    to_save: Mapping | None = None,
+    save_every_iters: int = 1000,
+    output_path: str | None = None,
+    lr_scheduler: ParamScheduler | PyTorchLRScheduler | None = None,
+    with_gpu_stats: bool = False,
+    output_names: Iterable[str] | None = None,
+    with_pbars: bool = True,
+    with_pbar_on_iters: bool = True,
+    log_every_iters: int = 100,
+    stop_on_nan: bool = True,
+    clear_cuda_cache: bool = True,
+    save_handler: Callable | BaseSaveHandler | None = None,
+    **kwargs: Any,
+) -> None:
+    """Helper method to setup trainer with common handlers (it also supports distributed configuration):
+
+        - :class:`~ignite.handlers.terminate_on_nan.TerminateOnNan`
+        - handler to setup learning rate scheduling
+        - :class:`~ignite.handlers.checkpoint.ModelCheckpoint`
+        - :class:`~ignite.metrics.RunningAverage` on `update_function` output
+        - Two progress bars on epochs and optionally on iterations
+
+    Args:
+        trainer: trainer engine. Output of trainer's `update_function` should be a dictionary
+            or sequence or a single tensor.
+        train_sampler: Optional distributed sampler used to call
+            `set_epoch` method on epoch started event.
+        to_save: dictionary with objects to save in the checkpoint. This argument is passed to
+            :class:`~ignite.handlers.checkpoint.Checkpoint` instance.
+        save_every_iters: saving interval. By default, `to_save` objects are stored
+            each 1000 iterations.
+        output_path: output path to indicate where `to_save` objects are stored. Argument is mutually
+            exclusive with ``save_handler``.
+        lr_scheduler: learning rate scheduler
+            as native torch LRScheduler or ignite's parameter scheduler.
+        with_gpu_stats: if True, :class:`~ignite.metrics.GpuInfo` is attached to the
+            trainer. This requires `pynvml<12` package to be installed.
+        output_names: list of names associated with `update_function` output dictionary.
+        with_pbars: if True, two progress bars on epochs and optionally on iterations are attached.
+            Default, True.
+        with_pbar_on_iters: if True, a progress bar on iterations is attached to the trainer.
+            Default, True.
+        log_every_iters: logging interval for :class:`~ignite.metrics.GpuInfo` and for
+            epoch-wise progress bar. Default, 100.
+        stop_on_nan: if True, :class:`~ignite.handlers.terminate_on_nan.TerminateOnNan` handler is added to the trainer.
+            Default, True.
+        clear_cuda_cache: if True, `torch.cuda.empty_cache()` is called every end of epoch.
+            Default, True.
+        save_handler: Method or callable
+            class to use to store ``to_save``. See :class:`~ignite.handlers.checkpoint.Checkpoint` for more details.
+            Argument is mutually exclusive with ``output_path``.
+        kwargs: optional keyword args to be passed to construct :class:`~ignite.handlers.checkpoint.Checkpoint`.
+    """
+
+    if idist.get_world_size() > 1:
+        _setup_common_distrib_training_handlers(
+            trainer,
+            train_sampler=train_sampler,
+            to_save=to_save,
+            save_every_iters=save_every_iters,
+            output_path=output_path,
+            lr_scheduler=lr_scheduler,
+            with_gpu_stats=with_gpu_stats,
+            output_names=output_names,
+            with_pbars=with_pbars,
+            with_pbar_on_iters=with_pbar_on_iters,
+            log_every_iters=log_every_iters,
+            stop_on_nan=stop_on_nan,
+            clear_cuda_cache=clear_cuda_cache,
+            save_handler=save_handler,
+            **kwargs,
+        )
+    else:
+        if train_sampler is not None and isinstance(train_sampler, DistributedSampler):
+            warnings.warn(
+                "Argument train_sampler is a distributed sampler,"
+                " but either there is no distributed setting or world size is < 2. "
+                "Train sampler argument will be ignored",
+                UserWarning,
+            )
+        _setup_common_training_handlers(
+            trainer,
+            to_save=to_save,
+            save_every_iters=save_every_iters,
+            output_path=output_path,
+            lr_scheduler=lr_scheduler,
+            with_gpu_stats=with_gpu_stats,
+            output_names=output_names,
+            with_pbars=with_pbars,
+            with_pbar_on_iters=with_pbar_on_iters,
+            log_every_iters=log_every_iters,
+            stop_on_nan=stop_on_nan,
+            clear_cuda_cache=clear_cuda_cache,
+            save_handler=save_handler,
+            **kwargs,
+        )
+
+
+setup_common_distrib_training_handlers = setup_common_training_handlers
+
+
+def _setup_common_training_handlers(
+    trainer: Engine,
+    to_save: Mapping | None = None,
+    save_every_iters: int = 1000,
+    output_path: str | None = None,
+    lr_scheduler: ParamScheduler | PyTorchLRScheduler | None = None,
+    with_gpu_stats: bool = False,
+    output_names: Iterable[str] | None = None,
+    with_pbars: bool = True,
+    with_pbar_on_iters: bool = True,
+    log_every_iters: int = 100,
+    stop_on_nan: bool = True,
+    clear_cuda_cache: bool = True,
+    save_handler: Callable | BaseSaveHandler | None = None,
+    **kwargs: Any,
+) -> None:
+    if output_path is not None and save_handler is not None:
+        raise ValueError(
+            "Arguments output_path and save_handler are mutually exclusive. Please, define only one of them"
+        )
+
+    if stop_on_nan:
+        trainer.add_event_handler(Events.ITERATION_COMPLETED, TerminateOnNan())
+
+    if lr_scheduler is not None:
+        if isinstance(lr_scheduler, PyTorchLRScheduler):
+            trainer.add_event_handler(Events.ITERATION_COMPLETED, lambda engine: lr_scheduler.step())
+        else:
+            trainer.add_event_handler(Events.ITERATION_STARTED, lr_scheduler)
+
+    if torch.cuda.is_available() and clear_cuda_cache:
+        trainer.add_event_handler(Events.EPOCH_COMPLETED, empty_cuda_cache)
+
+    if to_save is not None:
+        if output_path is None and save_handler is None:
+            raise ValueError(
+                "If to_save argument is provided then output_path or save_handler arguments should be also defined"
+            )
+        if output_path is not None:
+            save_handler = DiskSaver(dirname=output_path, require_empty=False)
+
+        checkpoint_handler = Checkpoint(
+            to_save, cast(Callable | BaseSaveHandler, save_handler), filename_prefix="training", **kwargs
+        )
+        trainer.add_event_handler(Events.ITERATION_COMPLETED(every=save_every_iters), checkpoint_handler)
+
+    if with_gpu_stats:
+        GpuInfo().attach(
+            trainer,
+            name="gpu",
+            event_name=Events.ITERATION_COMPLETED(every=log_every_iters),  # type: ignore[arg-type]
+        )
+
+    if output_names is not None:
+
+        def output_transform(x: Any, index: int, name: str) -> Any:
+            if isinstance(x, Mapping):
+                return x[name]
+            elif isinstance(x, Sequence):
+                return x[index]
+            elif isinstance(x, (torch.Tensor, numbers.Number)):
+                return x
+            else:
+                raise TypeError(
+                    "Unhandled type of update_function's output. "
+                    f"It should either mapping or sequence, but given {type(x)}"
+                )
+
+        for i, n in enumerate(output_names):
+            RunningAverage(output_transform=partial(output_transform, index=i, name=n)).attach(
+                trainer, n, usage=RunningBatchWise()
+            )
+
+    if with_pbars:
+        if with_pbar_on_iters:
+            ProgressBar(persist=False).attach(
+                trainer, metric_names="all", event_name=Events.ITERATION_COMPLETED(every=log_every_iters)
+            )
+
+        ProgressBar(persist=True, bar_format="").attach(
+            trainer, event_name=Events.EPOCH_STARTED, closing_event_name=Events.COMPLETED
+        )
+
+
+def _setup_common_distrib_training_handlers(
+    trainer: Engine,
+    train_sampler: DistributedSampler | None = None,
+    to_save: Mapping | None = None,
+    save_every_iters: int = 1000,
+    output_path: str | None = None,
+    lr_scheduler: ParamScheduler | PyTorchLRScheduler | None = None,
+    with_gpu_stats: bool = False,
+    output_names: Iterable[str] | None = None,
+    with_pbars: bool = True,
+    with_pbar_on_iters: bool = True,
+    log_every_iters: int = 100,
+    stop_on_nan: bool = True,
+    clear_cuda_cache: bool = True,
+    save_handler: Callable | BaseSaveHandler | None = None,
+    **kwargs: Any,
+) -> None:
+    _setup_common_training_handlers(
+        trainer,
+        to_save=to_save,
+        output_path=output_path,
+        save_every_iters=save_every_iters,
+        lr_scheduler=lr_scheduler,
+        with_gpu_stats=with_gpu_stats,
+        output_names=output_names,
+        with_pbars=(idist.get_rank() == 0) and with_pbars,
+        with_pbar_on_iters=with_pbar_on_iters,
+        log_every_iters=log_every_iters,
+        stop_on_nan=stop_on_nan,
+        clear_cuda_cache=clear_cuda_cache,
+        save_handler=save_handler,
+        **kwargs,
+    )
+
+    if train_sampler is not None:
+        if not isinstance(train_sampler, DistributedSampler):
+            raise TypeError("Train sampler should be torch DistributedSampler and have `set_epoch` method")
+
+        @trainer.on(Events.EPOCH_STARTED)
+        def distrib_set_epoch(engine: Engine) -> None:
+            # pyrefly: ignore [missing-attribute]
+            train_sampler.set_epoch(engine.state.epoch - 1)
+
+
+def empty_cuda_cache(_: Engine) -> None:
+    torch.cuda.empty_cache()
+    import gc
+
+    gc.collect()
+
+
+@deprecated(
+    "0.4.0",
+    "0.6.0",
+    ("Please use instead: setup_tb_logging, setup_visdom_logging or setup_mlflow_logging etc.",),
+    raise_exception=True,
+)
+def setup_any_logging(
+    logger: BaseLogger,
+    logger_module: Any,
+    trainer: Engine,
+    optimizers: Optimizer | dict[str, Optimizer] | dict[None, Optimizer] | None,
+    evaluators: Engine | dict[str, Engine] | None,
+    log_every_iters: int,
+) -> None:
+    pass
+
+
+get_default_score_fn = Checkpoint.get_default_score_fn
+
+
+def gen_save_best_models_by_val_score(
+    save_handler: Callable | BaseSaveHandler,
+    evaluator: Engine,
+    models: torch.nn.Module | dict[str, torch.nn.Module],
+    metric_name: str,
+    n_saved: int = 3,
+    trainer: Engine | None = None,
+    tag: str = "val",
+    score_sign: float = 1.0,
+    **kwargs: Any,
+) -> Checkpoint:
+    """Method adds a handler to ``evaluator`` to save ``n_saved`` of best models based on the metric
+    (named by ``metric_name``) provided by ``evaluator`` (i.e. ``evaluator.state.metrics[metric_name]``).
+    Models with highest metric value will be retained. The logic of how to store objects is delegated to
+    ``save_handler``.
+
+    Args:
+        save_handler: Method or callable class to
+            use to save engine and other provided objects. Function receives two objects: checkpoint as a dictionary
+            and filename. If ``save_handler`` is callable class, it can
+            inherit of :class:`~ignite.handlers.checkpoint.BaseSaveHandler` and optionally implement ``remove`` method
+            to keep a fixed number of saved checkpoints. In case if user needs to save engine's checkpoint on a disk,
+            ``save_handler`` can be defined with :class:`~ignite.handlers.DiskSaver`.
+        evaluator: evaluation engine used to provide the score
+        models: model or dictionary with the object to save. Objects should have
+            implemented ``state_dict`` and ``load_state_dict`` methods.
+        metric_name: metric name to use for score evaluation. This metric should be present in
+            `evaluator.state.metrics`.
+        n_saved: number of best models to store
+        trainer: trainer engine to fetch the epoch when saving the best model.
+        tag: score name prefix: `{tag}_{metric_name}`. By default, tag is "val".
+        score_sign: sign of the score: 1.0 or -1.0. For error-like metrics, e.g. smaller is better,
+            a negative score sign should be used (objects with larger score are retained). Default, 1.0.
+        kwargs: optional keyword args to be passed to construct :class:`~ignite.handlers.checkpoint.Checkpoint`.
+
+    Returns:
+        A :class:`~ignite.handlers.checkpoint.Checkpoint` handler.
+    """
+    global_step_transform = None
+    if trainer is not None:
+        global_step_transform = global_step_from_engine(trainer)
+
+    if isinstance(models, nn.Module):
+        to_save: dict[str, nn.Module] = {"model": models}
+    else:
+        to_save = models
+
+    best_model_handler = Checkpoint(
+        to_save,
+        save_handler,
+        filename_prefix="best",
+        n_saved=n_saved,
+        global_step_transform=global_step_transform,
+        score_name=f"{tag}_{metric_name.lower()}",
+        score_function=get_default_score_fn(metric_name, score_sign=score_sign),
+        **kwargs,
+    )
+    evaluator.add_event_handler(Events.COMPLETED, best_model_handler)
+
+    return best_model_handler
+
+
+def save_best_model_by_val_score(
+    output_path: str,
+    evaluator: Engine,
+    model: torch.nn.Module,
+    metric_name: str,
+    n_saved: int = 3,
+    trainer: Engine | None = None,
+    tag: str = "val",
+    score_sign: float = 1.0,
+    **kwargs: Any,
+) -> Checkpoint:
+    """Method adds a handler to ``evaluator`` to save on a disk ``n_saved`` of best models based on the metric
+    (named by ``metric_name``) provided by ``evaluator`` (i.e. ``evaluator.state.metrics[metric_name]``).
+    Models with highest metric value will be retained.
+
+    Args:
+        output_path: output path to indicate where to save best models
+        evaluator: evaluation engine used to provide the score
+        model: model to store
+        metric_name: metric name to use for score evaluation. This metric should be present in
+            `evaluator.state.metrics`.
+        n_saved: number of best models to store
+        trainer: trainer engine to fetch the epoch when saving the best model.
+        tag: score name prefix: `{tag}_{metric_name}`. By default, tag is "val".
+        score_sign: sign of the score: 1.0 or -1.0. For error-like metrics, e.g. smaller is better,
+            a negative score sign should be used (objects with larger score are retained). Default, 1.0.
+
+        kwargs: optional keyword args to be passed to construct :class:`~ignite.handlers.checkpoint.Checkpoint`.
+
+    Returns:
+        A :class:`~ignite.handlers.checkpoint.Checkpoint` handler.
+    """
+    return gen_save_best_models_by_val_score(
+        save_handler=DiskSaver(dirname=output_path, require_empty=False),
+        evaluator=evaluator,
+        models=model,
+        metric_name=metric_name,
+        n_saved=n_saved,
+        trainer=trainer,
+        tag=tag,
+        score_sign=score_sign,
+        **kwargs,
+    )
+
+
+def add_early_stopping_by_val_score(
+    patience: int,
+    evaluator: Engine,
+    trainer: Engine,
+    metric_name: str,
+    score_sign: float = 1.0,
+) -> EarlyStopping:
+    """Method setups early stopping handler based on the score (named by `metric_name`) provided by `evaluator`.
+    Metric value should increase in order to keep training and not early stop.
+
+    Args:
+        patience: number of events to wait if no improvement and then stop the training.
+        evaluator: evaluation engine used to provide the score
+        trainer: trainer engine to stop the run if no improvement.
+        metric_name: metric name to use for score evaluation. This metric should be present in
+            `evaluator.state.metrics`.
+        score_sign: sign of the score: 1.0 or -1.0. For error-like metrics, e.g. smaller is better,
+            a negative score sign should be used (objects with larger score are retained). Default, 1.0.
+
+    Returns:
+        A :class:`~ignite.handlers.early_stopping.EarlyStopping` handler.
+    """
+    es_handler = EarlyStopping(
+        patience=patience, score_function=get_default_score_fn(metric_name, score_sign=score_sign), trainer=trainer
+    )
+    evaluator.add_event_handler(Events.COMPLETED, es_handler)
+
+    return es_handler

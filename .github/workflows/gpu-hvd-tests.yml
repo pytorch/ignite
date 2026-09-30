@@ -1,0 +1,201 @@
+name: Run HVD-specific unit tests on GPUs
+on:
+  push:
+    paths:
+      - "ignite/**"
+      - "tests/ignite/**"
+      - "tests/run_gpu_tests.sh"
+      - "examples/**.py"
+      - "requirements-dev.txt"
+      - ".github/workflows/gpu-hvd-tests.yml"
+  workflow_dispatch:
+
+concurrency:
+  # <workflow_name>-<branch_name>-<true || commit_sha (if branch is protected)>
+  group: gpu-hvd-tests-${{ github.ref_name }}-${{ !(github.ref_protected) || github.sha }}
+  cancel-in-progress: true
+
+# Cherry-picked from https://github.com/pytorch/test-infra/blob/main/.github/workflows/linux_job.yml
+
+jobs:
+  gpu-hvd-tests:
+    strategy:
+      matrix:
+        pytorch-channel: [pytorch]
+      fail-fast: false
+    env:
+      DOCKER_IMAGE: "pytorch/almalinux-builder:cuda12.8"
+      REPOSITORY: ${{ github.repository }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    runs-on: linux.8xlarge.nvidia.gpu
+    timeout-minutes: 60
+
+    steps:
+      - name: Clean workspace
+        run: |
+          echo "::group::Cleanup debug output"
+          sudo rm -rfv "${GITHUB_WORKSPACE}"
+          mkdir -p "${GITHUB_WORKSPACE}"
+          echo "::endgroup::"
+
+      - name: Checkout repository (pytorch/test-infra)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Support the use case where we need to checkout someone's fork
+          repository: pytorch/test-infra
+          path: test-infra
+
+      - name: Setup Linux
+        uses: ./test-infra/.github/actions/setup-linux
+
+      - name: Pull docker image
+        uses: ./test-infra/.github/actions/pull-docker-image
+        with:
+          docker-image: ${{ env.DOCKER_IMAGE }}
+
+      - name: Checkout repository (${{ github.repository }})
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Support the use case where we need to checkout someone's fork
+          repository: ${{ github.repository }}
+          ref: ${{ github.ref }}
+          path: ${{ github.repository }}
+          fetch-depth: 1
+
+      - name: Start Pytorch container
+        working-directory: ${{ github.repository }}
+        run: |
+          docker run --name pthd --gpus=all --rm \
+            --cap-add=SYS_PTRACE \
+            --detach \
+            --ipc=host \
+            --security-opt seccomp=unconfined \
+            --shm-size=2g \
+            --tty \
+            --ulimit stack=10485760:83886080 \
+            -v $PWD:/work \
+            -w /work \
+            ${DOCKER_IMAGE}
+
+          script=$(cat << EOF
+
+            set -xe
+
+            nvidia-smi
+            ls -alh
+
+            conda --version
+            python --version
+
+          EOF
+          )
+          docker exec -t pthd /bin/bash -c "${script}"
+
+      - name: Install PyTorch and dependencies
+        continue-on-error: false
+        run: |
+
+          script=$(cat << EOF
+
+          set -xe
+
+          # Install PyTorch
+          if [ "${{ matrix.pytorch-channel }}" == "pytorch" ]; then
+            pip install --upgrade torch torchvision --index-url https://download.pytorch.org/whl/cu121
+          else
+            pip install --upgrade --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cu121
+          fi
+
+          python -c "import torch; print(torch.__version__, ', CUDA is available: ', torch.cuda.is_available()); exit(not torch.cuda.is_available())"
+          pip list
+
+          # Install dependencies
+          pip install -r requirements-dev.txt
+          pip install -e .
+
+          # Upgrade pyOpenSSL to avoid issue:
+          # AttributeError: module 'lib' has no attribute 'X509_V_FLAG_NOTIFY_POLICY'. Did you mean: 'X509_V_FLAG_EXPLICIT_POLICY'?
+          pip install -U pyOpenSSL
+
+          EOF
+          )
+
+          docker exec -t pthd /bin/bash -c "${script}"
+
+      - name: Install Horovod with NCCL GPU ops
+        run: |
+          script=$(cat << EOF
+
+          set -xe
+
+          # Can't build Horovod with recent pytorch due to pytorch required C++17 standard
+          # and horovod is still using C++14
+          # HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]
+          # Using a similar hack as described here:
+          # https://github.com/horovod/horovod/issues/3941#issuecomment-1732505345
+          git clone --recursive https://github.com/horovod/horovod.git /horovod
+          cd /horovod
+          sed -i "s/CMAKE_CXX_STANDARD 14/CMAKE_CXX_STANDARD 17/g" CMakeLists.txt
+          sed -i "s/CMAKE_CXX_STANDARD 14/CMAKE_CXX_STANDARD 17/g" horovod/torch/CMakeLists.txt
+          HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_WITH_PYTORCH=1 python setup.py install
+
+          horovodrun --check-build
+          pip list
+
+          EOF
+          )
+
+          docker exec -t pthd /bin/bash -c "${script}"
+
+      - name: Run GPU and CPU Unit HVD Tests
+        run: |
+
+          script=$(cat << EOF
+
+          set -xe
+
+          bash tests/run_gpu_tests.sh 2 hvd
+          CUDA_VISIBLE_DEVICES="" pytest --cov ignite --cov-append --cov-report term-missing --cov-report xml -vvv tests/ignite -m distributed -k hvd
+
+          EOF
+          )
+
+          docker exec -t pthd /bin/bash -c "${script}"
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          files: ${{ github.repository }}/coverage.xml
+          flags: gpu-2
+          fail_ci_if_error: false
+
+      - name: Run examples in container
+        continue-on-error: false
+        run: |
+          SCRIPT=$(cat << EOF
+
+          set -xe
+
+          # Install additional example dependencies
+          pip install fire
+
+          # Check training on CIFAR10, run with horovod backend using horovodrun
+          # initial run
+          CI=1 horovodrun -np 2 python -u examples/cifar10/main.py run --backend=horovod --checkpoint_every=200 --stop_iteration=500
+          # resume
+          CI=1 horovodrun -np 2 python examples/cifar10/main.py run --checkpoint_every=200 --num_epochs=7 --resume-from=/tmp/output-cifar10/resnet18_backend-horovod-2_stop-on-500/training_checkpoint_400.pt
+
+          # Check training on CIFAR10 using spawn
+          # initial run
+          CI=1 python -u examples/cifar10/main.py run --backend=horovod --nproc_per_node=2 --checkpoint_every=200 --stop_iteration=500
+          # resume
+          CI=1 python -u examples/cifar10/main.py run --backend=horovod --nproc_per_node=2 --checkpoint_every=200 --num_epochs=7 --resume-from=/tmp/output-cifar10/resnet18_backend-horovod-2_stop-on-500/training_checkpoint_400.pt
+
+          EOF
+          )
+
+          docker exec -t pthd /bin/bash -c "${script}"
+
+      - name: Teardown Linux
+        if: ${{ always() }}
+        uses: ./test-infra/.github/actions/teardown-linux

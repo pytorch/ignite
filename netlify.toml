@@ -1,0 +1,4 @@
+# https://docs.netlify.com/configure-builds/file-based-configuration/
+[build]
+command = "npm install katex && katex --version && pip install -U \"networkx<3.2\" numpy && pip install torch --extra-index-url https://download.pytorch.org/whl/cpu && pip install . && cd docs && pip install -r requirements.txt && make html"
+publish = "docs/build/html"

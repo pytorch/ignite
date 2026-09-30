@@ -1,0 +1,12 @@
+albumentations
+numpy
+opencv-python-headless
+fire
+pytorch-ignite
+tensorboard
+torch
+torchvision
+tqdm
+clearml
+image-dataset-viz
+py_config_runner>=0.2.0,<1.0.0

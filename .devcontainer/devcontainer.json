@@ -1,0 +1,18 @@
+{
+  "name": "PyTorch Ignite",
+  "image": "mcr.microsoft.com/devcontainers/python:3.11",
+  "postCreateCommand": "pip install -e . && pip install -r requirements-dev.txt && pre-commit install",
+  "customizations": {
+    "vscode": {
+      "extensions": ["ms-python.python", "charliermarsh.ruff"],
+      "settings": {
+        "editor.formatOnSave": true,
+        "python.testing.pytestEnabled": true,
+        "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff"
+        },
+        "editor.rulers": [80, 120]
+      }
+    }
+  }
+}

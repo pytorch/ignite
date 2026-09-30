@@ -1,0 +1,43 @@
+{% set __version__ = "0.5.3" %}
+
+package:
+  name: ignite
+  version: {{ __version__ }}
+
+source:
+  path: ..
+
+build:
+  number: 0
+  noarch: python
+  script: python -m pip install . -vv
+
+# https://conda.io/docs/user-guide/tasks/build-packages/define-metadata.html#export-runtime-requirements
+requirements:
+  build:
+    - hatchling
+    - pip
+    - python >=3.9,<=3.13
+    - pytorch >=1.10,<3
+    - setuptools
+
+  run:
+    - python >=3.9,<=3.13
+    - pytorch >=1.10,<3
+
+test:
+  imports:
+    - ignite
+    - ignite.engine
+    - ignite.handlers
+    - ignite.metrics
+    - ignite.contrib
+
+about:
+  home: https://pytorch-ignite.ai
+  summary: "A lightweight library to help with training neural networks in PyTorch."
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE
+  doc_url: https://docs.pytorch.org/ignite/
+  dev_url: https://github.com/pytorch/ignite

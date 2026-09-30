@@ -1,0 +1,109 @@
+# Multi-stage build
+# Dockerfile.hvd-apex
+
+ARG PTH_VERSION
+
+# 1/Building apex with pytorch:*-devel
+FROM pytorch/pytorch:${PTH_VERSION}-devel AS apex-hvd-builder
+
+ENV CUDA_HOME=/usr/local/cuda
+# Set env vars to allow pip install
+ENV PIP_BREAK_SYSTEM_PACKAGES=1
+ENV PIP_ROOT_USER_ACTION=ignore
+
+# Temporary NCCL library setup (missing in pytorch 2.13 image)
+RUN export NCCL_ROOT=$(python -c "import nvidia; print(nvidia.__path__[0])")/nccl && \
+        libnccl_filename=$(ls $NCCL_ROOT/lib) && \
+        libnccl_path=$NCCL_ROOT/lib/$libnccl_filename && \
+        ln -s $libnccl_path /lib/x86_64-linux-gnu/$libnccl_filename && \
+        ln -s /lib/x86_64-linux-gnu/$libnccl_filename /lib/x86_64-linux-gnu/libnccl.so && \
+        cp -R $NCCL_ROOT/include/* /usr/include && \
+        # quick check:
+        ls /lib/x86_64-linux-gnu/libnccl.so && \
+        ls /usr/include/nccl.h
+
+# Install git
+RUN apt-get update && apt-get install -y --no-install-recommends git && \
+     rm -rf /var/lib/apt/lists/*
+
+# Build apex
+RUN echo "Setup NVIDIA Apex" && \
+    tmp_apex_path="/tmp/apex" && \
+    rm -rf $tmp_apex_path && \
+    git clone https://github.com/NVIDIA/apex $tmp_apex_path && \
+    cd $tmp_apex_path && \
+    pip install packaging && \
+    pip wheel -v --disable-pip-version-check --no-cache-dir --no-build-isolation --config-settings "--build-option=--cpp_ext" --config-settings "--build-option=--cuda_ext" .
+
+ARG HVD_VERSION
+
+# Build Horovod
+RUN apt-get update && apt-get install -y git && \
+        pip install -U "cmake<4" && \
+        git clone --depth 1 https://github.com/horovod/horovod.git /horovod && \
+        cd /horovod && \
+        git fetch --tags && \
+        git checkout ${HVD_VERSION} && \
+        git submodule update --init --recursive && \
+        # temporary -std=c++17 fix
+        sed -i "s/CMAKE_CXX_STANDARD 14/CMAKE_CXX_STANDARD 17/g" CMakeLists.txt && \
+        sed -i "s/CMAKE_CXX_STANDARD 14/CMAKE_CXX_STANDARD 17/g" horovod/torch/CMakeLists.txt && \
+        sed -i "s/VERSION 2.8/VERSION 3.5/g" third_party/gloo/CMakeLists.txt && \
+        sed -i '1i #include <string>' horovod/common/group_table.h && \
+        sed -i '1i #include <string>' horovod/common/group_table.cc && \
+        sed -i '1i #include <stdexcept>' horovod/common/common.h && \
+        HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_NCCL_LINK=SHARED HOROVOD_WITHOUT_MPI=1 HOROVOD_WITH_PYTORCH=1 pip wheel --no-cache-dir --no-build-isolation . && \
+        rm -rf /var/lib/apt/lists/*
+
+# Build runtime image
+FROM pytorch/pytorch:${PTH_VERSION}-runtime
+
+# Set env vars to allow pip install
+ENV PIP_BREAK_SYSTEM_PACKAGES=1
+ENV PIP_ROOT_USER_ACTION=ignore
+
+
+# Apex
+COPY --from=apex-hvd-builder /tmp/apex/apex-*.whl /tmp/apex/
+RUN pip install --no-cache-dir /tmp/apex/apex-*.whl && \
+    rm -fr /tmp/apex
+
+# Install tzdata / git
+RUN apt-get update && \
+    ln -fs /usr/share/zoneinfo/Europe/Paris /etc/localtime && \
+    apt-get -y install --no-install-recommends tzdata git && \
+    dpkg-reconfigure --frontend noninteractive tzdata && \
+    apt-get autoremove -y && \
+    apt-get clean -y && \
+    rm -rf /var/lib/apt/lists/*
+
+# Ignite main dependencies
+RUN pip install --upgrade --no-cache-dir pytorch-ignite \
+                                         tensorboard \
+                                         tqdm \
+                                         fire
+
+# Replace pillow with pillow-simd
+RUN apt-get update && apt-get -y install --no-install-recommends g++ && \
+    pip uninstall -y pillow && \
+    CC="cc -mavx2" pip install --upgrade --no-cache-dir --force-reinstall pillow-simd && \
+    apt-get remove -y g++ && \
+    apt-get autoremove -y && \
+    rm -rf /var/lib/apt/lists/*
+
+# Checkout Ignite examples only
+RUN mkdir -p pytorch-ignite-examples && \
+    cd pytorch-ignite-examples && \
+    git init && \
+    git config core.sparsecheckout true && \
+    echo examples >> .git/info/sparse-checkout && \
+    git remote add -f origin https://github.com/pytorch/ignite.git && \
+    git pull origin master && \
+    # rm very large .git folder
+    rm -rf .git
+
+COPY --from=apex-hvd-builder /horovod/horovod-*.whl /horovod/
+
+RUN cd /horovod && \
+    pip install --no-cache-dir horovod-*.whl && \
+    rm -fr /horovod

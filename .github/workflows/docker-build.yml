@@ -1,0 +1,281 @@
+name: Build/Publish Docker Images
+
+on:
+  pull_request:
+    paths:
+      - docker/**
+      - ".github/workflows/docker-build.yml"
+  release:
+    types: [published]
+  workflow_dispatch:
+
+concurrency:
+  # <workflow_name>-<branch_name>-<true || commit_sha (if branch is protected)>
+  group: docker-build-publish-${{ github.ref_name }}-${{ !(github.ref_protected) || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  setup:
+    name: Setup
+    runs-on: ubuntu-latest
+    outputs:
+      modified: ${{ steps.set-modified.outputs.modified }}
+      pth_version: ${{ steps.set-versions.outputs.pth_version }}
+      hvd_version: ${{ steps.set-versions.outputs.hvd_version }}
+      msdp_version: ${{ steps.set-versions.outputs.msdp_version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Changed Files Exporter
+        if: github.event_name == 'pull_request'
+        id: files
+        uses: umani/changed-files@138acc60bcaa548e0c194fc69ed36321ee8466d2 # v4.2.0
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Get a list of modified files
+        if: github.event_name == 'pull_request'
+        run: echo "modified=${{ steps.files.outputs.files_created }} ${{ steps.files.outputs.files_updated }}" >> $GITHUB_ENV
+      - name: Set outputs
+        id: set-modified
+        run: echo "modified=${{ env.modified }}" >> $GITHUB_OUTPUT
+      - name: Set versions
+        id: set-versions
+        working-directory: docker
+        run: |
+          echo "pth_version=$(python -c "import configparser; cfg=configparser.ConfigParser(); cfg.read('docker.cfg'); print(cfg.get('DEFAULT', 'build_docker_image_pytorch_version'))")" >> $GITHUB_OUTPUT
+          echo "hvd_version=$(python -c "import configparser; cfg=configparser.ConfigParser(); cfg.read('docker.cfg'); print(cfg.get('DEFAULT', 'build_docker_image_hvd_version'))")" >> $GITHUB_OUTPUT
+
+  build-hvd:
+    name: Build all Horovod flavoured PyTorch-Ignite images
+    needs: setup
+    if: github.event_name != 'pull_request' || (contains(needs.setup.outputs.modified, 'hvd/') || contains(needs.setup.outputs.modified, 'docker.cfg'))
+
+    # Cherry-picked from https://github.com/pytorch/test-infra/blob/main/.github/workflows/linux_job.yml
+    env:
+      REPOSITORY: ${{ github.repository }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    runs-on: linux.4xlarge
+    steps:
+      - name: Clean workspace
+        run: |
+          echo "::group::Cleanup debug output"
+          sudo rm -rfv "${GITHUB_WORKSPACE}"
+          mkdir -p "${GITHUB_WORKSPACE}"
+          echo "::endgroup::"
+
+      - name: Checkout repository (pytorch/test-infra)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Support the use case where we need to checkout someone's fork
+          repository: pytorch/test-infra
+          path: test-infra
+
+      - name: Setup Linux
+        uses: ./test-infra/.github/actions/setup-linux
+
+      - name: Checkout repository (${{ github.repository }})
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Support the use case where we need to checkout someone's fork
+          repository: ${{ github.repository }}
+          ref: ${{ github.ref }}
+          path: ${{ github.repository }}
+          fetch-depth: 1
+
+      - name: Build docker images
+        working-directory: ${{ github.repository }}/docker
+        run: |
+
+          export PTH_VERSION=${{ needs.setup.outputs.pth_version }}
+          export HVD_VERSION=${{ needs.setup.outputs.hvd_version }}
+
+          bash build.sh hvd hvd-base
+          bash build.sh hvd hvd-vision
+          bash build.sh hvd hvd-nlp
+
+      - name: Publish docker images
+        if: github.event_name == 'workflow_dispatch' || github.event_name == 'release'
+        env:
+          DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
+          DOCKER_USER: ${{ secrets.DOCKER_USER }}
+        working-directory: ${{ github.repository }}/docker
+        run: |
+          bash push_all.sh hvd-base
+          bash push_all.sh hvd-vision
+          bash push_all.sh hvd-nlp
+
+  build-hvd-apex:
+    name: Build all Horovod + Apex flavoured PyTorch-Ignite images
+    needs: setup
+    if: github.event_name != 'pull_request' || (contains(needs.setup.outputs.modified, 'hvd/') || contains(needs.setup.outputs.modified, 'docker.cfg'))
+
+    # Cherry-picked from https://github.com/pytorch/test-infra/blob/main/.github/workflows/linux_job.yml
+    env:
+      REPOSITORY: ${{ github.repository }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    runs-on: linux.12xlarge
+    steps:
+      - name: Clean workspace
+        run: |
+          echo "::group::Cleanup debug output"
+          sudo rm -rfv "${GITHUB_WORKSPACE}"
+          mkdir -p "${GITHUB_WORKSPACE}"
+          echo "::endgroup::"
+
+      - name: Checkout repository (pytorch/test-infra)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Support the use case where we need to checkout someone's fork
+          repository: pytorch/test-infra
+          path: test-infra
+
+      - name: Setup Linux
+        uses: ./test-infra/.github/actions/setup-linux
+
+      - name: Checkout repository (${{ github.repository }})
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Support the use case where we need to checkout someone's fork
+          repository: ${{ github.repository }}
+          ref: ${{ github.ref }}
+          path: ${{ github.repository }}
+          fetch-depth: 1
+
+      - name: Build docker images
+        working-directory: ${{ github.repository }}/docker
+        run: |
+
+          export PTH_VERSION=${{ needs.setup.outputs.pth_version }}
+          export HVD_VERSION=${{ needs.setup.outputs.hvd_version }}
+
+          bash build.sh hvd hvd-apex
+          bash build.sh hvd hvd-apex-vision
+          bash build.sh hvd hvd-apex-nlp
+
+      - name: Publish docker images
+        if: github.event_name == 'workflow_dispatch' || github.event_name == 'release'
+        env:
+          DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
+          DOCKER_USER: ${{ secrets.DOCKER_USER }}
+        working-directory: ${{ github.repository }}/docker
+        run: |
+          bash push_all.sh hvd-apex
+          bash push_all.sh hvd-apex-vision
+          bash push_all.sh hvd-apex-nlp
+
+  build-main:
+    name: Build all PyTorch-Ignite images
+    needs: setup
+    if: github.event_name != 'pull_request' || (contains(needs.setup.outputs.modified, 'main/') || contains(needs.setup.outputs.modified, 'docker.cfg'))
+
+    # Cherry-picked from https://github.com/pytorch/test-infra/blob/main/.github/workflows/linux_job.yml
+    env:
+      REPOSITORY: ${{ github.repository }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    runs-on: linux.4xlarge
+    steps:
+      - name: Clean workspace
+        run: |
+          echo "::group::Cleanup debug output"
+          sudo rm -rfv "${GITHUB_WORKSPACE}"
+          mkdir -p "${GITHUB_WORKSPACE}"
+          echo "::endgroup::"
+
+      - name: Checkout repository (pytorch/test-infra)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Support the use case where we need to checkout someone's fork
+          repository: pytorch/test-infra
+          path: test-infra
+
+      - name: Setup Linux
+        uses: ./test-infra/.github/actions/setup-linux
+
+      - name: Checkout repository (${{ github.repository }})
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Support the use case where we need to checkout someone's fork
+          repository: ${{ github.repository }}
+          ref: ${{ github.ref }}
+          path: ${{ github.repository }}
+          fetch-depth: 1
+
+      - name: Build docker images
+        working-directory: ${{ github.repository }}/docker
+        run: |
+
+          export PTH_VERSION=${{ needs.setup.outputs.pth_version }}
+          export HVD_VERSION=${{ needs.setup.outputs.hvd_version }}
+
+          bash build.sh main base
+          bash build.sh main vision
+          bash build.sh main nlp
+
+      - name: Publish docker images
+        if: github.event_name == 'workflow_dispatch' || github.event_name == 'release'
+        env:
+          DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
+          DOCKER_USER: ${{ secrets.DOCKER_USER }}
+        working-directory: ${{ github.repository }}/docker
+        run: |
+          bash push_all.sh base
+          bash push_all.sh vision
+          bash push_all.sh nlp
+
+  build-main-apex:
+    name: Build all PyTorch-Ignite images with Apex
+    needs: setup
+    if: github.event_name != 'pull_request' || (contains(needs.setup.outputs.modified, 'main/') || contains(needs.setup.outputs.modified, 'docker.cfg'))
+
+    # Cherry-picked from https://github.com/pytorch/test-infra/blob/main/.github/workflows/linux_job.yml
+    env:
+      REPOSITORY: ${{ github.repository }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    runs-on: linux.12xlarge
+    steps:
+      - name: Clean workspace
+        run: |
+          echo "::group::Cleanup debug output"
+          sudo rm -rfv "${GITHUB_WORKSPACE}"
+          mkdir -p "${GITHUB_WORKSPACE}"
+          echo "::endgroup::"
+
+      - name: Checkout repository (pytorch/test-infra)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Support the use case where we need to checkout someone's fork
+          repository: pytorch/test-infra
+          path: test-infra
+
+      - name: Setup Linux
+        uses: ./test-infra/.github/actions/setup-linux
+
+      - name: Checkout repository (${{ github.repository }})
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Support the use case where we need to checkout someone's fork
+          repository: ${{ github.repository }}
+          ref: ${{ github.ref }}
+          path: ${{ github.repository }}
+          fetch-depth: 1
+
+      - name: Build docker images
+        working-directory: ${{ github.repository }}/docker
+        run: |
+
+          export PTH_VERSION=${{ needs.setup.outputs.pth_version }}
+          export HVD_VERSION=${{ needs.setup.outputs.hvd_version }}
+
+          bash build.sh main apex
+          bash build.sh main apex-vision
+          bash build.sh main apex-nlp
+
+      - name: Publish docker images
+        if: github.event_name == 'workflow_dispatch' || github.event_name == 'release'
+        env:
+          DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
+          DOCKER_USER: ${{ secrets.DOCKER_USER }}
+        working-directory: ${{ github.repository }}/docker
+        run: |
+          bash push_all.sh apex
+          bash push_all.sh apex-vision
+          bash push_all.sh apex-nlp

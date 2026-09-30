@@ -1,0 +1,55 @@
+# Add 'docker' to any changes within 'docker' folder or any subfolders
+docker:
+  - changed-files:
+      - any-glob-to-any-file: docker/**
+
+# Add 'docs' to any changes within 'docs' folder
+docs:
+  - changed-files:
+      - any-glob-to-any-file: docs/**
+
+# Add 'ci' to any changes in '.github' folder
+ci:
+  - changed-files:
+      - any-glob-to-any-file: .github/**
+
+# Add 'examples' to any changes within 'examples' folder
+examples:
+  - changed-files:
+      - any-glob-to-any-file: examples/**
+
+# Add 'base' to any changes within 'base' folder
+"module: base":
+  - changed-files:
+      - any-glob-to-any-file: ignite/base/**/*
+
+# Add 'contrib' to any changes within 'contrib' folder
+"module: contrib":
+  - changed-files:
+      - any-glob-to-any-file: ignite/contrib/**/*
+
+# Add 'distributed' to any changes within 'distributed' folder
+"module: distributed":
+  - changed-files:
+      - any-glob-to-any-file: ignite/distributed/**/*
+
+# Add 'engine' to any changes within 'engine' folder
+"module: engine":
+  - changed-files:
+      - any-glob-to-any-file: ignite/engine/**/*
+
+# Add 'handlers' to any changes within 'handlers' folder
+"module: handlers":
+  - changed-files:
+      - any-glob-to-any-file: ignite/handlers/**/*
+
+# Add 'metrics' to any changes within 'metrics' folder
+"module: metrics":
+  - changed-files:
+      - any-glob-to-any-file: ignite/metrics/**/*
+
+  -
+# Add 'utils' to any changes within 'utils' module
+"module: utils":
+  - changed-files:
+      - any-glob-to-any-file: ignite/utils.py

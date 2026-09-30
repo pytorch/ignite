@@ -1,0 +1,10 @@
+# Dockerfile.hvd-apex-vision
+FROM pytorchignite/hvd-apex:latest
+
+# Ignite vision dependencies
+RUN pip install --upgrade --no-cache-dir albumentations \
+                                         image-dataset-viz \
+                                         numpy \
+                                         opencv-python-headless \
+                                         py_config_runner \
+                                         clearml

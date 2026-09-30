@@ -1,0 +1,39 @@
+# Tests
+dill
+filelock
+pyrefly
+numpy
+pre-commit
+pytest
+pytest-cov
+pytest-order
+pytest-timeout
+pytest-xdist
+setuptools
+fairlearn
+# Test contrib dependencies
+scipy
+# pytorch-fid is not maintained anymore, using our fork
+git+https://github.com/pytorch-ignite/pytorch-fid@8287430921edb01fec92fba6266a22bd49a71533
+tqdm
+scikit-learn
+matplotlib
+tensorboardX
+# visdom  # Removed: unmaintained package, cannot be installed with modern packages
+polyaxon
+wandb
+mlflow
+neptune-client>=0.16.17
+tensorboard
+torchvision
+pynvml<12  # pynvml module was removed in 12.X, is not developed or maintained. We should replace pynvml with something else.
+clearml
+scikit-image
+pycocotools
+nltk
+# Examples dependencies
+pandas
+gymnasium
+# temporary fix: E   AttributeError: module 'mpmath' has no attribute 'rational'
+mpmath<1.4
+ranx

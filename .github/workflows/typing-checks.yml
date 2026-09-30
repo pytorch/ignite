@@ -1,0 +1,67 @@
+name: Type Checking
+
+on:
+  push:
+    branches:
+      - master
+      - "*.*.*"
+    paths:
+      - "ignite/**"
+      - "examples/**.py"
+      - "tests/ignite/**"
+      - "requirements-dev.txt"
+      - "pyproject.toml"
+      - "pyrefly.toml"
+      - ".github/workflows/typing-checks.yml"
+  pull_request:
+    paths:
+      - "ignite/**"
+      - "examples/**.py"
+      - "tests/ignite/**"
+      - "requirements-dev.txt"
+      - "pyproject.toml"
+      - "pyrefly.toml"
+      - ".github/workflows/typing-checks.yml"
+  workflow_dispatch:
+  merge_group:
+
+concurrency:
+  # <workflow_name>-<branch_name>-<true || commit_sha (if branch is protected)>
+  group: typing-${{ github.ref_name }}-${{ !(github.ref_protected) || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  pyrefly:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.12", "3.13"]
+        pytorch-channel: [pytorch]
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Get year & week number
+        id: get-date
+        run: |
+          echo "date=$(/bin/date "+%Y-%U")" >> $GITHUB_OUTPUT
+
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "latest"
+          python-version: ${{ matrix.python-version }}
+          activate-environment: true
+          enable-cache: true
+          cache-suffix: "${{ steps.get-date.outputs.date }}-typing-${{ runner.os }}-${{ matrix.python-version }}"
+          cache-dependency-glob: |
+            **/requirements-dev.txt
+            **/pyproject.toml
+
+      - name: Install PyTorch
+        run: uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Install dependencies
+        run: uv pip install -r requirements-dev.txt
+
+      - name: Run Pyrefly type checking
+        run: pyrefly check
