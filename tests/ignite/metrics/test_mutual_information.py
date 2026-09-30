@@ -1,3 +1,5 @@
+from io import BytesIO
+
 import numpy as np
 import pytest
 import torch
@@ -82,8 +84,46 @@ def test_accumulator_detached(available_device):
     assert not mi._sum_of_probabilities.requires_grad
 
 
+def _test_state_dict_round_trip(device, segmentation=False, updated_destination=False):
+    logits = torch.tensor(
+        [[1.0, 2.0, 3.0], [3.0, 1.0, 2.0], [2.0, 3.0, 1.0], [0.0, 1.0, 2.0], [2.0, 0.0, 1.0], [1.0, 2.0, 0.0]],
+        device=device,
+    )
+    logits = logits.roll(idist.get_rank(), dims=1)
+    if segmentation:
+        logits = logits.reshape(3, 2, 3).permute(0, 2, 1)
+    metric = MutualInformation(device=device)
+    metric.update((logits[:1], None))
+
+    checkpoint = BytesIO()
+    torch.save(metric.state_dict(), checkpoint)
+    checkpoint.seek(0)
+    restored = MutualInformation(device=device)
+    if updated_destination:
+        restored.update((torch.zeros_like(logits), None))
+    restored.load_state_dict(torch.load(checkpoint, weights_only=True))
+
+    def reference(predictions):
+        predictions = predictions.movedim(1, -1).reshape(-1, 3)
+        predictions = idist.all_gather(predictions).cpu().numpy()
+        return np_mutual_information(predictions)
+
+    assert restored.compute() == pytest.approx(reference(logits[:1]), abs=1e-6)
+    restored.update((logits[1:], None))
+    assert restored.compute() == pytest.approx(reference(logits), rel=1e-5, abs=1e-6)
+
+
+@pytest.mark.parametrize("segmentation", [False, True])
+@pytest.mark.parametrize("updated_destination", [False, True])
+def test_state_dict_round_trip(available_device, segmentation, updated_destination):
+    _test_state_dict_round_trip(available_device, segmentation, updated_destination)
+
+
 @pytest.mark.usefixtures("distributed")
 class TestDistributed:
+    def test_state_dict_round_trip(self):
+        _test_state_dict_round_trip(idist.device())
+
     def test_integration(self):
         tol = 1e-4
         n_iters = 100
