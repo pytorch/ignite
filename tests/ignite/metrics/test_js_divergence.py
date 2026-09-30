@@ -101,6 +101,9 @@ def test_accumulator_detached(available_device):
 @pytest.mark.parametrize("identical", [True, False])
 @pytest.mark.parametrize("segmentation", [True, False])
 def test_extreme_finite_logits(dtype, identical, segmentation, available_device):
+    if available_device == "mps" and dtype == torch.float64:
+        pytest.skip("MPS does not support float64 tensors")
+
     y_pred = torch.tensor([[0.0, -1000.0, -2000.0]], dtype=dtype).repeat(2, 1)
     y = y_pred.clone() if identical else y_pred[:, [1, 0, 2]]
     if segmentation:
