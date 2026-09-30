@@ -1,4 +1,5 @@
 import os
+from copy import deepcopy
 
 import pytest
 import torch
@@ -95,6 +96,38 @@ def test_binary_input(n_times, weights, test_data_binary, available_device):
     # mps falls back to float32 (no float64 support), so relax tolerance there
     tol = 1e-4 if available_device == "mps" else 1e-6
     assert cohen_kappa_score(np_y, np_y_pred, weights=weights) == pytest.approx(res, abs=tol)
+
+
+def test_state_dict_is_not_empty():
+    # CohenKappa delegates its state to ``self._impl``; if that is not declared as
+    # required state, ``state_dict()`` silently returns nothing and the accumulated
+    # values are lost on resume.
+    for kwargs in ({}, {"num_classes": 2}):
+        ck = CohenKappa(**kwargs)
+        ck.update((torch.randint(0, 2, size=(10,)).float(), torch.randint(0, 2, size=(10,)).long()))
+        state = ck.state_dict()["__metric_state_per_rank"][0]
+        assert "_impl" in state, f"state_dict is empty for CohenKappa(**{kwargs})"
+
+
+@pytest.mark.parametrize("weights", [None, "linear", "quadratic"])
+def test_state_dict_round_trip(weights):
+    ck = CohenKappa(num_classes=2, weights=weights)
+    for _ in range(3):
+        ck.update((torch.randint(0, 2, size=(10,)).float(), torch.randint(0, 2, size=(10,)).long()))
+    expected = ck.compute()
+    state_dict = deepcopy(ck.state_dict())
+
+    ck.reset()
+    ck.load_state_dict(state_dict)
+    assert ck.compute() == pytest.approx(expected)
+
+    # a restored metric must keep accumulating rather than start over
+    extra = (torch.randint(0, 2, size=(10,)).float(), torch.randint(0, 2, size=(10,)).long())
+    other = CohenKappa(num_classes=2, weights=weights)
+    other.load_state_dict(deepcopy(state_dict))
+    ck.update(extra)
+    other.update(extra)
+    assert ck.compute() == pytest.approx(other.compute())
 
 
 def test_multilabel_inputs():
