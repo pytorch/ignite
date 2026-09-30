@@ -26,6 +26,7 @@ class HitRate(Metric):
     - ``y`` is expected to be binary (only 0s and 1s) values where `1` indicates relevant item.
     - ``y_pred`` and ``y`` are only allowed shape :math:`(batch, num_items)`.
     - returns a list of HitRate ordered by the sorted values of ``top_k``.
+    - if a value of ``top_k`` exceeds ``num_items``, all items are considered for that `k`.
 
     Args:
         top_k: a single positive integer or a list of positive integers that specifies `k` for
@@ -121,6 +122,9 @@ class HitRate(Metric):
     .. versionadded:: 0.5.4
     .. versionchanged:: 0.5.4
         `top_k` now accepts a single positive integer in addition to a list of integers.
+
+    .. versionchanged:: 0.5.5
+        `top_k` values greater than the number of items no longer raise an error in ``update``.
     """
 
     required_output_keys = ("y_pred", "y")
@@ -170,7 +174,7 @@ class HitRate(Metric):
         if y.shape[0] == 0:
             return
 
-        max_k = self.top_k[-1]
+        max_k = min(self.top_k[-1], y_pred.shape[-1])
         _, indices = torch.topk(y_pred, k=max_k, dim=-1)
 
         hits_at_max_k = torch.gather(y, dim=-1, index=indices)

@@ -101,6 +101,29 @@ def test_compute(top_k, ignore_zero_hits, available_device):
     np.testing.assert_allclose(res, expected)
 
 
+@pytest.mark.parametrize("ignore_zero_hits", [True, False])
+def test_top_k_greater_than_num_items(ignore_zero_hits, available_device):
+    metric = HitRate(top_k=[1, 2, 5, 10], ignore_zero_hits=ignore_zero_hits, device=available_device)
+
+    y_pred = torch.tensor([[4.0, 2.0, 3.0], [1.0, 2.0, 3.0], [3.0, 1.0, 2.0]])
+    y_true = torch.tensor([[0.0, 1.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 1.0]])
+
+    metric.update((y_pred, y_true))
+    res = metric.compute()
+
+    expected = manual_hit_rate(y_pred.numpy(), y_true.numpy(), [1, 2, 5, 10], ignore_zero_hits=ignore_zero_hits)
+    np.testing.assert_allclose(res, expected)
+
+
+def test_top_k_greater_than_num_items_across_updates(available_device):
+    metric = HitRate(top_k=[1, 5], device=available_device)
+
+    metric.update((torch.tensor([[1.0, 2.0, 3.0, 4.0, 5.0, 6.0]]), torch.tensor([[1.0, 0.0, 0.0, 0.0, 0.0, 0.0]])))
+    metric.update((torch.tensor([[2.0, 1.0]]), torch.tensor([[0.0, 1.0]])))
+
+    np.testing.assert_allclose(metric.compute(), [0.0, 0.5])
+
+
 def test_accumulator_detached(available_device):
     metric = HitRate(top_k=[1], device=available_device)
     y_pred = torch.randn(4, 5, requires_grad=True)
