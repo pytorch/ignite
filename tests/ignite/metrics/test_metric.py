@@ -278,6 +278,28 @@ def test_arithmetics():
     assert m2_floordiv_2.compute() == 50
 
 
+def test_truediv_with_tensor_valued_metric():
+    class ConstantMetric(Metric):
+        def __init__(self, value):
+            self.value = value
+            super().__init__()
+
+        def reset(self):
+            pass
+
+        def update(self, output):
+            pass
+
+        def compute(self):
+            return self.value
+
+    per_class = ConstantMetric(torch.tensor([2.0, 4.0]))
+    scalar = ConstantMetric(8.0)
+
+    assert torch.allclose((1.0 / per_class).compute(), torch.tensor([0.5, 0.25]))
+    assert torch.allclose((scalar / per_class).compute(), torch.tensor([4.0, 2.0]))
+
+
 def test_attach():
     class CountMetric(Metric):
         def __init__(self, value):
