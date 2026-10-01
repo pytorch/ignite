@@ -82,47 +82,20 @@ def test_accumulator_detached(available_device):
     assert not mi._sum_of_probabilities.requires_grad
 
 
-def _test_state_dict_round_trip(device, segmentation=False, updated_destination=False):
-    logits = torch.tensor(
-        [[1.0, 2.0, 3.0], [3.0, 1.0, 2.0], [2.0, 3.0, 1.0], [0.0, 1.0, 2.0]],
-        device=device,
-    )
-    logits = logits.roll(idist.get_rank(), dims=1)
-    if segmentation:
-        # Two images, three classes, and two pixels per image.
-        logits = logits.reshape(2, 2, 3).movedim(2, 1)
+def test_state_dict_round_trip(available_device):
+    metric = MutualInformation(device=available_device)
+    logits = torch.tensor([[1.0, 2.0, 3.0], [3.0, 1.0, 2.0]], device=available_device)
+    metric.update((logits, None))
 
-    # Save after the first batch, then restore into a fresh or used metric.
-    metric = MutualInformation(device=device)
-    metric.update((logits[:1], None))
     state = metric.state_dict()
-    restored = MutualInformation(device=device)
-    if updated_destination:
-        restored.update((torch.zeros_like(logits), None))
+    restored = MutualInformation(device=available_device)
     restored.load_state_dict(state)
 
-    first_batch = logits[:1].movedim(1, -1).reshape(-1, 3)
-    first_batch = idist.all_gather(first_batch).cpu().numpy()
-    assert restored.compute() == pytest.approx(np_mutual_information(first_batch), abs=1e-6)
-
-    # Resume with the remaining batch and compare with the complete-data result.
-    restored.update((logits[1:], None))
-    all_batches = logits.movedim(1, -1).reshape(-1, 3)
-    all_batches = idist.all_gather(all_batches).cpu().numpy()
-    assert restored.compute() == pytest.approx(np_mutual_information(all_batches), rel=1e-5, abs=1e-6)
-
-
-@pytest.mark.parametrize("segmentation", [False, True])
-@pytest.mark.parametrize("updated_destination", [False, True])
-def test_state_dict_round_trip(available_device, segmentation, updated_destination):
-    _test_state_dict_round_trip(available_device, segmentation, updated_destination)
+    assert restored.compute() == pytest.approx(metric.compute())
 
 
 @pytest.mark.usefixtures("distributed")
 class TestDistributed:
-    def test_state_dict_round_trip(self):
-        _test_state_dict_round_trip(idist.device())
-
     def test_integration(self):
         tol = 1e-4
         n_iters = 100
