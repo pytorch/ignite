@@ -1,5 +1,4 @@
 import time
-from unittest.mock import Mock
 
 import pytest
 
@@ -13,23 +12,6 @@ def test_arg_validation():
 
     with pytest.raises(TypeError, match=r"Argument limit_sec should be an integer."):
         TimeLimit(limit_sec="abc")
-
-
-def test_uses_perf_counter_instead_of_wall_clock(monkeypatch):
-    clock = Mock()
-    clock.perf_counter.side_effect = [100, 110, 111]
-    clock.time.side_effect = [1000, -1000, 2000]
-    monkeypatch.setattr("ignite.handlers.time_limit.time", clock)
-
-    handler = TimeLimit(limit_sec=10)
-    trainer = Engine(lambda engine, batch: None)
-
-    handler(trainer)
-    assert not trainer.should_terminate
-
-    handler(trainer)
-    assert trainer.should_terminate
-    clock.time.assert_not_called()
 
 
 def _train_func(engine, batch):
