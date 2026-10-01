@@ -131,7 +131,8 @@ def test_no_grad():
     metric.iteration_completed(engine)
 
 
-def test_arithmetics():
+@pytest.mark.parametrize("as_tensor", [False, True])
+def test_arithmetics(as_tensor):
     class ListGatherMetric(Metric):
         def __init__(self, index):
             self.index = index
@@ -141,7 +142,7 @@ def test_arithmetics():
             self.list_ = []
 
         def update(self, output):
-            self.list_ = output
+            self.list_ = torch.tensor(output, dtype=torch.float64) if as_tensor else output
 
         def compute(self):
             return self.list_[self.index]
@@ -276,28 +277,6 @@ def test_arithmetics():
     m2_floordiv_2 = m2 // 2
     m2.update([1, 10, 100])
     assert m2_floordiv_2.compute() == 50
-
-
-def test_truediv_with_tensor_valued_metric():
-    class ConstantMetric(Metric):
-        def __init__(self, value):
-            self.value = value
-            super().__init__()
-
-        def reset(self):
-            pass
-
-        def update(self, output):
-            pass
-
-        def compute(self):
-            return self.value
-
-    per_class = ConstantMetric(torch.tensor([2.0, 4.0]))
-    scalar = ConstantMetric(8.0)
-
-    assert torch.allclose((1.0 / per_class).compute(), torch.tensor([0.5, 0.25]))
-    assert torch.allclose((scalar / per_class).compute(), torch.tensor([4.0, 2.0]))
 
 
 def test_attach():
