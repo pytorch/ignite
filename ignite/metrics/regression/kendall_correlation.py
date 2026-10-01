@@ -81,11 +81,11 @@ class KendallRankCorrelation(EpochMetric):
             y_true = torch.tensor([0., 1., 2., 3., 4., 5.])
             y_pred = torch.tensor([0.5, 2.8, 1.9, 1.3, 6.0, 4.1])
             state = default_evaluator.run([[y_pred, y_true]])
-            print(state.metrics['kendall_tau'])
+            print(f"{state.metrics['kendall_tau']:.6f}")
 
         .. testoutput::
 
-            0.4666666666666666
+            0.466667
 
     .. versionadded:: 0.5.2
     """
