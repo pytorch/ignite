@@ -1,9 +1,28 @@
 import time
+from types import SimpleNamespace
 
 import pytest
 
 from ignite.engine import Engine, Events
 from ignite.handlers import TimeLimit
+
+
+@pytest.mark.parametrize("wall_elapsed, elapsed, terminated", [(1000, 2, False), (-1000, 11, True)])
+def test_time_limit_ignores_wall_clock_adjustments(monkeypatch, wall_elapsed, elapsed, terminated):
+    import ignite.handlers.time_limit as module
+
+    clocks = {"wall": 10000, "elapsed": 20}
+    monkeypatch.setattr(
+        module, "time", SimpleNamespace(time=lambda: clocks["wall"], monotonic=lambda: clocks["elapsed"])
+    )
+    handler = TimeLimit(limit_sec=10)
+    trainer = Engine(lambda engine, batch: batch)
+    clocks["wall"] += wall_elapsed
+    clocks["elapsed"] += elapsed
+
+    handler(trainer)
+
+    assert trainer.should_terminate is terminated
 
 
 def test_arg_validation():
