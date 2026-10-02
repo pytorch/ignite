@@ -90,7 +90,7 @@ class Entropy(Metric):
         self._update(prob, log_prob)
 
     def _update(self, prob: torch.Tensor, log_prob: torch.Tensor) -> None:
-        entropy_sum = -torch.sum(prob * log_prob)
+        entropy_sum = -torch.sum(torch.where(prob == 0, 0.0, prob * log_prob))
         self._sum_of_entropies += entropy_sum.to(self._device)
         self._num_examples += prob.shape[0]
 
