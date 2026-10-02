@@ -1,5 +1,4 @@
 import os
-from copy import deepcopy
 
 import pytest
 import torch
@@ -106,28 +105,29 @@ def test_state_dict_is_not_empty():
         ck = CohenKappa(**kwargs)
         ck.update((torch.randint(0, 2, size=(10,)).float(), torch.randint(0, 2, size=(10,)).long()))
         state = ck.state_dict()["__metric_state_per_rank"][0]
-        assert "_impl" in state, f"state_dict is empty for CohenKappa(**{kwargs})"
+        assert "_impl" in state
 
 
 @pytest.mark.parametrize("weights", [None, "linear", "quadratic"])
 def test_state_dict_round_trip(weights):
-    ck = CohenKappa(num_classes=2, weights=weights)
-    for _ in range(3):
-        ck.update((torch.randint(0, 2, size=(10,)).float(), torch.randint(0, 2, size=(10,)).long()))
-    expected = ck.compute()
-    state_dict = deepcopy(ck.state_dict())
+    batches = [(torch.randint(0, 2, size=(10,)).float(), torch.randint(0, 2, size=(10,)).long()) for _ in range(4)]
 
+    # reference value from a metric that never went through a checkpoint
+    reference = CohenKappa(num_classes=2, weights=weights)
+    for batch in batches:
+        reference.update(batch)
+
+    ck = CohenKappa(num_classes=2, weights=weights)
+    for batch in batches[:3]:
+        ck.update(batch)
+    state_dict = ck.state_dict()
+
+    # resuming must restore the accumulated state and keep accumulating on top of it
     ck.reset()
     ck.load_state_dict(state_dict)
-    assert ck.compute() == pytest.approx(expected)
+    ck.update(batches[3])
 
-    # a restored metric must keep accumulating rather than start over
-    extra = (torch.randint(0, 2, size=(10,)).float(), torch.randint(0, 2, size=(10,)).long())
-    other = CohenKappa(num_classes=2, weights=weights)
-    other.load_state_dict(deepcopy(state_dict))
-    ck.update(extra)
-    other.update(extra)
-    assert ck.compute() == pytest.approx(other.compute())
+    assert ck.compute() == pytest.approx(reference.compute())
 
 
 def test_multilabel_inputs():
