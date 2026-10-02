@@ -1,0 +1,6 @@
+﻿create\_lr\_scheduler\_with\_warmup
+===================================
+
+.. currentmodule:: ignite.handlers.param_scheduler
+
+.. autofunction:: create_lr_scheduler_with_warmup

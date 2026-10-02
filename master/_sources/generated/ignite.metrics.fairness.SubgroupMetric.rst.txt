@@ -1,0 +1,43 @@
+﻿SubgroupMetric
+==============
+
+.. currentmodule:: ignite.metrics.fairness
+
+.. autoclass:: SubgroupMetric
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~SubgroupMetric.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   

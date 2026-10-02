@@ -1,0 +1,45 @@
+﻿Recall
+======
+
+.. currentmodule:: ignite.metrics
+
+.. autoclass:: Recall
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~Recall.update
+   
+   
+   
+   

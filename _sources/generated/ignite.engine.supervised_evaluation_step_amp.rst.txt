@@ -1,0 +1,6 @@
+﻿supervised\_evaluation\_step\_amp
+=================================
+
+.. currentmodule:: ignite.engine
+
+.. autofunction:: supervised_evaluation_step_amp

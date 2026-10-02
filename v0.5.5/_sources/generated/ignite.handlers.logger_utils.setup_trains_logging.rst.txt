@@ -1,0 +1,6 @@
+﻿setup\_trains\_logging
+======================
+
+.. currentmodule:: ignite.handlers.logger_utils
+
+.. autofunction:: setup_trains_logging

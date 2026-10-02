@@ -1,0 +1,19 @@
+﻿TerminateOnNan
+==============
+
+.. currentmodule:: ignite.handlers.terminate_on_nan
+
+.. autoclass:: TerminateOnNan
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   

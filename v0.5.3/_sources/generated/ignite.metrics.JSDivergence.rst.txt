@@ -1,0 +1,43 @@
+﻿JSDivergence
+============
+
+.. currentmodule:: ignite.metrics
+
+.. autoclass:: JSDivergence
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~JSDivergence.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   

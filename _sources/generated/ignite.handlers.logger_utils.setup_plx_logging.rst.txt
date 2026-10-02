@@ -1,0 +1,6 @@
+﻿setup\_plx\_logging
+===================
+
+.. currentmodule:: ignite.handlers.logger_utils
+
+.. autofunction:: setup_plx_logging

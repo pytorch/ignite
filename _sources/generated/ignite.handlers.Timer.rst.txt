@@ -1,0 +1,43 @@
+﻿Timer
+=====
+
+.. currentmodule:: ignite.handlers
+
+.. autoclass:: Timer
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+      ~Timer.attach
+   
+   
+   
+      ~Timer.pause
+   
+   
+   
+      ~Timer.reset
+   
+   
+   
+      ~Timer.resume
+   
+   
+   
+      ~Timer.step
+   
+   
+   
+      ~Timer.value
+   
+   
+   
+   

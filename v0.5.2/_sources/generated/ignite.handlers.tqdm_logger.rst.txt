@@ -1,0 +1,31 @@
+﻿tqdm\_logger
+============
+
+.. automodule:: ignite.handlers.tqdm_logger
+   :members:
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :nosignatures:
+   
+      ProgressBar
+   
+   
+
+   
+   
+   
+
+
+

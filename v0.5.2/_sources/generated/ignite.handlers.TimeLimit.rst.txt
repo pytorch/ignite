@@ -1,0 +1,19 @@
+﻿TimeLimit
+=========
+
+.. currentmodule:: ignite.handlers
+
+.. autoclass:: TimeLimit
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   

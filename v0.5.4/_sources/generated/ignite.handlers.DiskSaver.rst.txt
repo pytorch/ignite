@@ -1,0 +1,23 @@
+﻿DiskSaver
+=========
+
+.. currentmodule:: ignite.handlers
+
+.. autoclass:: DiskSaver
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+      ~DiskSaver.remove
+   
+   
+   
+   
