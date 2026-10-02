@@ -1,3 +1,5 @@
+from typing import cast
+
 from torch import Tensor
 from ignite.exceptions import NotComputableError
 from ignite.metrics.epoch_metric import EpochMetric
@@ -36,4 +38,4 @@ class _ClusteringMetricBase(EpochMetric):
                 f"{self.__class__.__name__} must have at least one example before it can be computed."
             )
 
-        return super().compute()
+        return cast(float, super().compute())
