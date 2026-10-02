@@ -236,3 +236,32 @@ def _test_distrib_xla_nprocs(index):
 def test_distrib_xla_nprocs(xmp_executor):
     n = int(os.environ["NUM_TPU_WORKERS"])
     xmp_executor(_test_distrib_xla_nprocs, args=(), nprocs=n)
+
+
+def test_r2_score_large_mean_numerical_stability():
+    # Regression test for catastrophic cancellation in the naive Σy² - (Σy)²/n
+    # formula when |mean(y)| >> std(y). With float32 accumulators the naive
+    # formula loses all significant digits; the fix computes SS_tot in float64.
+    torch.manual_seed(0)
+    mean, std, n = 1e6, 1.0, 1000
+    y = torch.full((n,), mean) + torch.randn(n) * std
+    y_pred = y * 0.99  # predict 99% of target → R² should be positive
+
+    m = R2Score()
+    m.update((y_pred, y))
+    result = m.compute()
+
+    # sklearn uses float64 throughout, so its result is the reference.
+    import sklearn.metrics
+    expected = sklearn.metrics.r2_score(y.numpy(), y_pred.numpy())
+    assert abs(result - expected) < 0.01, f"R2Score={result:.4f} far from sklearn={expected:.4f} (large-mean instability)"
+
+
+def test_r2_score_constant_target_raises():
+    # R² is undefined when all target values are identical (SS_tot = 0).
+    m = R2Score()
+    y = torch.ones(10)
+    y_pred = torch.zeros(10)
+    m.update((y_pred, y))
+    with pytest.raises(NotComputableError, match="undefined"):
+        m.compute()

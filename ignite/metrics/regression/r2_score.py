@@ -77,4 +77,14 @@ class R2Score(_BaseRegression):
     def compute(self) -> float:
         if self._num_examples == 0:
             raise NotComputableError("R2Score must have at least one example before it can be computed.")
-        return 1 - self._sum_of_errors.item() / (self._y_sq_sum.item() - (self._y_sum.item() ** 2) / self._num_examples)
+        n = self._num_examples
+        # Compute SS_tot in float64 to reduce catastrophic cancellation.
+        # The naive formula Σy² - (Σy)²/n subtracts two near-equal large
+        # numbers, which loses precision in float32 when |mean(y)| >> std(y).
+        # Casting to float64 for the final subtraction recovers most digits.
+        ss_tot = self._y_sq_sum.double() - self._y_sum.double().pow(2) / n
+        # Guard against tiny negative values from floating-point rounding.
+        ss_tot = ss_tot.clamp(min=0.0)
+        if ss_tot == 0:
+            raise NotComputableError("R2Score is undefined when all target values are identical.")
+        return 1 - self._sum_of_errors.item() / ss_tot.item()
