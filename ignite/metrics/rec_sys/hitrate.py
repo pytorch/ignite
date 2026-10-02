@@ -26,7 +26,7 @@ class HitRate(Metric):
     - ``y`` is expected to be binary (only 0s and 1s) values where `1` indicates relevant item.
     - ``y_pred`` and ``y`` are only allowed shape :math:`(batch, num_items)`.
     - returns a list of HitRate ordered by the sorted values of ``top_k``.
-    - if a value of ``top_k`` exceeds ``num_items``, all items are considered for that `k`.
+    - the largest value of ``top_k`` must not exceed ``num_items``, otherwise ``update`` raises a ``ValueError``.
 
     Args:
         top_k: a single positive integer or a list of positive integers that specifies `k` for
@@ -124,7 +124,8 @@ class HitRate(Metric):
         `top_k` now accepts a single positive integer in addition to a list of integers.
 
     .. versionchanged:: 0.5.5
-        `top_k` values greater than the number of items no longer raise an error in ``update``.
+        ``update`` raises a ``ValueError`` when ``top_k`` exceeds the number of items, instead of a
+        ``RuntimeError`` from ``torch.topk``.
     """
 
     required_output_keys = ("y_pred", "y")
@@ -166,6 +167,12 @@ class HitRate(Metric):
         if y_pred.shape != y.shape:
             raise ValueError(f"y_pred and y must be in the same shape, got {y_pred.shape} != {y.shape}.")
 
+        if self.top_k[-1] > y_pred.shape[-1]:
+            raise ValueError(
+                f"top_k must not exceed the number of items, got max(top_k)={self.top_k[-1]} "
+                f"and num_items={y_pred.shape[-1]}."
+            )
+
         if self.ignore_zero_hits:
             valid_mask = torch.any(y > 0, dim=-1)
             y_pred = y_pred[valid_mask]
@@ -174,7 +181,7 @@ class HitRate(Metric):
         if y.shape[0] == 0:
             return
 
-        max_k = min(self.top_k[-1], y_pred.shape[-1])
+        max_k = self.top_k[-1]
         _, indices = torch.topk(y_pred, k=max_k, dim=-1)
 
         hits_at_max_k = torch.gather(y, dim=-1, index=indices)

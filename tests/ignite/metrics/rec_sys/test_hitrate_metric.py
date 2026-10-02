@@ -102,26 +102,34 @@ def test_compute(top_k, ignore_zero_hits, available_device):
 
 
 @pytest.mark.parametrize("ignore_zero_hits", [True, False])
-def test_top_k_greater_than_num_items(ignore_zero_hits, available_device):
-    metric = HitRate(top_k=[1, 2, 5, 10], ignore_zero_hits=ignore_zero_hits, device=available_device)
+def test_top_k_greater_than_num_items(ignore_zero_hits):
+    metric = HitRate(top_k=[1, 5], ignore_zero_hits=ignore_zero_hits)
 
-    y_pred = torch.tensor([[4.0, 2.0, 3.0], [1.0, 2.0, 3.0], [3.0, 1.0, 2.0]])
-    y_true = torch.tensor([[0.0, 1.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 1.0]])
+    y_pred = torch.tensor([[4.0, 2.0, 3.0], [1.0, 2.0, 3.0]])
+    y_true = torch.tensor([[0.0, 1.0, 0.0], [0.0, 0.0, 0.0]])
 
-    metric.update((y_pred, y_true))
-    res = metric.compute()
-
-    expected = manual_hit_rate(y_pred.numpy(), y_true.numpy(), [1, 2, 5, 10], ignore_zero_hits=ignore_zero_hits)
-    np.testing.assert_allclose(res, expected)
+    with pytest.raises(ValueError, match=r"top_k must not exceed the number of items"):
+        metric.update((y_pred, y_true))
 
 
-def test_top_k_greater_than_num_items_across_updates(available_device):
-    metric = HitRate(top_k=[1, 5], device=available_device)
+def test_top_k_greater_than_num_items_after_valid_update():
+    metric = HitRate(top_k=[1, 5])
 
     metric.update((torch.tensor([[1.0, 2.0, 3.0, 4.0, 5.0, 6.0]]), torch.tensor([[1.0, 0.0, 0.0, 0.0, 0.0, 0.0]])))
-    metric.update((torch.tensor([[2.0, 1.0]]), torch.tensor([[0.0, 1.0]])))
+    with pytest.raises(ValueError, match=r"max\(top_k\)=5 and num_items=2"):
+        metric.update((torch.tensor([[2.0, 1.0]]), torch.tensor([[0.0, 1.0]])))
 
-    np.testing.assert_allclose(metric.compute(), [0.0, 0.5])
+
+def test_top_k_equal_to_num_items(available_device):
+    metric = HitRate(top_k=[1, 3], device=available_device)
+
+    y_pred = torch.tensor([[4.0, 2.0, 3.0], [3.0, 1.0, 2.0]])
+    y_true = torch.tensor([[0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
+
+    metric.update((y_pred, y_true))
+
+    expected = manual_hit_rate(y_pred.numpy(), y_true.numpy(), [1, 3])
+    np.testing.assert_allclose(metric.compute(), expected)
 
 
 def test_accumulator_detached(available_device):
