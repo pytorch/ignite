@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 import pytest
 import torch
@@ -93,6 +95,30 @@ def test_accumulator_detached(available_device):
     js_div.update((y_pred, y))
 
     assert not js_div._sum_of_kl.requires_grad
+
+
+@pytest.mark.parametrize("dtype", [torch.float16, torch.bfloat16, torch.float32, torch.float64])
+@pytest.mark.parametrize("identical", [True, False])
+@pytest.mark.parametrize("segmentation", [True, False])
+def test_extreme_finite_logits(dtype, identical, segmentation, available_device):
+    if available_device == "mps" and dtype == torch.float64:
+        pytest.skip("MPS does not support float64 tensors")
+
+    y_pred = torch.tensor([[0.0, -1000.0, -2000.0]], dtype=dtype).repeat(2, 1)
+    y = y_pred.clone() if identical else y_pred[:, [1, 0, 2]]
+    if segmentation:
+        y_pred = y_pred[:, :, None, None].expand(-1, -1, 2, 2)
+        y = y[:, :, None, None].expand(-1, -1, 2, 2)
+
+    metric = JSDivergence(device=available_device)
+    metric.update((y_pred[:1], y[:1]))
+    metric.update((y_pred[1:], y[1:]))
+    result = metric.compute()
+
+    expected = 0.0 if identical else math.log(2.0)
+    tolerance = max(1e-6, torch.finfo(dtype).eps)
+    assert math.isfinite(result)
+    assert result == pytest.approx(expected, rel=tolerance, abs=1e-6)
 
 
 @pytest.mark.usefixtures("distributed")
