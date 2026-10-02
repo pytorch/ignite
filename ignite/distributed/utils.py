@@ -413,15 +413,22 @@ def all_gather(
     """Helper method to perform all gather operation.
 
     Args:
-        tensor: tensor or number or str to collect across participating processes. If tensor, it should have the
-            same shape across processes.
+        tensor: tensor, number, str or any picklable object to collect across participating processes.
+            If tensor, it should have the same shape across processes. Objects other than tensor, number
+            and str are collected with an object collective, which is not available on the ``xla`` backend.
         group: list of integer or the process group for each backend. If None, the default process group will be used.
 
     Returns:
         If input is a tensor, returns a torch.Tensor of shape ``(world_size * tensor.shape[0], tensor.shape[1], ...)``.
-        If input is a number, a torch.Tensor of shape ``(world_size, )`` is returned and finally a list of strings
-        is returned if input is a string. If current process does not belong to `group`, the very ``tensor`` is
-        returned.
+        If input is a number, a torch.Tensor of shape ``(world_size, )`` is returned, a list of strings is returned
+        if input is a string, and a list of objects of length ``world_size`` for any other picklable input.
+        If current process does not belong to `group`, the very ``tensor`` is returned.
+
+    .. warning::
+
+        Tensors nested inside a gathered object are pickled together with their device, so on the
+        receiving processes they point at the sending process' device. Move them yourself if the
+        result has to live on the local device.
 
     .. versionchanged:: 0.4.11
         added ``group``
@@ -433,12 +440,14 @@ def all_gather(
 
 
 def broadcast(
-    tensor: torch.Tensor | float | str | Path | None, src: int = 0, safe_mode: bool = False
-) -> torch.Tensor | float | str | Path:
+    tensor: torch.Tensor | float | str | Path | Any, src: int = 0, safe_mode: bool = False
+) -> torch.Tensor | float | str | Path | Any:
     """Helper method to perform broadcast operation.
 
     Args:
-        tensor: tensor, number, str or pathlib.Path to broadcast to participating processes.
+        tensor: tensor, number, str, pathlib.Path or any picklable object to broadcast to participating
+            processes. Objects other than tensor, number, str and pathlib.Path are sent with an object
+            collective, which is not available on the ``xla`` backend.
             Make sure to respect data type of torch tensor input for all processes, otherwise execution will crash.
             Can use None for non-source data with ``safe_mode=True``.
         src: source rank. Default, 0.
@@ -448,7 +457,13 @@ def broadcast(
             collectives before the broadcast, making it slower than without using this mode. Default, False.
 
     Returns:
-        torch.Tensor, string, pathlib.Path or number
+        torch.Tensor, string, pathlib.Path, number or any picklable object
+
+    .. warning::
+
+        Tensors nested inside a broadcast object are pickled together with their device, so on the
+        receiving processes they point at the source process' device. Move them yourself if the
+        result has to live on the local device.
 
     Examples:
         .. code-block:: python
@@ -481,10 +496,18 @@ def broadcast(
             y = idist.broadcast(y, src=0, safe_mode=True)
             assert isinstance(y, torch.Tensor)
 
+            # Broadcast a picklable object from rank 0, other ranks pass None
+            d = {"loss": 1.23, "counts": [1, 2, 3]} if idist.get_rank() == 0 else None
+            d = idist.broadcast(d, src=0, safe_mode=True)
+            # >>> d = {"loss": 1.23, "counts": [1, 2, 3]}
+
     .. versionadded:: 0.4.2
 
     .. versionchanged:: 0.4.5
         added ``safe_mode``
+
+    .. versionchanged:: 0.6.0
+        added support for any picklable object
     """
     if _need_to_sync and isinstance(_model, _SerialModel):
         sync(temporary=True)
