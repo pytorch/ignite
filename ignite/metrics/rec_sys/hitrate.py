@@ -122,7 +122,7 @@ class HitRate(Metric):
     .. versionchanged:: 0.5.4
         `top_k` now accepts a single positive integer in addition to a list of integers.
 
-    .. versionchanged:: 0.6.0
+    .. versionchanged:: 0.5.6
         ``update`` raises a ``ValueError`` when ``top_k`` exceeds the number of items, instead of a
         ``RuntimeError`` from ``torch.topk``.
     """
