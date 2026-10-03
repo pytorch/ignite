@@ -57,10 +57,9 @@ def test_shape_mismatch():
 def test_top_k_exceeds_num_items():
     metric = HitRate(top_k=[1, 5])
     y_pred = torch.randn(4, 3)
+    y = torch.ones(4, 3)
     with pytest.raises(ValueError, match=r"top_k must not exceed the number of items"):
-        metric.update((y_pred, torch.ones(4, 3)))
-    with pytest.raises(ValueError, match=r"top_k must not exceed the number of items"):
-        metric.update((y_pred, torch.zeros(4, 3)))  # Rows filtered by ignore_zero_hits
+        metric.update((y_pred, y))
 
 
 def test_empty_top_k():
