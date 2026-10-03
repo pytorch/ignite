@@ -7,7 +7,7 @@ import pytest
 import torch
 
 import ignite.handlers as handlers
-from ignite.contrib.engines.common import setup_any_logging
+
 from ignite.engine import Engine, Events
 from ignite.handlers.logger_utils import (
     _setup_logging,
@@ -98,10 +98,6 @@ def _test_setup_logging(
 
     return x_logger
 
-
-def test_deprecated_setup_any_logging():
-    with pytest.raises(DeprecationWarning, match=r"deprecated since version 0.4.0"):
-        setup_any_logging(None, None, None, None, None, None)
 
 
 def test__setup_logging_wrong_args():
