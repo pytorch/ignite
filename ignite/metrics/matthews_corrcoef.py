@@ -37,42 +37,42 @@ class MatthewsCorrCoef(EpochMetric):
     In case of multiclass classification with shape (N, C) for y_pred and (N, C) for y, the predicted class is determined by the argmax of y_pred and y.
     In case of multiclass classification with shape (N, C) for y_pred and (N,) for y, the predicted class is determined by the argmax of y_pred and the true class is determined by the value in y.
 
-        Args:
-            output_transform: a callable that is used to transform the
-                :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
-                form expected by the metric. This can be useful if, for example, you have a multi-output model and
-                you want to compute the metric with respect to one of the outputs.
-                By default, this metric requires the output as ``(x, y)``.
-            device: specifies which device updates are accumulated on. Setting the
-                metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
-                non-blocking. By default, CPU.
-            check_compute_fn: if True, compute_fn is run on the first batch of data to ensure there are no issues.
-                If issues exist, user is warned that there might be an issue with the compute_fn. Default, True.
-            skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
-                true for multi-output model, for example, if ``y_pred`` contains multi-output as ``(y_pred_a, y_pred_b)``
-                Alternatively, ``output_transform`` can be used to handle this.
+    Args:
+        output_transform: a callable that is used to transform the
+            :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
+            form expected by the metric. This can be useful if, for example, you have a multi-output model and
+            you want to compute the metric with respect to one of the outputs.
+            By default, this metric requires the output as ``(x, y)``.
+        check_compute_fn: if True, compute_fn is run on the first batch of data to ensure there are no issues.
+            If issues exist, user is warned that there might be an issue with the compute_fn. Default, False.
+        device: specifies which device updates are accumulated on. Setting the
+            metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
+            non-blocking. By default, CPU.
+        skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
+            true for multi-output model, for example, if ``y_pred`` contains multi-output as ``(y_pred_a, y_pred_b)``
+            Alternatively, ``output_transform`` can be used to handle this.
 
-            Examples:
+    Examples:
 
-            .. include:: defaults.rst
-                :start-after: :orphan:
+        .. include:: defaults.rst
+            :start-after: :orphan:
 
 
-            .. testcode::
+        .. testcode::
 
-                y_pred = torch.tensor([+1, +1, +1, -1])
-                y_true = torch.tensor([+1, -1, +1, +1])
+            y_pred = torch.tensor([+1, +1, +1, -1])
+            y_true = torch.tensor([+1, -1, +1, +1])
 
-                matthews_corrcoef = MatthewsCorrCoef()
-                matthews_corrcoef.attach(default_evaluator, 'mcc')
-                state = default_evaluator.run([[y_pred, y_true]])
-                print(state.metrics['mcc'])
+            matthews_corrcoef = MatthewsCorrCoef()
+            matthews_corrcoef.attach(default_evaluator, 'mcc')
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics['mcc'])
 
-            .. testoutput::
+        .. testoutput::
 
-                -0.33...
+            -0.33...
 
-        .. versionadded:: 0.5.4
+    .. versionadded:: 0.5.4
 
     """
 
