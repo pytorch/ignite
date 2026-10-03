@@ -53,13 +53,15 @@ jobs:
     env:
       REPOSITORY: ${{ github.repository }}
       PR_NUMBER: ${{ github.event.pull_request.number }}
-    runs-on: linux.4xlarge
+    runs-on: mt-l-x86iavx512-16-128
     steps:
       - name: Clean workspace
         run: |
           echo "::group::Cleanup debug output"
-          sudo rm -rfv "${GITHUB_WORKSPACE}"
-          mkdir -p "${GITHUB_WORKSPACE}"
+          # Clear it rather than remove it: on OSDC the workspace is a bind
+          # mount, and deleting the directory detaches it, after which every
+          # later step fails with "getcwd: cannot access parent directories".
+          find "${GITHUB_WORKSPACE}" -mindepth 1 -delete
           echo "::endgroup::"
 
       - name: Checkout repository (pytorch/test-infra)
@@ -112,13 +114,15 @@ jobs:
     env:
       REPOSITORY: ${{ github.repository }}
       PR_NUMBER: ${{ github.event.pull_request.number }}
-    runs-on: linux.12xlarge
+    runs-on: mt-l-x86iavx512-48-384
     steps:
       - name: Clean workspace
         run: |
           echo "::group::Cleanup debug output"
-          sudo rm -rfv "${GITHUB_WORKSPACE}"
-          mkdir -p "${GITHUB_WORKSPACE}"
+          # Clear it rather than remove it: on OSDC the workspace is a bind
+          # mount, and deleting the directory detaches it, after which every
+          # later step fails with "getcwd: cannot access parent directories".
+          find "${GITHUB_WORKSPACE}" -mindepth 1 -delete
           echo "::endgroup::"
 
       - name: Checkout repository (pytorch/test-infra)
@@ -171,13 +175,15 @@ jobs:
     env:
       REPOSITORY: ${{ github.repository }}
       PR_NUMBER: ${{ github.event.pull_request.number }}
-    runs-on: linux.4xlarge
+    runs-on: mt-l-x86iavx512-16-128
     steps:
       - name: Clean workspace
         run: |
           echo "::group::Cleanup debug output"
-          sudo rm -rfv "${GITHUB_WORKSPACE}"
-          mkdir -p "${GITHUB_WORKSPACE}"
+          # Clear it rather than remove it: on OSDC the workspace is a bind
+          # mount, and deleting the directory detaches it, after which every
+          # later step fails with "getcwd: cannot access parent directories".
+          find "${GITHUB_WORKSPACE}" -mindepth 1 -delete
           echo "::endgroup::"
 
       - name: Checkout repository (pytorch/test-infra)
@@ -230,13 +236,15 @@ jobs:
     env:
       REPOSITORY: ${{ github.repository }}
       PR_NUMBER: ${{ github.event.pull_request.number }}
-    runs-on: linux.12xlarge
+    runs-on: mt-l-x86iavx512-48-384
     steps:
       - name: Clean workspace
         run: |
           echo "::group::Cleanup debug output"
-          sudo rm -rfv "${GITHUB_WORKSPACE}"
-          mkdir -p "${GITHUB_WORKSPACE}"
+          # Clear it rather than remove it: on OSDC the workspace is a bind
+          # mount, and deleting the directory detaches it, after which every
+          # later step fails with "getcwd: cannot access parent directories".
+          find "${GITHUB_WORKSPACE}" -mindepth 1 -delete
           echo "::endgroup::"
 
       - name: Checkout repository (pytorch/test-infra)
