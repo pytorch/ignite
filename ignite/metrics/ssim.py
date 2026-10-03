@@ -120,12 +120,13 @@ class SSIM(Metric):
         self.data_range = data_range
         self.c1 = (k1 * data_range) ** 2
         self.c2 = (k2 * data_range) ** 2
-        self.pad_h = (self.kernel_size[0] - 1) // 2
-        self.pad_w = (self.kernel_size[1] - 1) // 2
+        # kernel_size is ordered like the spatial dims of the input: (H, W) or (D, H, W)
+        self.pad_h = (self.kernel_size[-2] - 1) // 2
+        self.pad_w = (self.kernel_size[-1] - 1) // 2
         self.pad_d = None
         self.ndims = ndims
         if self.ndims == 3:
-            self.pad_d = (self.kernel_size[2] - 1) // 2
+            self.pad_d = (self.kernel_size[0] - 1) // 2
         self._kernel_nd = self._gaussian_or_uniform_kernel(
             kernel_size=self.kernel_size, sigma=self.sigma, ndims=self.ndims
         )
