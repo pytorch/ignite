@@ -219,6 +219,14 @@ def test_ssim_3d_anisotropic_kernel(available_device):
     assert np.allclose(ssim_3d.compute(), ssim_2d.compute())
 
 
+@pytest.mark.parametrize("gaussian", [True, False])
+@pytest.mark.parametrize("kernel_size, sigma", [([3, 5], [0.5, 1.0]), ([3, 5, 7], [0.5, 1.0, 1.5])])
+def test_ssim_kernel_axis_order(kernel_size, sigma, gaussian):
+    # kernel_size is (H, W) for 2D inputs and (D, H, W) for 3D inputs
+    ssim = SSIM(data_range=1.0, kernel_size=kernel_size, sigma=sigma, gaussian=gaussian, ndims=len(kernel_size))
+    assert ssim._kernel_nd.shape == tuple(kernel_size)
+
+
 def test_ssim_variable_channel(available_device):
     y_preds = [
         torch.rand(12, 5, 28, 28, device=available_device),

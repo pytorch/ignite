@@ -18,12 +18,15 @@ class SSIM(Metric):
         Valid :class:`torch.dtype` are the following:
         - on CPU: `torch.float32`, `torch.float64`.
         - on CUDA: `torch.float16`, `torch.bfloat16`, `torch.float32`, `torch.float64`.
+    - ``y_pred`` and ``y`` must have shape ``(N, C, H, W)`` for 2D inputs (``ndims=2``) and
+      ``(N, C, D, H, W)`` for 3D inputs (``ndims=3``).
 
     Args:
         data_range: Range of the image. Typically, ``1.0`` or ``255``.
-        kernel_size: Size of the kernel. Default: 11
-        sigma: Standard deviation of the gaussian kernel.
-            Argument is used if ``gaussian=True``. Default: 1.5
+        kernel_size: Size of the kernel. If a sequence is given, its values correspond to ``(H, W)`` for 2D inputs
+            and to ``(D, H, W)`` for 3D inputs. Default: 11
+        sigma: Standard deviation of the gaussian kernel. If a sequence is given, it follows the same order as
+            ``kernel_size``. Argument is used if ``gaussian=True``. Default: 1.5
         k1: Parameter of SSIM. Default: 0.01
         k2: Parameter of SSIM. Default: 0.03
         gaussian: ``True`` to use gaussian kernel, ``False`` to use uniform kernel
@@ -120,13 +123,13 @@ class SSIM(Metric):
         self.data_range = data_range
         self.c1 = (k1 * data_range) ** 2
         self.c2 = (k2 * data_range) ** 2
-        # kernel_size is ordered like the spatial dims of the input: (H, W) or (D, H, W)
+        # kernel_size is ordered as (H, W) for 2D inputs and (D, H, W) for 3D inputs
         self.pad_h = (self.kernel_size[-2] - 1) // 2
         self.pad_w = (self.kernel_size[-1] - 1) // 2
         self.pad_d = None
         self.ndims = ndims
         if self.ndims == 3:
-            self.pad_d = (self.kernel_size[0] - 1) // 2
+            self.pad_d = (self.kernel_size[-3] - 1) // 2
         self._kernel_nd = self._gaussian_or_uniform_kernel(
             kernel_size=self.kernel_size, sigma=self.sigma, ndims=self.ndims
         )
@@ -157,27 +160,19 @@ class SSIM(Metric):
     def _gaussian_or_uniform_kernel(
         self, kernel_size: Sequence[int], sigma: Sequence[float], ndims: int
     ) -> torch.Tensor:
+        # kernel_size and sigma are ordered as (H, W) for 2D inputs and (D, H, W) for 3D inputs
         if self.gaussian:
-            kernel_x = self._gaussian(kernel_size[0], sigma[0])
-            kernel_y = self._gaussian(kernel_size[1], sigma[1])
-            if ndims == 3:
-                kernel_z = self._gaussian(kernel_size[2], sigma[2])
-            else:
-                kernel_z = None
+            kernel_h = self._gaussian(kernel_size[-2], sigma[-2])
+            kernel_w = self._gaussian(kernel_size[-1], sigma[-1])
+            kernel_d = self._gaussian(kernel_size[-3], sigma[-3]) if ndims == 3 else None
         else:
-            kernel_x = self._uniform(kernel_size[0])
-            kernel_y = self._uniform(kernel_size[1])
-            if ndims == 3:
-                kernel_z = self._uniform(kernel_size[2])
-            else:
-                kernel_z = None
+            kernel_h = self._uniform(kernel_size[-2])
+            kernel_w = self._uniform(kernel_size[-1])
+            kernel_d = self._uniform(kernel_size[-3]) if ndims == 3 else None
 
-        result = (
-            torch.einsum("i,j->ij", kernel_x, kernel_y)
-            if ndims == 2
-            else torch.einsum("i,j,k->ijk", kernel_x, kernel_y, kernel_z)
-        )
-        return result
+        if ndims == 2:
+            return torch.einsum("h,w->hw", kernel_h, kernel_w)  # (H, W)
+        return torch.einsum("d,h,w->dhw", kernel_d, kernel_h, kernel_w)  # (D, H, W)
 
     def _check_type_and_shape(self, y_pred: torch.Tensor, y: torch.Tensor) -> None:
         if y_pred.dtype != y.dtype:
