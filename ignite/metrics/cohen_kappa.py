@@ -200,6 +200,8 @@ class CohenKappa(Metric):
         Added ``num_classes`` argument; routes to a running-confusion-matrix backend when provided.
     """
 
+    _state_dict_all_req_keys = ("_impl",)
+
     def __init__(
         self,
         output_transform: Callable = lambda x: x,
