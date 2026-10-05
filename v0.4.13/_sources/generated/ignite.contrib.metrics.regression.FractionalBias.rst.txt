@@ -1,0 +1,45 @@
+﻿FractionalBias
+==============
+
+.. currentmodule:: ignite.contrib.metrics.regression
+
+.. autoclass:: FractionalBias
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~FractionalBias.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~FractionalBias.reset
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   

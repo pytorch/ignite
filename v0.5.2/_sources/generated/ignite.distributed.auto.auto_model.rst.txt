@@ -1,0 +1,6 @@
+﻿auto\_model
+===========
+
+.. currentmodule:: ignite.distributed.auto
+
+.. autofunction:: auto_model

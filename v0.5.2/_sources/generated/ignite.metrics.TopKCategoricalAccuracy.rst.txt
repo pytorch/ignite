@@ -1,0 +1,47 @@
+﻿TopKCategoricalAccuracy
+=======================
+
+.. currentmodule:: ignite.metrics
+
+.. autoclass:: TopKCategoricalAccuracy
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~TopKCategoricalAccuracy.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~TopKCategoricalAccuracy.reset
+   
+   
+   
+   
+   
+   
+   
+      ~TopKCategoricalAccuracy.update
+   
+   
+   
+   

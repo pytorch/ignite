@@ -1,0 +1,41 @@
+﻿SubgroupAccuracyDifference
+==========================
+
+.. currentmodule:: ignite.metrics.fairness
+
+.. autoclass:: SubgroupAccuracyDifference
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   

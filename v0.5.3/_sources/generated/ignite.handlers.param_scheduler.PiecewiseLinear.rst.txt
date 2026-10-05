@@ -1,0 +1,31 @@
+﻿PiecewiseLinear
+===============
+
+.. currentmodule:: ignite.handlers.param_scheduler
+
+.. autoclass:: PiecewiseLinear
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+      ~PiecewiseLinear.get_param
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   

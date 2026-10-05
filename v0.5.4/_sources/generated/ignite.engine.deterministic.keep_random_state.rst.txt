@@ -1,0 +1,6 @@
+﻿keep\_random\_state
+===================
+
+.. currentmodule:: ignite.engine.deterministic
+
+.. autofunction:: keep_random_state

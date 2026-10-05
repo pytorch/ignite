@@ -1,0 +1,33 @@
+﻿StepStateScheduler
+==================
+
+.. currentmodule:: ignite.handlers.state_param_scheduler
+
+.. autoclass:: StepStateScheduler
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+      ~StepStateScheduler.get_param
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
