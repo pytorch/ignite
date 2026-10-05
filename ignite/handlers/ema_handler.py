@@ -201,11 +201,11 @@ class EMAHandler:
                     # Handle the case where ema_b is torch.int64, torch.int32 etc.,
                     # where a runtime error will be thrown when performing the in-place operations with floats.
                     # In this case, just copy the data
-                    ema_b.data = model_b.data
+                    ema_b.copy_(model_b)
         elif self.handle_buffers == "copy":
-            # assign the buffers
+            # copy the buffers in place so that ema_model does not share storage with model
             for ema_b, model_b in zip(self.ema_model.buffers(), self.model.buffers()):
-                ema_b.data = model_b.data
+                ema_b.copy_(model_b)
         else:
             pass
 

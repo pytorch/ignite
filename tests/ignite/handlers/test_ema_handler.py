@@ -220,6 +220,19 @@ def test_ema_buffer(handle_buffers):
             assert ema_model.dummy_buffer.allclose(torch.tensor(1.0, dtype=torch.float32))
 
 
+@pytest.mark.parametrize("handle_buffers", ["copy", "update"])
+def test_ema_buffer_not_shared_with_model(handle_buffers):
+    """Test that buffers of ema_model are copied and do not share storage with the buffers of model"""
+    model = nn.BatchNorm1d(2)
+    ema_handler = EMAHandler(model, momentum=0.5, handle_buffers=handle_buffers)
+    engine = Engine(lambda engine, batch: model(torch.rand(4, 2)))
+    ema_handler.attach(engine)
+    engine.run([0, 1])
+
+    for ema_b, model_b in zip(ema_handler.ema_model.buffers(), model.buffers()):
+        assert ema_b.data_ptr() != model_b.data_ptr()
+
+
 def test_ema_two_handlers(get_dummy_model):
     """Test when two EMA handlers are attached to a trainer"""
     model_1 = get_dummy_model()
