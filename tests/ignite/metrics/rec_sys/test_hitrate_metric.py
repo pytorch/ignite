@@ -6,37 +6,39 @@ import ignite.distributed as idist
 from ignite.engine import Engine
 from ignite.exceptions import NotComputableError
 from ignite.metrics.rec_sys.hitrate import HitRate
+from ranx import Qrels, Run, evaluate
 
 
-def manual_hit_rate(
+def ranx_hit_rate(
     y_pred: np.ndarray,
     y: np.ndarray,
     top_k: list[int],
     ignore_zero_hits: bool = True,
 ) -> list[float]:
-    """Manual implementation of HitRate using numpy for verification."""
+    """Reference HitRate implementation using ranx for verification. https://github.com/AmenRa/ranx"""
+
     sorted_top_k = sorted(top_k)
-
-    if ignore_zero_hits:
-        valid_mask = np.any(y > 0, axis=-1)
-        y_pred = y_pred[valid_mask]
-        y = y[valid_mask]
-
-    n_samples = y.shape[0]
-    if n_samples == 0:
-        raise ValueError("No valid samples for manual hit rate computation.")
-
-    sorted_indices = np.argsort(-y_pred, axis=-1)
-
     results = []
-    for k in sorted_top_k:
-        k_indices = sorted_indices[:, :k]
-        hits = 0
-        for i in range(n_samples):
-            if np.any(y[i, k_indices[i]] > 0):
-                hits += 1
-        results.append(hits / n_samples)
 
+    for k in sorted_top_k:
+        qrels_dict = {}
+        run_dict = {}
+
+        for i, (scores, labels) in enumerate(zip(y_pred, y)):
+            qid = f"q{i}"
+            relevant = {f"d{j}": 1 for j, label in enumerate(labels) if label > 0}
+
+            if ignore_zero_hits and not relevant:
+                continue
+
+            qrels_dict[qid] = relevant if relevant else {"d0": 0}
+            run_dict[qid] = {f"d{j}": float(s) for j, s in enumerate(scores)}
+
+        if not qrels_dict:
+            results.append(0.0)
+            continue
+
+        results.append(float(evaluate(Qrels(qrels_dict), Run(run_dict), f"hit_rate@{k}")))
     return results
 
 
@@ -51,14 +53,6 @@ def test_shape_mismatch():
     y_pred = torch.randn(4, 10)
     y = torch.ones(4, 5)  # Mismatched items count
     with pytest.raises(ValueError, match="y_pred and y must be in the same shape"):
-        metric.update((y_pred, y))
-
-
-def test_top_k_exceeds_num_items():
-    metric = HitRate(top_k=[1, 5])
-    y_pred = torch.randn(4, 3)
-    y = torch.ones(4, 3)
-    with pytest.raises(ValueError, match=r"top_k must not exceed the number of items"):
         metric.update((y_pred, y))
 
 
@@ -78,7 +72,7 @@ def test_int_top_k(available_device):
     y_true = torch.tensor([[0.0, 0.0, 1.0, 0.0]])
     metric.update((y_pred, y_true))
     res = metric.compute()
-    expected = manual_hit_rate(y_pred.numpy(), y_true.numpy(), [2])
+    expected = ranx_hit_rate(y_pred.numpy(), y_true.numpy(), [2])
     np.testing.assert_allclose(res, expected)
 
 
@@ -97,7 +91,7 @@ def test_compute(top_k, ignore_zero_hits, available_device):
     metric.update((y_pred, y_true))
     res = metric.compute()
 
-    expected = manual_hit_rate(
+    expected = ranx_hit_rate(
         y_pred.numpy(),
         y_true.numpy(),
         top_k,
@@ -107,6 +101,38 @@ def test_compute(top_k, ignore_zero_hits, available_device):
     assert isinstance(res, list)
     assert len(res) == len(top_k)
     np.testing.assert_allclose(res, expected)
+
+
+@pytest.mark.parametrize("num_queries", [1, 10, 100])
+@pytest.mark.parametrize("num_items", [5, 20, 100])
+@pytest.mark.parametrize("k", [1, 5, 10])
+@pytest.mark.parametrize("ignore_zero_hits", [True, False])
+def test_compute_vs_ranx(num_queries, num_items, k, ignore_zero_hits, available_device):
+    """Verify HitRate matches ranx across a wide range of input shapes and k values."""
+    torch.manual_seed(42)
+    y_pred = torch.randn(num_queries, num_items)
+    y_true = torch.randint(0, 2, (num_queries, num_items)).float()
+
+    metric = HitRate(
+        top_k=[k],
+        ignore_zero_hits=ignore_zero_hits,
+        device=available_device,
+    )
+    metric.update((y_pred, y_true))
+
+    try:
+        res = metric.compute()
+    except NotComputableError:
+        res = [0.0]
+
+    expected = ranx_hit_rate(
+        y_pred.numpy(),
+        y_true.numpy(),
+        top_k=[k],
+        ignore_zero_hits=ignore_zero_hits,
+    )
+
+    np.testing.assert_allclose(res, expected, rtol=1e-5)
 
 
 def test_accumulator_detached(available_device):
@@ -172,7 +198,7 @@ class TestDistributed:
 
                 res = engine.state.metrics["hitrate"]
 
-                true_res = manual_hit_rate(
+                true_res = ranx_hit_rate(
                     global_y_pred,
                     global_y_true,
                     top_k,

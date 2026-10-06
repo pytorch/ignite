@@ -123,8 +123,7 @@ class HitRate(Metric):
         `top_k` now accepts a single positive integer in addition to a list of integers.
 
     .. versionchanged:: 0.5.6
-        ``update`` raises a ``ValueError`` when ``top_k`` exceeds the number of items, instead of a
-        ``RuntimeError`` from ``torch.topk``.
+        ``top_k`` values greater than the number of items no longer raise an error; all items are considered instead.
     """
 
     required_output_keys = ("y_pred", "y")
@@ -166,12 +165,6 @@ class HitRate(Metric):
         if y_pred.shape != y.shape:
             raise ValueError(f"y_pred and y must be in the same shape, got {y_pred.shape} != {y.shape}.")
 
-        if self.top_k[-1] > y_pred.shape[-1]:
-            raise ValueError(
-                f"top_k must not exceed the number of items, got max(top_k)={self.top_k[-1]} "
-                f"and num_items={y_pred.shape[-1]}."
-            )
-
         if self.ignore_zero_hits:
             valid_mask = torch.any(y > 0, dim=-1)
             y_pred = y_pred[valid_mask]
@@ -180,7 +173,7 @@ class HitRate(Metric):
         if y.shape[0] == 0:
             return
 
-        max_k = self.top_k[-1]
+        max_k = min(self.top_k[-1], y_pred.shape[-1])
         _, indices = torch.topk(y_pred, k=max_k, dim=-1)
 
         hits_at_max_k = torch.gather(y, dim=-1, index=indices)
