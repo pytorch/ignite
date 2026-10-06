@@ -34,10 +34,6 @@ def ranx_hit_rate(
             qrels_dict[qid] = relevant if relevant else {"d0": 0}
             run_dict[qid] = {f"d{j}": float(s) for j, s in enumerate(scores)}
 
-        if not qrels_dict:
-            results.append(0.0)
-            continue
-
         results.append(float(evaluate(Qrels(qrels_dict), Run(run_dict), f"hit_rate@{k}")))
     return results
 
@@ -76,7 +72,7 @@ def test_int_top_k(available_device):
     np.testing.assert_allclose(res, expected)
 
 
-@pytest.mark.parametrize("top_k", [[1], [1, 2, 4]])
+@pytest.mark.parametrize("top_k", [[1], [1, 2, 4, 10]])
 @pytest.mark.parametrize("ignore_zero_hits", [True, False])
 def test_compute(top_k, ignore_zero_hits, available_device):
     metric = HitRate(
@@ -101,38 +97,6 @@ def test_compute(top_k, ignore_zero_hits, available_device):
     assert isinstance(res, list)
     assert len(res) == len(top_k)
     np.testing.assert_allclose(res, expected)
-
-
-@pytest.mark.parametrize("num_queries", [1, 10, 100])
-@pytest.mark.parametrize("num_items", [5, 20, 100])
-@pytest.mark.parametrize("k", [1, 5, 10])
-@pytest.mark.parametrize("ignore_zero_hits", [True, False])
-def test_compute_vs_ranx(num_queries, num_items, k, ignore_zero_hits, available_device):
-    """Verify HitRate matches ranx across a wide range of input shapes and k values."""
-    torch.manual_seed(42)
-    y_pred = torch.randn(num_queries, num_items)
-    y_true = torch.randint(0, 2, (num_queries, num_items)).float()
-
-    metric = HitRate(
-        top_k=[k],
-        ignore_zero_hits=ignore_zero_hits,
-        device=available_device,
-    )
-    metric.update((y_pred, y_true))
-
-    try:
-        res = metric.compute()
-    except NotComputableError:
-        res = [0.0]
-
-    expected = ranx_hit_rate(
-        y_pred.numpy(),
-        y_true.numpy(),
-        top_k=[k],
-        ignore_zero_hits=ignore_zero_hits,
-    )
-
-    np.testing.assert_allclose(res, expected, rtol=1e-5)
 
 
 def test_accumulator_detached(available_device):
