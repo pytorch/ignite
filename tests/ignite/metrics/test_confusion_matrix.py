@@ -464,10 +464,9 @@ def _test_distrib_multiclass_images(device):
         num_classes = 3
         cm = ConfusionMatrix(num_classes=num_classes, device=metric_device)
 
-        y_true, y_pred = get_y_true_y_pred()
-
-        # Compute confusion matrix with sklearn
-        true_res = confusion_matrix(y_true.reshape(-1), y_pred.reshape(-1))
+        rng = np.random.default_rng(12 + idist.get_rank())
+        y_true = rng.integers(0, num_classes, size=(30, 30), dtype=np.int32)
+        y_pred = rng.integers(0, num_classes, size=(30, 30), dtype=np.int32)
 
         th_y_true, th_y_logits = compute_th_y_true_y_logits(y_true, y_pred)
         th_y_true = th_y_true.to(device)
@@ -477,7 +476,15 @@ def _test_distrib_multiclass_images(device):
         output = (th_y_logits, th_y_true)
         cm.update(output)
 
-        res = cm.compute().cpu().numpy() / idist.get_world_size()
+        res = cm.compute().cpu().numpy()
+
+        th_y_true = idist.all_gather(th_y_true)
+        th_y_logits = idist.all_gather(th_y_logits)
+        true_res = confusion_matrix(
+            th_y_true.cpu().numpy().reshape(-1),
+            np.argmax(th_y_logits.cpu().numpy(), axis=1).reshape(-1),
+            labels=list(range(num_classes)),
+        )
 
         assert np.all(true_res == res)
 
@@ -519,7 +526,7 @@ def _test_distrib_multiclass_images(device):
 
         np_y_true = th_y_true.cpu().numpy().reshape(-1)
         np_y_pred = np.argmax(th_y_logits.cpu().numpy(), axis=1).reshape(-1)
-        true_res = confusion_matrix(np_y_true, np_y_pred)
+        true_res = confusion_matrix(np_y_true, np_y_pred, labels=list(range(num_classes)))
 
         assert np.all(true_res == res)
 
