@@ -73,10 +73,6 @@ class FastaiLRFinder:
         fastai/lr_find: https://github.com/fastai/fastai
 
     .. versionadded:: 0.4.6
-
-    .. versionchanged:: 0.6.0
-        The learning rate is set before each iteration, so the first iteration uses ``start_lr`` and each
-        learning rate in ``get_results()`` is the one used to compute the corresponding loss.
     """
 
     _lr_schedule: LRScheduler | PiecewiseLinear | ParamGroupScheduler
@@ -151,7 +147,6 @@ class FastaiLRFinder:
                         for i in range(len(optimizer.param_groups))
                     ]
                 )
-        # Set the learning rate before each iteration, so that the first iteration uses start_lr
         if not trainer.has_event_handler(self._lr_schedule):
             trainer.add_event_handler(Events.ITERATION_STARTED, self._lr_schedule, num_iter)
 

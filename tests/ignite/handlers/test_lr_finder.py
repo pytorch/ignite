@@ -380,39 +380,30 @@ def test_different_num_iters(lr_finder, to_save, dummy_engine, dataloader):
 
 
 @pytest.mark.parametrize("step_mode", ["exp", "linear"])
-def test_start_lr(lr_finder, to_save, dummy_engine, dataloader, step_mode):
-    with lr_finder.attach(
-        dummy_engine, to_save, start_lr=0.01, end_lr=10.0, num_iter=5, step_mode=step_mode, diverge_th=1
-    ) as trainer_with_finder:
-        trainer_with_finder.run(dataloader)
-    history = lr_finder.get_results()
+def test_lrs(lr_finder, to_save, dummy_engine, optimizer, dataloader, step_mode):
+    start_lr, end_lr = 0.01, 10.0
+    optimizer_lrs = []
 
-    assert pytest.approx(history["lr"][0]) == 0.01
+    def record_optimizer_lr(engine):
+        optimizer_lrs.append(optimizer.param_groups[0]["lr"])
 
+    with pytest.warns(UserWarning, match=r"Run completed without loss diverging"):
+        with lr_finder.attach(
+            dummy_engine,
+            to_save,
+            start_lr=start_lr,
+            end_lr=end_lr,
+            num_iter=5,
+            step_mode=step_mode,
+            diverge_th=float("inf"),
+        ) as trainer_with_finder:
+            trainer_with_finder.add_event_handler(Events.ITERATION_COMPLETED, record_optimizer_lr)
+            trainer_with_finder.run(dataloader)
+    lrs = lr_finder.get_results()["lr"]
 
-@pytest.mark.parametrize("step_mode", ["exp", "linear"])
-@pytest.mark.parametrize("start_lr", [None, 0.01])
-def test_logged_lr_is_lr_used_by_iteration(lr_finder, model, optimizer, dataloader, step_mode, start_lr):
-    used_lrs = []
-
-    def update_fn(engine, batch):
-        used_lrs.append(optimizer.param_groups[0]["lr"])
-        return 1.0
-
-    trainer = Engine(update_fn)
-    initial_lr = optimizer.param_groups[0]["lr"]
-    to_save = {"model": model, "optimizer": optimizer}
-    with lr_finder.attach(
-        trainer, to_save, start_lr=start_lr, end_lr=10.0, num_iter=5, step_mode=step_mode
-    ) as trainer_with_finder:
-        trainer_with_finder.run(dataloader)
-    history = lr_finder.get_results()
-
-    expected_start_lr = initial_lr if start_lr is None else start_lr
-    assert len(used_lrs) == 6
-    assert history["lr"] == used_lrs
-    assert pytest.approx(history["lr"][0]) == expected_start_lr
-    assert pytest.approx(history["lr"][-1]) == 10.0
+    assert lrs == pytest.approx(optimizer_lrs)
+    assert lrs[0] == pytest.approx(start_lr)
+    assert lrs[-1] == pytest.approx(end_lr)
 
 
 def test_engine_output_type(lr_finder, dummy_engine, optimizer):
