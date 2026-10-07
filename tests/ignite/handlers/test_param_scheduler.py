@@ -1354,7 +1354,7 @@ def test_reduce_lr_on_plateau_scheduler(use_attach, param_group_index):
     optimizer = torch.optim.SGD([{"params": [tensor1]}, {"params": [tensor2]}], lr=1)
 
     data = [0] * 8
-    max_epochs = 10
+    max_epochs = 14
 
     trainer = Engine(lambda engine, batch: None)
 
@@ -1377,7 +1377,7 @@ def test_reduce_lr_on_plateau_scheduler(use_attach, param_group_index):
     )
     evaluator = Engine(lambda engine, batch: None)
     evaluator.state.metrics = {"acc": 0.0}
-    generate_acc = iter([3, 7, 7, 9, 10, 11, 8, 8, 4, 7])
+    generate_acc = iter([3, 7, 7, 9, 10, 11, 8, 8, 4, 7, 7, 7, 7, 7])
 
     @evaluator.on(Events.COMPLETED)
     def set_acc():
@@ -1390,13 +1390,10 @@ def test_reduce_lr_on_plateau_scheduler(use_attach, param_group_index):
 
     trainer.run(data, max_epochs=max_epochs)
 
-    lrs = [param[0] for param in trainer.state.param_history["lr"]]
-    assert lrs == list(
-        map(
-            pytest.approx,
-            [1, 1, 1, 1, 1, 1, 1, 0.5, 0.5, 0.3],
-        )
-    )
+    lrs = trainer.state.param_history["lr"]
+    num_groups = 2 if param_group_index is None else 1
+    expected_lrs = [1, 1, 1, 1, 1, 1, 1, 0.5, 0.5, 0.3, 0.3, 0.3, 0.3, 0.3]
+    assert lrs == [pytest.approx([lr] * num_groups) for lr in expected_lrs]
     if param_group_index is not None:
         assert optimizer.param_groups[1 - param_group_index]["lr"] == 1
 
