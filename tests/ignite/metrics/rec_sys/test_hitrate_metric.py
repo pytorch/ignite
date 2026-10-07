@@ -6,37 +6,35 @@ import ignite.distributed as idist
 from ignite.engine import Engine
 from ignite.exceptions import NotComputableError
 from ignite.metrics.rec_sys.hitrate import HitRate
+from ranx import Qrels, Run, evaluate
 
 
-def manual_hit_rate(
+def ranx_hit_rate(
     y_pred: np.ndarray,
     y: np.ndarray,
     top_k: list[int],
     ignore_zero_hits: bool = True,
 ) -> list[float]:
-    """Manual implementation of HitRate using numpy for verification."""
+    """Reference HitRate implementation using ranx for verification. https://github.com/AmenRa/ranx"""
+
     sorted_top_k = sorted(top_k)
-
-    if ignore_zero_hits:
-        valid_mask = np.any(y > 0, axis=-1)
-        y_pred = y_pred[valid_mask]
-        y = y[valid_mask]
-
-    n_samples = y.shape[0]
-    if n_samples == 0:
-        raise ValueError("No valid samples for manual hit rate computation.")
-
-    sorted_indices = np.argsort(-y_pred, axis=-1)
-
     results = []
-    for k in sorted_top_k:
-        k_indices = sorted_indices[:, :k]
-        hits = 0
-        for i in range(n_samples):
-            if np.any(y[i, k_indices[i]] > 0):
-                hits += 1
-        results.append(hits / n_samples)
 
+    for k in sorted_top_k:
+        qrels_dict = {}
+        run_dict = {}
+
+        for i, (scores, labels) in enumerate(zip(y_pred, y)):
+            qid = f"q{i}"
+            relevant = {f"d{j}": 1 for j, label in enumerate(labels) if label > 0}
+
+            if ignore_zero_hits and not relevant:
+                continue
+
+            qrels_dict[qid] = relevant if relevant else {"d0": 0}
+            run_dict[qid] = {f"d{j}": float(s) for j, s in enumerate(scores)}
+
+        results.append(float(evaluate(Qrels(qrels_dict), Run(run_dict), f"hit_rate@{k}")))
     return results
 
 
@@ -70,11 +68,11 @@ def test_int_top_k(available_device):
     y_true = torch.tensor([[0.0, 0.0, 1.0, 0.0]])
     metric.update((y_pred, y_true))
     res = metric.compute()
-    expected = manual_hit_rate(y_pred.numpy(), y_true.numpy(), [2])
+    expected = ranx_hit_rate(y_pred.numpy(), y_true.numpy(), [2])
     np.testing.assert_allclose(res, expected)
 
 
-@pytest.mark.parametrize("top_k", [[1], [1, 2, 4]])
+@pytest.mark.parametrize("top_k", [[1], [1, 2, 4, 10]])
 @pytest.mark.parametrize("ignore_zero_hits", [True, False])
 def test_compute(top_k, ignore_zero_hits, available_device):
     metric = HitRate(
@@ -89,7 +87,7 @@ def test_compute(top_k, ignore_zero_hits, available_device):
     metric.update((y_pred, y_true))
     res = metric.compute()
 
-    expected = manual_hit_rate(
+    expected = ranx_hit_rate(
         y_pred.numpy(),
         y_true.numpy(),
         top_k,
@@ -164,7 +162,7 @@ class TestDistributed:
 
                 res = engine.state.metrics["hitrate"]
 
-                true_res = manual_hit_rate(
+                true_res = ranx_hit_rate(
                     global_y_pred,
                     global_y_true,
                     top_k,
