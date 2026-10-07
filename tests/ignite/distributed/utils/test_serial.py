@@ -1,3 +1,5 @@
+import warnings
+
 import torch
 
 import ignite.distributed as idist
@@ -66,6 +68,19 @@ def test_idist__model_methods_no_dist():
     _test_distrib__get_max_length("cpu")
     if torch.cuda.device_count() > 1:
         _test_distrib__get_max_length("cuda")
+
+
+def test_idist_all_gather_tensors_with_shapes_no_list_indexing():
+    # The padded tensor used to be sliced with a list of `slice` objects. torch
+    # deprecates non-tuple sequences for multidimensional indexing and will
+    # reinterpret them as `x[torch.tensor(seq)]`, which raises for slices.
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "error",
+            message="Using a non-tuple sequence for multidimensional indexing",
+            category=UserWarning,
+        )
+        _test_idist_all_gather_tensors_with_shapes("cpu")
 
 
 def test_idist_collective_ops_no_dist():
