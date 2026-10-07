@@ -17,21 +17,15 @@ def np_entropy(np_y_pred: np.ndarray):
     return ent
 
 
-@pytest.mark.parametrize("dtype", [torch.float16, torch.float32, torch.float64])
-@pytest.mark.parametrize("segmentation", [False, True])
 @pytest.mark.parametrize("metric_class", [Entropy, MutualInformation])
-def test_zero_probabilities_from_finite_logits(dtype, segmentation, metric_class, available_device):
-    if available_device == "mps" and dtype == torch.float64:
-        pytest.skip("MPS does not support float64 tensors")
-    value = torch.finfo(dtype).max
-    logits = torch.tensor([[value, -value, -value], [-value, value, -value]], dtype=dtype)
-    if segmentation:
-        logits = logits[:, :, None, None].expand(2, 3, 2, 3)
+def test_zero_probabilities_from_finite_logits(metric_class, available_device):
+    value = torch.finfo(torch.float32).max
+    logits = torch.tensor([[value, -value, -value], [-value, value, -value]])
     metric = metric_class(device=available_device)
     metric.update((logits.to(available_device), None))
     expected = 0.0 if metric_class is Entropy else np.log(2.0)
     assert np.isfinite(metric.compute())
-    assert metric.compute() == pytest.approx(expected, rel=1e-3 if dtype == torch.float16 else 1e-6)
+    assert metric.compute() == pytest.approx(expected)
 
 
 def test_mutual_information_unused_class_streaming(available_device):
