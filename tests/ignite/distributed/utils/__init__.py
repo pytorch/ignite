@@ -388,8 +388,22 @@ def _test_distrib_broadcast(device):
     _test(t, 123.4, safe_mode=True)
 
     if idist.get_world_size() > 1:
-        with pytest.raises(TypeError, match=r"Unhandled input type"):
-            idist.broadcast([0, 1, 2], src=0)
+        # Picklable objects go through an object collective, which xla does not provide.
+        if idist.backend() == "xla-tpu":
+            with pytest.raises(NotImplementedError, match=r"broadcast on object is not implemented for xla"):
+                idist.broadcast([0, 1, 2], src=0)
+        else:
+            _test([0, 1, 2], [-1, -1, -1], safe_mode=False)
+            _test([0, 1, 2], None, safe_mode=True)
+            _test({"a": 1, "b": [2.0, 3.0]}, None, safe_mode=True)
+
+            # containers holding tensors keep their structure and leaf types
+            for src in range(ws):
+                data = {"t": torch.tensor([1.0, 2.0]), "n": 3} if rank == src else None
+                res = idist.broadcast(data, src=src, safe_mode=True)
+                assert isinstance(res, dict)
+                assert (res["t"] == torch.tensor([1.0, 2.0])).all()
+                assert isinstance(res["n"], int) and res["n"] == 3
 
     if idist.get_world_size() > 1:
         msg = "Source data can not be None" if rank == 0 else "Argument safe_mode should be True"
