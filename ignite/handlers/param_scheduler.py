@@ -1738,6 +1738,12 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
             if old_lr - new_lr > self.scheduler.eps:
                 param_group["lr"] = new_lr
 
+    def state_dict(self) -> dict[str, Any]:
+        state_dict = super().state_dict()
+        # _reduce_lr is the bound method patched onto the torch scheduler in __init__, not part of its state
+        del state_dict["scheduler"]["_reduce_lr"]
+        return state_dict
+
     @classmethod
     def simulate_values(  # type: ignore[override]
         cls, num_events: int, metric_values: list[float], init_lr: float, **scheduler_kwargs: Any
