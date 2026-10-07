@@ -187,6 +187,8 @@ class OutputHandler(BaseOutputHandler):
             uses function output as global_step. To setup global step from another engine, please use
             :meth:`~ignite.handlers.wandb_logger.global_step_from_engine`.
         sync: Deprecated, has no function. Argument is kept here for compatibility with existing code.
+        flatten_sequences: Whether to flatten sequences into separate metrics. Set to ``False`` to pass sequences of
+            scalar values directly to Weights & Biases.
 
     Examples:
         .. code-block:: python
@@ -295,8 +297,10 @@ class OutputHandler(BaseOutputHandler):
         global_step_transform: Callable[[Engine, str | Events], int] | None = None,
         sync: bool | None = None,
         state_attributes: list[str] | None = None,
+        flatten_sequences: bool = True,
     ):
         super().__init__(tag, metric_names, output_transform, global_step_transform, state_attributes)
+        self.flatten_sequences = flatten_sequences
         if sync is not None:
             warn("The sync argument for the WandBLoggers is no longer used, and may be removed in the future")
 
@@ -310,7 +314,9 @@ class OutputHandler(BaseOutputHandler):
                 f"global_step must be int, got {type(global_step)}. Please check the output of global_step_transform."
             )
 
-        metrics = self._setup_output_metrics_state_attrs(engine, log_text=True, key_tuple=False)
+        metrics = self._setup_output_metrics_state_attrs(
+            engine, log_text=True, key_tuple=False, flatten_sequences=self.flatten_sequences
+        )
         logger.log(metrics, step=global_step)
 
 
