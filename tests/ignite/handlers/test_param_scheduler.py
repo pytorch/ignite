@@ -1346,8 +1346,9 @@ def test_lr_scheduling_on_non_torch_optimizers():
     )
 
 
+@pytest.mark.parametrize("param_group_index", [None, 0, 1])
 @pytest.mark.parametrize("use_attach", [False, True])
-def test_reduce_lr_on_plateau_scheduler(use_attach):
+def test_reduce_lr_on_plateau_scheduler(use_attach, param_group_index):
     tensor1 = torch.zeros([1], requires_grad=True)
     tensor2 = torch.zeros([1], requires_grad=True)
     optimizer = torch.optim.SGD([{"params": [tensor1]}, {"params": [tensor2]}], lr=1)
@@ -1369,10 +1370,10 @@ def test_reduce_lr_on_plateau_scheduler(use_attach):
         patience=1,
         threshold_mode="abs",
         threshold=1.99,
-        min_lr=1e-7,
+        min_lr=0.3,
         save_history=True,
         trainer=trainer,
-        param_group_index=0,
+        param_group_index=param_group_index,
     )
     evaluator = Engine(lambda engine, batch: None)
     evaluator.state.metrics = {"acc": 0.0}
@@ -1393,10 +1394,11 @@ def test_reduce_lr_on_plateau_scheduler(use_attach):
     assert lrs == list(
         map(
             pytest.approx,
-            [1, 1, 1, 1, 1, 1, 1, 0.5, 0.5, 0.25],
+            [1, 1, 1, 1, 1, 1, 1, 0.5, 0.5, 0.3],
         )
     )
-    assert optimizer.param_groups[1]["lr"] == 1
+    if param_group_index is not None:
+        assert optimizer.param_groups[1 - param_group_index]["lr"] == 1
 
     values = ReduceLROnPlateauScheduler.simulate_values(
         5, [10, 9, 9, 9, 8.1], 1.0, save_history=True, factor=0.5, patience=2, threshold=0.1
