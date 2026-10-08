@@ -160,7 +160,7 @@ git commit -m "Added awesome feature"
 
 To enable the `pre-commit` hooks follow the steps described below:
 
-1. Run `pre-commit install` to configures a virtual environment to invoke linters and formatters on commits.
+1. Run `pre-commit install` to configure a virtual environment to invoke linters and formatters on commits.
 
 ```bash
 pip install pre-commit
