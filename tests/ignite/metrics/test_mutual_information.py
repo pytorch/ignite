@@ -82,6 +82,18 @@ def test_accumulator_detached(available_device):
     assert not mi._sum_of_probabilities.requires_grad
 
 
+def test_state_dict_round_trip(available_device):
+    metric = MutualInformation(device=available_device)
+    logits = torch.tensor([[1.0, 2.0, 3.0], [3.0, 1.0, 2.0]], device=available_device)
+    metric.update((logits, None))
+
+    state = metric.state_dict()
+    restored = MutualInformation(device=available_device)
+    restored.load_state_dict(state)
+
+    assert restored.compute() == pytest.approx(metric.compute())
+
+
 @pytest.mark.usefixtures("distributed")
 class TestDistributed:
     def test_integration(self):
