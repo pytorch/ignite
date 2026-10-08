@@ -61,6 +61,48 @@ def test_reset_clears_state():
         ppl.compute()
 
 
+@pytest.mark.parametrize("dtype", [torch.float16, torch.bfloat16, torch.float32, torch.float64])
+@pytest.mark.parametrize("batch_size", [4, 32])
+def test_uniform_logits_across_batch_sizes(dtype, batch_size):
+    ppl = Perplexity()
+    y_pred = torch.zeros(32, 16, 1024, dtype=dtype)
+    y = torch.zeros(32, 1024, dtype=torch.long)
+
+    for pred_batch, target_batch in zip(y_pred.split(batch_size), y.split(batch_size)):
+        ppl.update((pred_batch, target_batch))
+
+    # Uniform probabilities over 16 tokens give perplexity 16, independently of
+    # batch size. The total NLL exceeds the float16 range for the larger batch.
+    assert ppl.compute() == pytest.approx(16.0, rel=1e-5)
+
+
+@pytest.mark.parametrize("dtype", [torch.float16, torch.bfloat16])
+def test_low_precision_ignored_tokens_and_unequal_batches(dtype):
+    ppl = Perplexity(ignore_index=-1)
+    ppl.update((torch.zeros(1, 4, 2, dtype=dtype), torch.full((1, 2), -1)))
+    with pytest.raises(NotComputableError):
+        ppl.compute()
+
+    # One valid token with probability 1/4.
+    ppl.update((torch.zeros(1, 4, 3, dtype=dtype), torch.tensor([[0, -1, -1]])))
+    assert ppl.compute() == pytest.approx(4.0)
+
+    # Three valid tokens with probability 1/2; the other classes have negligible
+    # probability. Only the four valid tokens contribute to the mean NLL.
+    y_pred = torch.zeros(1, 4, 5, dtype=dtype)
+    y_pred[:, 2:] = -1000
+    ppl.update((y_pred, torch.tensor([[0, 1, 0, -1, -1]])))
+    assert ppl.compute() == pytest.approx(2**1.25)
+
+
+def test_float64_logits_keep_precision():
+    ppl = Perplexity()
+    # The common offset does not affect probabilities, but converting these
+    # logits to float32 would erase their difference and yield perplexity 2.
+    ppl.update((torch.tensor([[1e8, 1e8 + 1]], dtype=torch.float64), torch.tensor([1])))
+    assert ppl.compute() == pytest.approx(1.3678794411714423)
+
+
 def _reference_perplexity(y_pred, y):
     """Reference implementation: token-weighted NLL."""
     nll = F.cross_entropy(y_pred, y, reduction="sum")
