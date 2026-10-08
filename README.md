@@ -386,8 +386,7 @@ Few pointers to get you started:
 
 ## Tutorials
 
-- [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/pytorch/ignite/blob/master/examples/notebooks/TextCNN.ipynb) [Text Classification using Convolutional Neural
-  Networks](https://github.com/pytorch/ignite/blob/master/examples/notebooks/TextCNN.ipynb)
+- [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/pytorch/ignite/blob/master/examples/notebooks/TextTransformers.ipynb) [Fine-Tuning a Transformer (DistilBERT) for Text Classification with Ignite](https://github.com/pytorch/ignite/blob/master/examples/notebooks/TextTransformers.ipynb)
 - [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/pytorch/ignite/blob/master/examples/notebooks/VAE.ipynb) [Variational Auto
   Encoders](https://github.com/pytorch/ignite/blob/master/examples/notebooks/VAE.ipynb)
 - [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/pytorch/ignite/blob/master/examples/notebooks/FashionMNIST.ipynb) [Convolutional Neural Networks for Classifying Fashion-MNIST
