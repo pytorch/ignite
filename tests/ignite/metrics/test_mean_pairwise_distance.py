@@ -1,10 +1,13 @@
 import os
+from typing import Callable
+from unittest.mock import MagicMock
 
 import numpy as np
 import pytest
 import torch
 
 import ignite.distributed as idist
+from ignite.engine import State
 from ignite.exceptions import NotComputableError
 from ignite.metrics import MeanPairwiseDistance
 
@@ -15,6 +18,34 @@ def test_zero_sample():
         NotComputableError, match=r"MeanPairwiseDistance must have at least one example before it can be computed"
     ):
         mpd.compute()
+
+
+def test_skip_unrolling():
+    class DummyMPD(MeanPairwiseDistance):
+        def __init__(
+            self,
+            true_output,
+            output_transform: Callable = lambda x: x,
+            device: str | torch.device = torch.device("cpu"),
+            skip_unrolling: bool = False,
+        ):
+            super().__init__(output_transform=output_transform, device=device, skip_unrolling=skip_unrolling)
+            self.true_output = true_output
+
+        def update(self, output):
+            assert output == self.true_output
+
+    a_pred = torch.rand(8, 1)
+    b_pred = torch.rand(8, 1)
+    y_pred = [a_pred, b_pred]
+    a_true = torch.rand(8, 1)
+    b_true = torch.rand(8, 1)
+    y_true = [a_true, b_true]
+
+    mpd = DummyMPD(true_output=(y_pred, y_true), skip_unrolling=True)
+    state = State(output=(y_pred, y_true))
+    engine = MagicMock(state=state)
+    mpd.iteration_completed(engine)
 
 
 @pytest.fixture(params=[item for item in range(4)])
