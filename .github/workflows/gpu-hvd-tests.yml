@@ -15,88 +15,37 @@ concurrency:
   group: gpu-hvd-tests-${{ github.ref_name }}-${{ !(github.ref_protected) || github.sha }}
   cancel-in-progress: true
 
-# Cherry-picked from https://github.com/pytorch/test-infra/blob/main/.github/workflows/linux_job.yml
-
 jobs:
   gpu-hvd-tests:
     strategy:
       matrix:
         pytorch-channel: [pytorch]
       fail-fast: false
-    env:
-      DOCKER_IMAGE: "pytorch/almalinux-builder:cuda12.8"
-      REPOSITORY: ${{ github.repository }}
-      PR_NUMBER: ${{ github.event.pull_request.number }}
-    runs-on: linux.8xlarge.nvidia.gpu
+    runs-on: mt-l-x86aavx2-11-41-a10g
+    container:
+      image: pytorch/almalinux-builder:cuda12.8
+      options: --gpus all
     timeout-minutes: 60
 
     steps:
-      - name: Clean workspace
-        run: |
-          echo "::group::Cleanup debug output"
-          sudo rm -rfv "${GITHUB_WORKSPACE}"
-          mkdir -p "${GITHUB_WORKSPACE}"
-          echo "::endgroup::"
-
-      - name: Checkout repository (pytorch/test-infra)
+      - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # Support the use case where we need to checkout someone's fork
-          repository: pytorch/test-infra
-          path: test-infra
-
-      - name: Setup Linux
-        uses: ./test-infra/.github/actions/setup-linux
-
-      - name: Pull docker image
-        uses: ./test-infra/.github/actions/pull-docker-image
-        with:
-          docker-image: ${{ env.DOCKER_IMAGE }}
-
-      - name: Checkout repository (${{ github.repository }})
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          # Support the use case where we need to checkout someone's fork
-          repository: ${{ github.repository }}
-          ref: ${{ github.ref }}
-          path: ${{ github.repository }}
           fetch-depth: 1
 
-      - name: Start Pytorch container
-        working-directory: ${{ github.repository }}
+      - name: Show the environment
         run: |
-          docker run --name pthd --gpus=all --rm \
-            --cap-add=SYS_PTRACE \
-            --detach \
-            --ipc=host \
-            --security-opt seccomp=unconfined \
-            --shm-size=2g \
-            --tty \
-            --ulimit stack=10485760:83886080 \
-            -v $PWD:/work \
-            -w /work \
-            ${DOCKER_IMAGE}
+          set -xe
 
-          script=$(cat << EOF
+          nvidia-smi
+          ls -alh
 
-            set -xe
-
-            nvidia-smi
-            ls -alh
-
-            conda --version
-            python --version
-
-          EOF
-          )
-          docker exec -t pthd /bin/bash -c "${script}"
+          conda --version
+          python --version
 
       - name: Install PyTorch and dependencies
         continue-on-error: false
         run: |
-
-          script=$(cat << EOF
-
           set -xe
 
           # Install PyTorch
@@ -117,15 +66,8 @@ jobs:
           # AttributeError: module 'lib' has no attribute 'X509_V_FLAG_NOTIFY_POLICY'. Did you mean: 'X509_V_FLAG_EXPLICIT_POLICY'?
           pip install -U pyOpenSSL
 
-          EOF
-          )
-
-          docker exec -t pthd /bin/bash -c "${script}"
-
       - name: Install Horovod with NCCL GPU ops
         run: |
-          script=$(cat << EOF
-
           set -xe
 
           # Can't build Horovod with recent pytorch due to pytorch required C++17 standard
@@ -142,38 +84,23 @@ jobs:
           horovodrun --check-build
           pip list
 
-          EOF
-          )
-
-          docker exec -t pthd /bin/bash -c "${script}"
-
       - name: Run GPU and CPU Unit HVD Tests
         run: |
-
-          script=$(cat << EOF
-
           set -xe
 
           bash tests/run_gpu_tests.sh 2 hvd
           CUDA_VISIBLE_DEVICES="" pytest --cov ignite --cov-append --cov-report term-missing --cov-report xml -vvv tests/ignite -m distributed -k hvd
 
-          EOF
-          )
-
-          docker exec -t pthd /bin/bash -c "${script}"
-
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
-          files: ${{ github.repository }}/coverage.xml
+          files: coverage.xml
           flags: gpu-2
           fail_ci_if_error: false
 
-      - name: Run examples in container
+      - name: Run examples
         continue-on-error: false
         run: |
-          SCRIPT=$(cat << EOF
-
           set -xe
 
           # Install additional example dependencies
@@ -190,12 +117,3 @@ jobs:
           CI=1 python -u examples/cifar10/main.py run --backend=horovod --nproc_per_node=2 --checkpoint_every=200 --stop_iteration=500
           # resume
           CI=1 python -u examples/cifar10/main.py run --backend=horovod --nproc_per_node=2 --checkpoint_every=200 --num_epochs=7 --resume-from=/tmp/output-cifar10/resnet18_backend-horovod-2_stop-on-500/training_checkpoint_400.pt
-
-          EOF
-          )
-
-          docker exec -t pthd /bin/bash -c "${script}"
-
-      - name: Teardown Linux
-        if: ${{ always() }}
-        uses: ./test-infra/.github/actions/teardown-linux
