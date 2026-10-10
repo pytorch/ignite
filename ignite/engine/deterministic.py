@@ -62,12 +62,13 @@ class ReproducibleBatchSampler(BatchSampler):
             raise TypeError("Argument batch_sampler should be torch.utils.data.sampler.BatchSampler")
 
         self.batch_indices: list = []
+        self._batch_indices_ready = False
         self.batch_sampler = batch_sampler
         self.start_iteration = start_iteration
         self.sampler = self.batch_sampler.sampler
 
     def setup_batch_indices(self) -> None:
-        """Setup batch indices."""
+        """Prepare batch indices for the next iteration."""
         self.batch_indices = []
         for batch in self.batch_sampler:
             self.batch_indices.append(batch)
@@ -75,9 +76,12 @@ class ReproducibleBatchSampler(BatchSampler):
         if self.start_iteration is not None:
             self.batch_indices = self.batch_indices[self.start_iteration :]
             self.start_iteration = None
+        self._batch_indices_ready = True
 
     def __iter__(self) -> Generator:
-        self.setup_batch_indices()
+        if not self._batch_indices_ready:
+            self.setup_batch_indices()
+        self._batch_indices_ready = False
         for batch in self.batch_indices:
             yield batch
 
@@ -175,6 +179,9 @@ class DeterministicEngine(Engine):
     Args:
         process_function: A function receiving a handle to the engine and the current batch
             in each iteration, and returns data to be stored in the engine's state.
+
+    .. versionchanged:: 0.6.0
+        Preserve shuffled batch order when resuming a DataLoader with ``num_workers=0`` within an epoch.
     """
 
     def __init__(self, process_function: Callable[[Engine, Any], Any]):
@@ -262,7 +269,16 @@ class DeterministicEngine(Engine):
                 if iteration > 0:
                     # batch sampler is ReproducibleBatchSampler
                     data.batch_sampler.start_iteration = iteration  # type: ignore[union-attr]
-                return iter(data)
+                data_iter = iter(data)
+                if (
+                    iteration > 0
+                    and isinstance(data.batch_sampler, ReproducibleBatchSampler)
+                    and getattr(data, "num_workers", None) == 0
+                ):
+                    # Single-process loaders defer sampling until the first batch. Materialize
+                    # indices before the checkpoint RNG state is restored in _setup_engine.
+                    data.batch_sampler.setup_batch_indices()
+                return data_iter
             except TypeError as e:
                 # Probably we can do nothing with DataLoader built upon IterableDatasets
                 pass
