@@ -1,14 +1,22 @@
 import logging
 import platform
 import sys
-from collections import namedtuple
+from collections import defaultdict, namedtuple
 
 import pytest
 import torch
 from packaging.version import Version
 
-from ignite.engine import Engine, Events
-from ignite.utils import _to_str_list, convert_tensor, deprecated, hash_checkpoint, setup_logger, to_onehot
+from ignite.engine import create_supervised_trainer, Engine, Events
+from ignite.utils import (
+    apply_to_type,
+    _to_str_list,
+    convert_tensor,
+    deprecated,
+    hash_checkpoint,
+    setup_logger,
+    to_onehot,
+)
 
 
 def test_convert_tensor():
@@ -53,6 +61,58 @@ def test_convert_tensor():
 
     with pytest.raises(TypeError):
         convert_tensor(12345)
+
+
+@pytest.mark.parametrize("default_factory", [None, list])
+@pytest.mark.parametrize("device", [None, "cpu"])
+@pytest.mark.parametrize("nested", [False, True])
+def test_convert_tensor_defaultdict(default_factory, device, nested):
+    features = defaultdict(default_factory, {"x": torch.tensor([1.0, 2.0])})
+    batch = {"features": features} if nested else features
+
+    converted = convert_tensor(batch, device=device, non_blocking=True)
+    result = converted["features"] if nested else converted
+    assert isinstance(result, defaultdict)
+    assert result is not features
+    assert result.default_factory is default_factory
+    torch.testing.assert_close(result["x"], features["x"])
+
+    transformed = apply_to_type(batch, torch.Tensor, lambda tensor: tensor + 1)
+    transformed_features = transformed["features"] if nested else transformed
+    assert transformed_features.default_factory is default_factory
+    torch.testing.assert_close(transformed_features["x"], torch.tensor([2.0, 3.0]))
+    torch.testing.assert_close(features["x"], torch.tensor([1.0, 2.0]))
+    if default_factory is None:
+        with pytest.raises(KeyError):
+            result["missing"]
+    else:
+        assert result["missing"] == []
+    assert "missing" not in features
+
+
+@pytest.mark.parametrize("default_factory", [None, list])
+@pytest.mark.parametrize("nested", [False, True])
+def test_supervised_trainer_defaultdict_batch(default_factory, nested):
+    features = defaultdict(default_factory, {"x": torch.tensor([1.0])})
+    batch = {"features": features} if nested else features
+    loader = torch.utils.data.DataLoader([(batch, torch.tensor([0.0]))] * 2, batch_size=2)
+    model = torch.nn.Linear(1, 1)
+    with torch.no_grad():
+        model.weight.fill_(1.0)
+        model.bias.zero_()
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+    initial_weight = model.weight.detach().clone()
+
+    def model_fn(model, inputs):
+        return model(inputs["features"]["x"] if nested else inputs["x"])
+
+    trainer = create_supervised_trainer(model, optimizer, torch.nn.MSELoss(), device="cpu", model_fn=model_fn)
+
+    state = trainer.run(loader)
+
+    assert state.iteration == 1
+    assert isinstance(state.output, float)
+    assert not torch.equal(model.weight, initial_weight)
 
 
 @pytest.mark.parametrize(

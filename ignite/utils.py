@@ -9,6 +9,7 @@ import random
 import shutil
 import warnings
 from pathlib import Path
+from collections import defaultdict
 from collections.abc import Callable
 from typing import Any, cast, TextIO, TypeVar
 
@@ -75,7 +76,10 @@ def apply_to_type(
     if isinstance(x, (str, bytes)):
         return x
     if isinstance(x, collections.Mapping):
-        return cast(Callable, type(x))({k: apply_to_type(sample, input_type, func) for k, sample in x.items()})
+        mapped = {k: apply_to_type(sample, input_type, func) for k, sample in x.items()}
+        if isinstance(x, defaultdict):
+            return type(x)(x.default_factory, mapped)
+        return cast(Callable, type(x))(mapped)
     if isinstance(x, tuple) and hasattr(x, "_fields"):  # namedtuple
         return cast(Callable, type(x))(*(apply_to_type(sample, input_type, func) for sample in x))
     if isinstance(x, collections.Sequence):
