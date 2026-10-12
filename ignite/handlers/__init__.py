@@ -3,6 +3,7 @@ from ignite.engine.events import Events
 from ignite.handlers.checkpoint import Checkpoint, DiskSaver, ModelCheckpoint
 from ignite.handlers.clearml_logger import ClearMLLogger
 from ignite.handlers.early_stopping import EarlyStopping
+from ignite.handlers.no_improvement_handler import NoImprovementHandler
 from ignite.handlers.ema_handler import EMAHandler
 from ignite.handlers.fbresearch_logger import FBResearchLogger
 from ignite.handlers.lr_finder import FastaiLRFinder
@@ -50,6 +51,7 @@ __all__ = [
     "DiskSaver",
     "Timer",
     "EarlyStopping",
+    "NoImprovementHandler",
     "TerminateOnNan",
     "global_step_from_engine",
     "TimeLimit",
