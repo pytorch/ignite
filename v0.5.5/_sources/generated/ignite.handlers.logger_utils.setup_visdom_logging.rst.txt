@@ -1,0 +1,6 @@
+﻿setup\_visdom\_logging
+======================
+
+.. currentmodule:: ignite.handlers.logger_utils
+
+.. autofunction:: setup_visdom_logging

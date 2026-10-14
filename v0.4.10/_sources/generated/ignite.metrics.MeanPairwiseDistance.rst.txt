@@ -1,0 +1,43 @@
+﻿MeanPairwiseDistance
+====================
+
+.. currentmodule:: ignite.metrics
+
+.. autoclass:: MeanPairwiseDistance
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~MeanPairwiseDistance.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~MeanPairwiseDistance.reset
+   
+   
+   
+   
+   
+      ~MeanPairwiseDistance.update
+   
+   
+   
+   

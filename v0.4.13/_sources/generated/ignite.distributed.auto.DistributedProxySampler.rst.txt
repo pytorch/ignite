@@ -1,0 +1,21 @@
+﻿DistributedProxySampler
+=======================
+
+.. currentmodule:: ignite.distributed.auto
+
+.. autoclass:: DistributedProxySampler
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
