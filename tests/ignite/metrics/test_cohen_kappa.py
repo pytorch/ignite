@@ -97,6 +97,39 @@ def test_binary_input(n_times, weights, test_data_binary, available_device):
     assert cohen_kappa_score(np_y, np_y_pred, weights=weights) == pytest.approx(res, abs=tol)
 
 
+def test_state_dict_is_not_empty():
+    # CohenKappa delegates its state to ``self._impl``; if that is not declared as
+    # required state, ``state_dict()`` silently returns nothing and the accumulated
+    # values are lost on resume.
+    for kwargs in ({}, {"num_classes": 2}):
+        ck = CohenKappa(**kwargs)
+        ck.update((torch.randint(0, 2, size=(10,)).float(), torch.randint(0, 2, size=(10,)).long()))
+        state = ck.state_dict()["__metric_state_per_rank"][0]
+        assert "_impl" in state
+
+
+@pytest.mark.parametrize("weights", [None, "linear", "quadratic"])
+def test_state_dict_round_trip(weights):
+    batches = [(torch.randint(0, 2, size=(10,)).float(), torch.randint(0, 2, size=(10,)).long()) for _ in range(4)]
+
+    # reference value from a metric that never went through a checkpoint
+    reference = CohenKappa(num_classes=2, weights=weights)
+    for batch in batches:
+        reference.update(batch)
+
+    ck = CohenKappa(num_classes=2, weights=weights)
+    for batch in batches[:3]:
+        ck.update(batch)
+    state_dict = ck.state_dict()
+
+    # resuming must restore the accumulated state and keep accumulating on top of it
+    ck.reset()
+    ck.load_state_dict(state_dict)
+    ck.update(batches[3])
+
+    assert ck.compute() == pytest.approx(reference.compute())
+
+
 def test_multilabel_inputs():
     ck = CohenKappa()
 

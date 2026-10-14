@@ -348,6 +348,14 @@ nitpicky = True
 nitpick_ignore = [
     ("py:class", ".."),
     ("py:class", "TextIO"),
+    ("py:class", "collections.abc.Callable"),
+    ("py:class", "collections.abc.Iterable"),
+    ("py:class", "collections.abc.Mapping"),
+    ("py:class", "collections.abc.Sequence"),
+    ("py:class", "collections.OrderedDict"),
+    ("py:class", "enum.Enum"),
+    ("py:class", "logging.Logger"),
+    ("py:class", "pathlib.Path"),
     ("py:class", "torch.device"),
     ("py:class", "_MpDeviceLoader"),
     ("py:class", "torch.nn.modules.module.Module"),
@@ -426,6 +434,7 @@ linkcheck_allowed_redirects = {
     r"https://github\.com/allegroai/clearml": r"https://github\.com/clearml/clearml",
     r"https://horovod\.readthedocs\.io/?$": r"https://horovod\.readthedocs\.io/.*",
     r"https://docs\.wandb\.ai/ref/.*": r"https://docs\.wandb\.ai/models/.*",
+    r"https://docs\.wandb\.ai/models/.*": r"https://docs\.coreweave\.com/products/wandb/.*",
 }
 
 

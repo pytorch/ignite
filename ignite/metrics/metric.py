@@ -773,12 +773,12 @@ class Metric(Serializable, metaclass=ABCMeta):
     def __truediv__(self, other: Any) -> "MetricsLambda":
         from ignite.metrics.metrics_lambda import MetricsLambda
 
-        return MetricsLambda(lambda x, y: x.__truediv__(y), self, other)
+        return MetricsLambda(lambda x, y: x / y, self, other)
 
     def __rtruediv__(self, other: Any) -> "MetricsLambda":
         from ignite.metrics.metrics_lambda import MetricsLambda
 
-        return MetricsLambda(lambda x, y: x.__truediv__(y), other, self)
+        return MetricsLambda(lambda x, y: x / y, other, self)
 
     def __floordiv__(self, other: Any) -> "MetricsLambda":
         from ignite.metrics.metrics_lambda import MetricsLambda

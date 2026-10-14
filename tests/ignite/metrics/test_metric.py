@@ -131,7 +131,8 @@ def test_no_grad():
     metric.iteration_completed(engine)
 
 
-def test_arithmetics():
+@pytest.mark.parametrize("as_tensor", [False, True])
+def test_arithmetics(as_tensor):
     class ListGatherMetric(Metric):
         def __init__(self, index):
             self.index = index
@@ -141,7 +142,7 @@ def test_arithmetics():
             self.list_ = []
 
         def update(self, output):
-            self.list_ = output
+            self.list_ = torch.tensor(output, dtype=torch.float64) if as_tensor else output
 
         def compute(self):
             return self.list_[self.index]

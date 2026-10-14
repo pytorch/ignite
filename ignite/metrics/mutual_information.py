@@ -74,7 +74,7 @@ class MutualInformation(Entropy):
         ``skip_unrolling`` argument is added.
     """
 
-    _state_dict_all_req_keys = ("_sum_of_probabilities",)
+    _state_dict_all_req_keys = Entropy._state_dict_all_req_keys + ("_sum_of_probabilities",)
 
     @reinit__is_reduced
     def reset(self) -> None:
