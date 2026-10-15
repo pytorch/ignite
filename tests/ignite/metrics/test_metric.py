@@ -1146,6 +1146,7 @@ class DummyMetric4(Metric):
         "metric",
         "metric_dict",
         "metric_list",
+        "list_values",
         "initially_none",
     )
 
@@ -1188,6 +1189,7 @@ class DummyMetric4(Metric):
                 },
                 value + 234,
             ],
+            "list_values": [torch.tensor(value + 19), value + 20, value + 21.5, None],
             "initially_none": None,
         }
         return expected_state
@@ -1233,6 +1235,7 @@ class DummyMetric4(Metric):
         self.metric_list[1]._weight = self.expected_state["metric_list"][1]["_weight"]
         self.metric_list[1]._updated = self.expected_state["metric_list"][1]["_updated"]
 
+        self.list_values = self.expected_state["list_values"]
         self.initially_none = None
 
     def reset(self):
@@ -1247,6 +1250,7 @@ class DummyMetric4(Metric):
         for m in self.metric_list:
             if isinstance(m, Metric):
                 m.reset()
+        self.list_values = []
         self.initially_none = None
 
     def update(self, output):
