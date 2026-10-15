@@ -106,29 +106,45 @@ class ComputationModel(metaclass=ABCMeta):
         return cast(int, size.item())
 
     @staticmethod
-    def _encode_input_data(x: torch.Tensor | float | str | Path | None, is_src: bool) -> list[int]:
+    def _input_type_tag(x: torch.Tensor | float | str | Path | Any) -> int:
+        # Which collective the input has to go through. Tags 0-3 are sent as tensors; tag 4 is
+        # anything else, which travels as a pickled object. `broadcast` classifies the input
+        # with this helper in both safe and non-safe mode so the two cannot drift apart.
+        if isinstance(x, torch.Tensor):
+            return 0
+        if isinstance(x, Number):
+            return 1
+        if isinstance(x, str):
+            return 2
+        if isinstance(x, Path):
+            # Keep a distinct tag so non-source ranks in safe mode can reconstruct
+            # Path placeholders and return Path values rather than strings.
+            return 3
+        return 4
+
+    @staticmethod
+    def _encode_input_data(x: torch.Tensor | float | str | Path | Any, is_src: bool) -> list[int]:
         encoded_msg = [-1] * 512
         if not is_src:
             # Discard input type if not source
             return encoded_msg
 
-        if isinstance(x, torch.Tensor):
-            shape = x.shape
-            dtype = str(x.dtype)
-            msg = [0, len(shape), *shape, len(dtype), *list(bytearray(dtype, "utf-8"))]
+        tag = ComputationModel._input_type_tag(x)
+        if tag == 0:
+            shape = cast(torch.Tensor, x).shape
+            dtype = str(cast(torch.Tensor, x).dtype)
+            msg = [tag, len(shape), *shape, len(dtype), *list(bytearray(dtype, "utf-8"))]
             encoded_msg[: len(msg)] = msg
-        elif isinstance(x, Number):
-            encoded_msg[0] = 1
-        elif isinstance(x, str):
-            encoded_msg[0] = 2
-        elif isinstance(x, Path):
-            # Keep a distinct tag so non-source ranks in safe mode can reconstruct
-            # Path placeholders and return Path values rather than strings.
-            encoded_msg[0] = 3
+        else:
+            # Nothing else needs encoding: the remaining tags either have a fixed placeholder
+            # or, for tag 4, carry their own type inside the pickled payload.
+            encoded_msg[0] = tag
         return encoded_msg
 
     @staticmethod
-    def _decode_as_placeholder(encoded_msg: list[int], device: torch.device) -> torch.Tensor | float | str | Path:
+    def _decode_as_placeholder(
+        encoded_msg: list[int], device: torch.device
+    ) -> torch.Tensor | float | str | Path | None:
         if encoded_msg[0] == 0:
             len_shape = encoded_msg[1]
             le = 2 + len_shape
@@ -143,22 +159,29 @@ class ComputationModel(metaclass=ABCMeta):
             return ""
         elif encoded_msg[0] == 3:
             return Path("")
+        elif encoded_msg[0] == 4:
+            # Object collectives receive into a plain None slot, no placeholder needed.
+            return None
         else:
             raise RuntimeError(f"Internal error: unhandled dtype {encoded_msg[0]}, encoded_msg={encoded_msg}")
 
     def _setup_placeholder(
-        self, x: torch.Tensor | float | str | Path | None, device: torch.device, is_src: bool
-    ) -> torch.Tensor | float | str | Path:
+        self, x: torch.Tensor | float | str | Path | Any, device: torch.device, is_src: bool
+    ) -> tuple[torch.Tensor | float | str | Path | Any, int]:
+        # Returns the placeholder along with the input type tag agreed on by every rank. The
+        # tag is what callers must branch on: once objects are in play a non-source rank
+        # cannot tell from its own value alone which collective the source is about to call.
         encoded_msg_per_rank = self._encode_input_data(x, is_src)
         encoded_msg_all_ranks = self._do_all_reduce(torch.tensor(encoded_msg_per_rank, device=device), op="MAX")
+
+        encoded_msg = encoded_msg_all_ranks.cpu().tolist()
 
         if is_src:
             if x is None:
                 raise RuntimeError("Internal error, x is None. Please, file an issue if you encounter this error.")
-            return x
+            return x, encoded_msg[0]
 
-        encoded_msg = encoded_msg_all_ranks.cpu().tolist()
-        return self._decode_as_placeholder(encoded_msg, device)
+        return self._decode_as_placeholder(encoded_msg, device), encoded_msg[0]
 
     @staticmethod
     def _decode_str(xs: torch.Tensor) -> list[str]:
@@ -240,11 +263,8 @@ class ComputationModel(metaclass=ABCMeta):
             raise ValueError("Argument ranks should be list of int")
 
     def broadcast(
-        self, tensor: torch.Tensor | float | str | Path | None, src: int = 0, safe_mode: bool = False
-    ) -> torch.Tensor | float | str | Path:
-        if not (isinstance(tensor, (torch.Tensor, Number, str, Path)) or tensor is None):
-            raise TypeError(f"Unhandled input type {type(tensor)}")
-
+        self, tensor: torch.Tensor | float | str | Path | Any, src: int = 0, safe_mode: bool = False
+    ) -> torch.Tensor | float | str | Path | Any:
         rank = self.get_rank()
         if tensor is None:
             if rank == src:
@@ -256,7 +276,17 @@ class ComputationModel(metaclass=ABCMeta):
         tensor_to_number = tensor_to_str = tensor_to_path = False
 
         if safe_mode:
-            tensor = self._setup_placeholder(tensor, device, rank == src)
+            tensor, input_type = self._setup_placeholder(tensor, device, rank == src)
+        else:
+            # Without safe mode there is no negotiation: every rank is required to pass the
+            # same input type, so each one can classify its own value and reach the same
+            # collective.
+            input_type = self._input_type_tag(tensor)
+
+        if input_type == 4:
+            # Picklable object: the payload carries its own type, so no placeholder is
+            # involved and `tensor` is legitimately None on non-source ranks.
+            return self._do_broadcast_object_list(tensor, src=src)
 
         if tensor is None:
             raise RuntimeError("Internal error, tensor is None. Please, file an issue if you encounter this error.")
@@ -301,6 +331,10 @@ class ComputationModel(metaclass=ABCMeta):
 
     @abstractmethod
     def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
+        pass
+
+    @abstractmethod
+    def _do_broadcast_object_list(self, tensor: Any, src: int) -> Any:
         pass
 
     @abstractmethod
@@ -384,8 +418,8 @@ class _SerialModel(ComputationModel):
         return cast(list[float] | list[str] | list[Any], [tensor])
 
     def broadcast(
-        self, tensor: torch.Tensor | float | str | Path | None, src: int = 0, safe_mode: bool = False
-    ) -> torch.Tensor | float | str | Path:
+        self, tensor: torch.Tensor | float | str | Path | Any, src: int = 0, safe_mode: bool = False
+    ) -> torch.Tensor | float | str | Path | Any:
         if tensor is None:
             raise ValueError("Argument tensor should not be None")
         return tensor
@@ -403,6 +437,9 @@ class _SerialModel(ComputationModel):
         return ranks
 
     def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
+        return tensor
+
+    def _do_broadcast_object_list(self, tensor: Any, src: int) -> Any:
         return tensor
 
     def barrier(self) -> None:
