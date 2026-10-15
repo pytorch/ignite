@@ -1,12 +1,17 @@
 import warnings
-from collections.abc import Callable
-from typing import cast
+from collections.abc import Callable, Mapping, Sequence
+from numbers import Number
+from typing import Union, cast
 
 import torch
 
 import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
 from ignite.metrics.metric import Metric, reinit__is_reduced
+from ignite.utils import apply_to_type
+
+# Supported return types for ``EpochMetric``'s ``compute_fn``.
+EpochMetricOutput = Union[int, float, torch.Tensor, Sequence, Mapping]
 
 __all__ = ["EpochMetric"]
 
@@ -30,7 +35,13 @@ class EpochMetric(Metric):
 
     Args:
         compute_fn: a callable which receives two tensors as the `predictions` and `targets`
-            and returns a scalar. Input tensors will be on specified ``device`` (see arg below).
+            and returns the computed metric. Supported return types are: a number,
+            ``torch.Tensor``, a ``Sequence`` (tuple/list) or a ``Mapping`` (dict) of these,
+            including arbitrarily nested combinations. An unsupported return type raises a
+            ``TypeError``. In distributed configuration (``world_size > 1``) the result is
+            shared from rank 0 to all other ranks; container return types are not supported
+            on the ``xla`` backend, which has no object collective. Input tensors will be on
+            specified ``device`` (see arg below).
         output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
@@ -93,7 +104,7 @@ class EpochMetric(Metric):
     def reset(self) -> None:
         self._predictions: list[torch.Tensor] = []
         self._targets: list[torch.Tensor] = []
-        self._result: float | None = None
+        self._result: EpochMetricOutput | None = None
 
     def _check_shape(self, output: tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output
@@ -142,7 +153,25 @@ class EpochMetric(Metric):
             except Exception as e:
                 warnings.warn(f"Probably, there can be a problem with `compute_fn`:\n {e}.", EpochMetricWarning)
 
-    def compute(self) -> float:
+    def _check_output_type(self, result: EpochMetricOutput) -> None:
+        # Recursively validate that compute_fn's output is a supported type. ``str``/``bytes``
+        # are rejected explicitly since ``str`` is itself a ``Sequence``.
+        if isinstance(result, (Number, torch.Tensor)):
+            return
+        if isinstance(result, Mapping):
+            for value in result.values():
+                self._check_output_type(value)
+            return
+        if isinstance(result, Sequence) and not isinstance(result, (str, bytes)):
+            for value in result:
+                self._check_output_type(value)
+            return
+        raise TypeError(
+            f"compute_fn output type {type(result)} is not supported. Supported types are: "
+            "a number, torch.Tensor, or a Sequence/Mapping of these."
+        )
+
+    def compute(self) -> EpochMetricOutput:
         if len(self._predictions) < 1 or len(self._targets) < 1:
             raise NotComputableError(f"{type(self).__name__} must have at least one example before it can be computed.")
 
@@ -156,14 +185,41 @@ class EpochMetric(Metric):
                 _prediction_tensor = cast(torch.Tensor, idist.all_gather(_prediction_tensor))
                 _target_tensor = cast(torch.Tensor, idist.all_gather(_target_tensor))
 
-            self._result = 0.0
+            result: EpochMetricOutput = 0.0
             if idist.get_rank() == 0:
                 # Run compute_fn on zero rank only
-                self._result = self.compute_fn(_prediction_tensor, _target_tensor)
+                result = self.compute_fn(_prediction_tensor, _target_tensor)
 
             if ws > 1:
-                # broadcast result to all processes
-                self._result = cast(float, idist.broadcast(self._result, src=0))
+                # compute_fn runs on rank 0 only, so its output has to be shared. Numbers and
+                # tensors go through `idist.broadcast`; containers need an object collective,
+                # which `idist.all_gather` provides on every backend but xla. Non-src ranks
+                # hold a placeholder instead of the result, so they cannot tell which of the
+                # two to call -- rank 0 shares that choice first to keep all ranks on one path.
+                is_leaf = bool(idist.broadcast(int(isinstance(result, (Number, torch.Tensor))), src=0))
+                if is_leaf:
+                    leaf = cast(Union[torch.Tensor, float], result)
+                    result = cast(EpochMetricOutput, idist.broadcast(leaf, src=0, safe_mode=True))
+                else:
+                    # wrapped in a list so that all_gather takes its object path: a bare number
+                    # or tensor would be treated as data to concatenate across ranks
+                    result = cast(list, idist.all_gather([result]))[0][0]
+
+            # Every rank holds the real result by now, so this raises on all of them together.
+            self._check_output_type(result)
+
+            if ws > 1 and not isinstance(result, (Number, torch.Tensor)):
+                # An object collective pickles tensors together with their device, so on this
+                # rank they would come back pointing at rank 0's device. `Number` is part of
+                # ``input_type`` only to stop the recursion on non-tensor leaves.
+                moved = apply_to_type(
+                    result,
+                    (torch.Tensor, Number),
+                    lambda value: value.to(self._device) if isinstance(value, torch.Tensor) else value,
+                )
+                result = cast(EpochMetricOutput, moved)
+
+            self._result = cast(EpochMetricOutput, result)
 
         return self._result
 
