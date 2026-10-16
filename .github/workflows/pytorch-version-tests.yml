@@ -43,6 +43,7 @@ jobs:
       - name: Install dependencies
         shell: bash -l {0}
         run: |
+          set -e  # Safety lock in case the installation fails
           uv pip install "torch==${{ matrix.pytorch-version }}" torchvision --index-url https://download.pytorch.org/whl/cpu
 
           # We should install numpy<2.0 for pytorch<2.3
