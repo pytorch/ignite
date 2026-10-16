@@ -6,9 +6,6 @@ on:
     # Run at 00:00 UTC Every Day
     - cron: "0 0 * * *"
   workflow_dispatch:
-  push:
-    branches:
-      - parth-bansal081-fix-3897-safetylock
 
 jobs:
   build:
