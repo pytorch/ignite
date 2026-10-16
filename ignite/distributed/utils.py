@@ -398,10 +398,10 @@ def all_gather_tensors_with_shapes(
     all_padded_tensors: torch.Tensor = cast(torch.Tensor, _model.all_gather(padded_tensor, group=group))
     return [
         all_padded_tensors[
-            [
+            tuple(
                 slice(rank * max_shape[0] if dim == 0 else 0, rank * max_shape[0] + dim_size if dim == 0 else dim_size)
                 for dim, dim_size in enumerate(shape)
-            ]
+            )
         ]
         for rank, shape in enumerate(shapes)
     ]
