@@ -979,19 +979,33 @@ def test_engine_integration(get_sample, available_device):
     assert np.allclose(res_50_95, pycoco_res_50_95)
 
 
+@pytest.mark.parametrize("with_iscrowd", [False, True])
+def test_tensor_list_output_transform(with_iscrowd):
+    y_pred = [torch.tensor([[0.0, 0.0, 10.0, 10.0, 0.9, 0.0]])]
+    target = torch.tensor([[0.0, 0.0, 10.0, 10.0, 0.0, 0.0]])
+    y = [target if with_iscrowd else target[:, :5]]
+    engine = Engine(lambda engine, batch: batch)
+    metric = ObjectDetectionAvgPrecisionRecall(num_classes=1, output_transform=coco_tensor_list_to_dict_list)
+    metric.attach(engine, "detection")
+
+    state = engine.run([(y_pred, y)])
+
+    assert state.metrics["detection"] == (1.0, 1.0)
+
+
 def test_tensor_list_to_dict_list():
     y_preds = [
         [torch.randn((2, 6)), torch.randn((0, 6)), torch.randn((5, 6))],
         [
-            {"bbox": torch.randn((2, 4)), "confidence": torch.randn((2,)), "class": torch.randn((2,))},
-            {"bbox": torch.randn((5, 4)), "confidence": torch.randn((5,)), "class": torch.randn((5,))},
+            {"bbox": torch.randn((2, 4)), "scores": torch.randn((2,)), "labels": torch.randint(0, 2, (2,))},
+            {"bbox": torch.randn((5, 4)), "scores": torch.randn((5,)), "labels": torch.randint(0, 2, (5,))},
         ],
     ]
     ys = [
         [torch.randn((2, 6)), torch.randn((0, 6)), torch.randn((5, 6))],
         [
-            {"bbox": torch.randn((2, 4)), "class": torch.randn((2,))},
-            {"bbox": torch.randn((5, 4)), "class": torch.randn((5,))},
+            {"bbox": torch.randn((2, 4)), "labels": torch.randint(0, 2, (2,))},
+            {"bbox": torch.randn((5, 4)), "labels": torch.randint(0, 2, (5,))},
         ],
     ]
     for y_pred in y_preds:
@@ -1003,8 +1017,8 @@ def test_tensor_list_to_dict_list():
                 assert all(
                     [
                         (ypn["bbox"] == yp[:, :4]).all()
-                        & (ypn["confidence"] == yp[:, 4]).all()
-                        & (ypn["class"] == yp[:, 5]).all()
+                        & (ypn["scores"] == yp[:, 4]).all()
+                        & (ypn["labels"] == yp[:, 5].long()).all()
                         for yp, ypn in zip(y_pred, y_pred_new)
                     ]
                 )
@@ -1014,8 +1028,8 @@ def test_tensor_list_to_dict_list():
                 assert all(
                     [
                         (ytn["bbox"] == yt[:, :4]).all()
-                        & (ytn["class"] == yt[:, 4]).all()
-                        & (ytn["iscrowd"] == yt[:, 5]).all()
+                        & (ytn["labels"] == yt[:, 4].long()).all()
+                        & (ytn["iscrowd"] == yt[:, 5].bool()).all()
                         for yt, ytn in zip(y, y_new)
                     ]
                 )
