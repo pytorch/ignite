@@ -1410,6 +1410,25 @@ def test_reduce_lr_on_plateau_scheduler(use_attach):
     )
 
 
+def test_reduce_lr_on_plateau_scheduler_state_dict(tmp_path):
+    optimizer = torch.optim.SGD([torch.zeros([1], requires_grad=True)], lr=1.0)
+    trainer = Engine(lambda engine, batch: None)
+    scheduler = ReduceLROnPlateauScheduler(optimizer, metric_name="loss", factor=0.5, patience=0, trainer=trainer)
+    torch.save(scheduler.state_dict(), tmp_path / "scheduler.pt")
+    torch.load(tmp_path / "scheduler.pt", weights_only=True)
+
+    optimizer2 = torch.optim.SGD([torch.zeros([1], requires_grad=True)], lr=1.0)
+    scheduler2 = ReduceLROnPlateauScheduler(optimizer2, metric_name="loss", factor=0.5, patience=0)
+    scheduler2.load_state_dict(scheduler.state_dict())
+    evaluator = Engine(lambda engine, batch: None)
+    evaluator.state.metrics = {"loss": 1.0}
+    lrs = []
+    for _ in range(4):
+        scheduler2(evaluator)
+        lrs.append((optimizer.param_groups[0]["lr"], optimizer2.param_groups[0]["lr"]))
+    assert lrs == [(1.0, 1.0), (1.0, 0.5), (1.0, 0.25), (1.0, 0.125)]
+
+
 def test_reduce_lr_on_plateau_scheduler_asserts():
     tensor1 = torch.zeros([1], requires_grad=True)
     tensor2 = torch.zeros([1], requires_grad=True)
