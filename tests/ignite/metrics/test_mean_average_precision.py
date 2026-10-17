@@ -64,6 +64,28 @@ def test_update():
     assert len(metric._y_pred) == len(metric._y_true) == 1
 
 
+@pytest.mark.parametrize("data_type", ["binary", "multiclass"])
+@pytest.mark.parametrize("noncontiguous_input", ["predictions", "targets"])
+def test_update_noncontiguous(data_type, noncontiguous_input):
+    y_pred = torch.tensor([[[0.9, 0.2], [0.1, 0.8]]])
+    y = torch.tensor([[[1, 0], [1, 0]]])
+    if data_type == "multiclass":
+        y_pred = torch.stack((1 - y_pred, y_pred), dim=1)
+    if noncontiguous_input == "predictions":
+        y_pred = y_pred.transpose(-1, -2)
+        assert not y_pred.is_contiguous()
+    else:
+        y = y.transpose(-1, -2)
+        assert not y.is_contiguous()
+
+    reference = MeanAveragePrecision()
+    reference.update((y_pred.contiguous(), y.contiguous()))
+    metric = MeanAveragePrecision()
+    metric.update((y_pred, y))
+
+    assert metric.compute() == pytest.approx(reference.compute())
+
+
 def test__compute_recall_and_precision():
     m = MeanAveragePrecision()
 
