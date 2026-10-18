@@ -1702,7 +1702,7 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
             min_lr = [0] * len(optimizer.param_groups)
             min_lr[param_group_index] = _min_lr
         else:
-            min_lr = 0
+            min_lr = scheduler_kwargs.get('min_lr', 0)
         _scheduler_kwargs = scheduler_kwargs.copy()
         _scheduler_kwargs["min_lr"] = min_lr
 
