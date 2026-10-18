@@ -1699,16 +1699,15 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
         min_lr = scheduler_kwargs.get("min_lr", 0.0)
         if param_group_index is not None and not isinstance(min_lr, float):
             raise TypeError(f"When param_group_index is given, min_lr should be a float, but given {type(min_lr)}")
-        _scheduler_kwargs = scheduler_kwargs.copy()
 
-        if "verbose" in _scheduler_kwargs:
+        if "verbose" in scheduler_kwargs:
             warnings.warn(
                 "Found verbose=True in provided scheduler_kwargs. "
                 "It would be set to False. Please use save_history instead."
             )
-            _scheduler_kwargs["verbose"] = False
+            scheduler_kwargs["verbose"] = False
 
-        self.scheduler = ReduceLROnPlateau(optimizer, **_scheduler_kwargs)
+        self.scheduler = ReduceLROnPlateau(optimizer, **scheduler_kwargs)
         self.scheduler._reduce_lr = self._reduce_lr
 
         self._state_attrs += ["metric_name", "scheduler"]
