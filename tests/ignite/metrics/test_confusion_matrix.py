@@ -459,6 +459,34 @@ def test_dice_coefficient(available_device):
         assert np.all(res == true_res_), f"{ignore_index}: {res} vs {true_res_}"
 
 
+@pytest.mark.parametrize(
+    "metric_fn",
+    [
+        IoU,
+        lambda cm: IoU(cm, ignore_index=0),
+        mIoU,
+        JaccardIndex,
+        DiceCoefficient,
+        cmAccuracy,
+        cmPrecision,
+        cmRecall,
+    ],
+)
+def test_cm_derived_metric_state_dict(metric_fn, available_device):
+    y_true, y_pred = get_y_true_y_pred()
+    th_y_true, th_y_logits = compute_th_y_true_y_logits(y_true, y_pred)
+
+    cm = ConfusionMatrix(num_classes=3, device=available_device)
+    metric = metric_fn(cm)
+    cm.update((th_y_logits, th_y_true))
+    expected = metric.compute()
+
+    restored = metric_fn(ConfusionMatrix(num_classes=3, device=available_device))
+    restored.load_state_dict(metric.state_dict())
+
+    torch.testing.assert_close(restored.compute(), expected)
+
+
 def _test_distrib_multiclass_images(device):
     def _test(metric_device):
         num_classes = 3
