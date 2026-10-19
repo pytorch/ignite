@@ -856,6 +856,8 @@ def sync_all_reduce(*attrs: Any) -> Callable:
                     if attr not in self.__dict__:
                         raise ValueError(f"Metric {type(self)} has no attribute named `{attr}`.")
                     t = getattr(self, attr)
+                    if t is None:
+                        t = torch.tensor(0, device=self._device) if hasattr(self, "_device") else 0
                     if not isinstance(t, (Number, torch.Tensor)):
                         raise TypeError(
                             "Attribute provided to sync_all_reduce should be a "
@@ -867,6 +869,11 @@ def sync_all_reduce(*attrs: Any) -> Callable:
                     # TODO: Remove this dual behavior of `all_reduce` to always either return a new tensor or
                     #       modify it in-place.
                     t_reduced = idist.all_reduce(cast(float, t) if isinstance(t, Number) else t.clone(), **op_kwargs)
+                    # A safety check for zero global examples/counts
+                    if attr in ["_num_examples", "num_examples"] and getattr(t_reduced, "item", lambda: t_reduced)() == 0:
+                        from ignite.exceptions import NotComputableError
+                        raise NotComputableError(f"Metric {type(self).__name__} cannot be computed as total examples across all ranks is 0.")
+                    
                     setattr(self, attr, t_reduced)
 
             result = func(self, *args, **kwargs)
