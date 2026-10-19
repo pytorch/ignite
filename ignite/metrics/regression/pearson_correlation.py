@@ -99,32 +99,44 @@ class PearsonCorrelation(_BaseRegression):
     @reinit__is_reduced
     def reset(self) -> None:
         self._num_examples = 0
-        self._mean_x = torch.tensor(0.0, dtype=torch.float64, device=self._device)
-        self._mean_y = torch.tensor(0.0, dtype=torch.float64, device=self._device)
-        self._m2_x = torch.tensor(0.0, dtype=torch.float64, device=self._device)
-        self._m2_y = torch.tensor(0.0, dtype=torch.float64, device=self._device)
-        self._cxy = torch.tensor(0.0, dtype=torch.float64, device=self._device)
+        self._mean_x = torch.tensor(0.0, dtype=self._double_dtype, device=self._device)
+        self._mean_y = torch.tensor(0.0, dtype=self._double_dtype, device=self._device)
+        self._m2_x = torch.tensor(0.0, dtype=self._double_dtype, device=self._device)
+        self._m2_y = torch.tensor(0.0, dtype=self._double_dtype, device=self._device)
+        self._cxy = torch.tensor(0.0, dtype=self._double_dtype, device=self._device)
 
     def _update(self, output: tuple[torch.Tensor, torch.Tensor]) -> None:
         # Parallel Welford: compute the current batch's Welford state in one
         # shot, then merge it into the running state. "_a" suffix = prior
         # (accumulated) state, "_b" suffix = this batch, "_ab" = combined.
         y_pred, y = output[0].detach(), output[1].detach()
-        y_pred = y_pred.to(dtype=torch.float64)
-        y = y.to(dtype=torch.float64)
+
+        # Centre in the state dtype, but drop to float32 when the inputs are on
+        # MPS, which has no float64. The scalar stats move to self._device after.
+        batch_dtype = torch.float32 if y_pred.device.type == "mps" else self._double_dtype
+        y_pred = y_pred.to(dtype=batch_dtype)
+        y = y.to(dtype=batch_dtype)
 
         n_b = y.shape[0]
         n_a = self._num_examples
         n_ab = n_a + n_b
 
-        # ---- Batch stats (mean + M2/Cxy computed about the batch mean) ----
-        mean_x_b = y_pred.mean().to(self._device)
-        mean_y_b = y.mean().to(self._device)
+        # Batch stats centred on the input device, then moved to the metric's
+        # device/dtype so the merge below stays on a single device.
+        mean_x_b = y_pred.mean()
+        mean_y_b = y.mean()
         dx_b = y_pred - mean_x_b
         dy_b = y - mean_y_b
-        m2_x_b = dx_b.square().sum().to(self._device)
-        m2_y_b = dy_b.square().sum().to(self._device)
-        cxy_b = (dx_b * dy_b).sum().to(self._device)
+        m2_x_b = dx_b.square().sum()
+        m2_y_b = dy_b.square().sum()
+        cxy_b = (dx_b * dy_b).sum()
+
+        # Move device before dtype: a float64 cast on an MPS source would raise.
+        mean_x_b = mean_x_b.to(device=self._device).to(dtype=self._double_dtype)
+        mean_y_b = mean_y_b.to(device=self._device).to(dtype=self._double_dtype)
+        m2_x_b = m2_x_b.to(device=self._device).to(dtype=self._double_dtype)
+        m2_y_b = m2_y_b.to(device=self._device).to(dtype=self._double_dtype)
+        cxy_b = cxy_b.to(device=self._device).to(dtype=self._double_dtype)
 
         if n_a == 0:
             # First batch: running state is just the batch state.
@@ -165,13 +177,19 @@ class PearsonCorrelation(_BaseRegression):
         if ws > 1:
             # Distributed reduce: each rank already holds its local Welford
             # state (n, mean_x, mean_y, M2_x, M2_y, C_xy). We can't sum them
-            # directly — M2/Cxy on each rank are measured about *that rank's*
+            # directly: M2/Cxy on each rank are measured about *that rank's*
             # local mean. Instead we all_gather the per-rank states and fold
             # them in one by one using the same pairwise merge as _update.
-            state = torch.stack([
-                torch.tensor(float(n), dtype=torch.float64, device=self._device),
-                mean_x, mean_y, m2_x, m2_y, cxy,
-            ])
+            state = torch.stack(
+                [
+                    torch.tensor(float(n), dtype=self._double_dtype, device=self._device),
+                    mean_x,
+                    mean_y,
+                    m2_x,
+                    m2_y,
+                    cxy,
+                ]
+            )
             all_states = idist.all_gather(state)
             all_states = all_states.reshape(ws, 6)
 
