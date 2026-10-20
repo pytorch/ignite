@@ -72,6 +72,7 @@ ignite.distributed.auto
     :toctree: generated
 
     DistributedProxySampler
+    StratifiedBatchSampler
     auto_dataloader
     auto_model
     auto_optim
