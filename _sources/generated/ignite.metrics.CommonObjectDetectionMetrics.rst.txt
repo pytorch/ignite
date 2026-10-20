@@ -1,0 +1,47 @@
+﻿CommonObjectDetectionMetrics
+============================
+
+.. currentmodule:: ignite.metrics
+
+.. autoclass:: CommonObjectDetectionMetrics
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~CommonObjectDetectionMetrics.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~CommonObjectDetectionMetrics.reset
+   
+   
+   
+   
+   
+   
+   
+      ~CommonObjectDetectionMetrics.update
+   
+   
+   
+   

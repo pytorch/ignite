@@ -1,0 +1,33 @@
+﻿ExpStateScheduler
+=================
+
+.. currentmodule:: ignite.handlers.state_param_scheduler
+
+.. autoclass:: ExpStateScheduler
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+      ~ExpStateScheduler.get_param
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   

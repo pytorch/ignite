@@ -1,0 +1,36 @@
+﻿neptune\_logger
+===============
+
+.. automodule:: ignite.handlers.neptune_logger
+   :members:
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :nosignatures:
+   
+      GradsScalarHandler
+      NeptuneLogger
+      NeptuneSaver
+      OptimizerParamsHandler
+      OutputHandler
+      WeightsScalarHandler
+   
+   
+
+   
+   
+   
+
+
+

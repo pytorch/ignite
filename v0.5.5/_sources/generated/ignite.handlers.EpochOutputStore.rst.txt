@@ -1,0 +1,35 @@
+﻿EpochOutputStore
+================
+
+.. currentmodule:: ignite.handlers
+
+.. autoclass:: EpochOutputStore
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+      ~EpochOutputStore.attach
+   
+   
+   
+      ~EpochOutputStore.reset
+   
+   
+   
+      ~EpochOutputStore.store
+   
+   
+   
+      ~EpochOutputStore.update
+   
+   
+   
+   

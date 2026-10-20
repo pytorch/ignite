@@ -1,0 +1,41 @@
+﻿AveragePrecision
+================
+
+.. currentmodule:: ignite.contrib.metrics
+
+.. autoclass:: AveragePrecision
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   

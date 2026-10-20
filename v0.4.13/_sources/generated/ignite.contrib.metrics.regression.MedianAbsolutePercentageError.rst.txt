@@ -1,0 +1,41 @@
+﻿MedianAbsolutePercentageError
+=============================
+
+.. currentmodule:: ignite.contrib.metrics.regression
+
+.. autoclass:: MedianAbsolutePercentageError
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
