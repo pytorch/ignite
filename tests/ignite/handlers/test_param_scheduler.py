@@ -1172,6 +1172,37 @@ def test_create_lr_scheduler_with_warmup_with_real_model(dummy_model_factory):
     assert output_simulated_values[warmup_duration + step_size] == v
 
 
+@pytest.mark.parametrize(
+    "param_group_lrs, warmup_end_value",
+    [
+        ((0.2, 0.02), 0.5),
+        ((0.2, 0.02), 0.2),
+        ((0.02, 0.2), 0.2),
+    ],
+)
+def test_create_lr_scheduler_with_warmup_multiple_param_groups(param_group_lrs, warmup_end_value):
+    optimizer = torch.optim.SGD(
+        [{"params": [torch.zeros([1], requires_grad=True)], "lr": lr} for lr in param_group_lrs]
+    )
+    torch_lr_scheduler = ExponentialLR(optimizer=optimizer, gamma=0.98)
+    warmup_duration = 5
+    scheduler = create_lr_scheduler_with_warmup(
+        torch_lr_scheduler, warmup_start_value=0.0, warmup_end_value=warmup_end_value, warmup_duration=warmup_duration
+    )
+
+    lrs = []
+    for _ in range(warmup_duration + 2):
+        scheduler(None)
+        lrs.append([pg["lr"] for pg in optimizer.param_groups])
+
+    for i, init_lr in enumerate(param_group_lrs):
+        assert lrs[0][i] == pytest.approx(0.0)
+        assert lrs[warmup_duration - 1][i] == pytest.approx(warmup_end_value)
+        # After the warm-up, every param group continues from its own initial lr
+        assert lrs[warmup_duration][i] == pytest.approx(init_lr), f"lrs={lrs}"
+        assert lrs[warmup_duration + 1][i] == pytest.approx(init_lr * 0.98), f"lrs={lrs}"
+
+
 def test_param_group_scheduler_asserts():
     t1 = torch.zeros([1], requires_grad=True)
     t2 = torch.zeros([1], requires_grad=True)
