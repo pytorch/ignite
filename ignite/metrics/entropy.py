@@ -64,6 +64,9 @@ class Entropy(Metric):
 
     .. versionchanged:: 0.5.1
         ``skip_unrolling`` argument is added.
+
+    .. versionchanged:: 0.6.0
+        Float16 and bfloat16 logits are evaluated in float32 to avoid low-precision intermediate overflow.
     """
 
     _state_dict_all_req_keys = ("_sum_of_entropies", "_num_examples")
@@ -83,6 +86,9 @@ class Entropy(Metric):
             y_pred = y_pred.movedim(1, -1).reshape(-1, num_classes)
         elif y_pred.ndim == 1:
             raise ValueError(f"y_pred must be in the shape of (B, C) or (B, C, ...), got {y_pred.shape}.")
+
+        if y_pred.dtype in (torch.float16, torch.bfloat16):
+            y_pred = y_pred.float()
 
         prob = F.softmax(y_pred, dim=1)
         log_prob = F.log_softmax(y_pred, dim=1)
