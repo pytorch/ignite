@@ -20,6 +20,8 @@ def np_entropy(np_y_pred: np.ndarray):
 @pytest.mark.parametrize("shape", [(32768, 16), (2, 16, 128, 128)], ids=["classification", "segmentation"])
 @pytest.mark.parametrize("dtype", [torch.float16, torch.bfloat16, torch.float32, torch.float64])
 def test_uniform_logits_precision(shape, dtype, available_device):
+    if available_device == "mps" and dtype in (torch.bfloat16, torch.float64):
+        pytest.skip("These dtypes are not supported on all supported MPS versions.")
     logits = torch.zeros(shape, dtype=dtype, device=available_device)
     metric = Entropy(device=available_device)
     metric.update((logits, None))
@@ -34,6 +36,8 @@ def test_uniform_logits_precision(shape, dtype, available_device):
 
 
 def test_float64_logits_preserve_range(available_device):
+    if available_device == "mps":
+        pytest.skip("MPS does not support float64.")
     logits = torch.tensor([[1e40, 0.0, -1e40]], dtype=torch.float64, device=available_device)
     metric = Entropy(device=available_device)
     metric.update((logits, None))
