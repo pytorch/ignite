@@ -23,13 +23,13 @@ class Loss(Metric):
             you want to compute the metric with respect to one of the outputs.
             The output is expected to be a tuple `(prediction, target)` or
             (prediction, target, kwargs) where kwargs is a dictionary of extra
-            keywords arguments. If extra keywords arguments are provided they are passed to `loss_fn`.
+            keyword arguments. If extra keyword arguments are provided they are passed to `loss_fn`.
         batch_size: a callable taking a target tensor that returns the
             first dimension size (usually the batch size).
         device: specifies which device updates are accumulated on. Setting the
             metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
             non-blocking. By default, CPU.
-        skip_unrolling: specifies whether input should be unrolled or not before it is passed to to loss_fn.
+        skip_unrolling: specifies whether input should be unrolled or not before it is passed to loss_fn.
             Should be true for multi-output model, for example, if ``y_pred`` contains multi-output as
             ``(y_pred_a, y_pred_b)``
 
