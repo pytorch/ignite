@@ -40,6 +40,8 @@ class Perplexity(Metric):
         device: specifies which device updates are accumulated on. Setting the
             metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
             non-blocking. By default, CPU.
+        ignore_index: specifies a target value that is ignored and does not contribute to the metric
+            calculation. Default: -100.
 
     Examples:
 
