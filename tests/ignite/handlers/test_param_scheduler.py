@@ -1172,6 +1172,33 @@ def test_create_lr_scheduler_with_warmup_with_real_model(dummy_model_factory):
     assert output_simulated_values[warmup_duration + step_size] == v
 
 
+@pytest.mark.parametrize(
+    "backbone_lr, head_lr",
+    [
+        pytest.param(0.001, 0.01, id="both-below-warmup-end"),
+        pytest.param(0.001, 0.1, id="head-at-warmup-end"),
+        pytest.param(0.1, 0.001, id="backbone-at-warmup-end"),
+    ],
+)
+def test_create_lr_scheduler_with_warmup_multiple_param_groups(backbone_lr, head_lr):
+    backbone = torch.zeros([1], requires_grad=True)
+    head = torch.zeros([1], requires_grad=True)
+    optimizer = torch.optim.SGD([{"params": [backbone], "lr": backbone_lr}, {"params": [head], "lr": head_lr}])
+    scheduler = create_lr_scheduler_with_warmup(
+        ExponentialLR(optimizer, gamma=0.5), warmup_start_value=0.0, warmup_end_value=0.1, warmup_duration=3
+    )
+
+    backbone_lrs, head_lrs = [], []
+    for _ in range(6):
+        scheduler(None)
+        backbone_lrs.append(optimizer.param_groups[0]["lr"])
+        head_lrs.append(optimizer.param_groups[1]["lr"])
+
+    # Both groups warm up from 0.0 to 0.1 over 3 events, then each continues from its own lr, halved every event.
+    assert backbone_lrs == pytest.approx([0.0, 0.05, 0.1, backbone_lr, backbone_lr / 2, backbone_lr / 4])
+    assert head_lrs == pytest.approx([0.0, 0.05, 0.1, head_lr, head_lr / 2, head_lr / 4])
+
+
 def test_param_group_scheduler_asserts():
     t1 = torch.zeros([1], requires_grad=True)
     t2 = torch.zeros([1], requires_grad=True)
