@@ -1173,34 +1173,30 @@ def test_create_lr_scheduler_with_warmup_with_real_model(dummy_model_factory):
 
 
 @pytest.mark.parametrize(
-    "param_group_lrs, warmup_end_value",
+    "backbone_lr, head_lr",
     [
-        ((0.2, 0.02), 0.5),
-        ((0.2, 0.02), 0.2),
-        ((0.02, 0.2), 0.2),
+        pytest.param(0.001, 0.01, id="both-below-warmup-end"),
+        pytest.param(0.001, 0.1, id="head-at-warmup-end"),
+        pytest.param(0.1, 0.001, id="backbone-at-warmup-end"),
     ],
 )
-def test_create_lr_scheduler_with_warmup_multiple_param_groups(param_group_lrs, warmup_end_value):
-    optimizer = torch.optim.SGD(
-        [{"params": [torch.zeros([1], requires_grad=True)], "lr": lr} for lr in param_group_lrs]
-    )
-    torch_lr_scheduler = ExponentialLR(optimizer=optimizer, gamma=0.98)
-    warmup_duration = 5
+def test_create_lr_scheduler_with_warmup_multiple_param_groups(backbone_lr, head_lr):
+    backbone = torch.zeros([1], requires_grad=True)
+    head = torch.zeros([1], requires_grad=True)
+    optimizer = torch.optim.SGD([{"params": [backbone], "lr": backbone_lr}, {"params": [head], "lr": head_lr}])
     scheduler = create_lr_scheduler_with_warmup(
-        torch_lr_scheduler, warmup_start_value=0.0, warmup_end_value=warmup_end_value, warmup_duration=warmup_duration
+        ExponentialLR(optimizer, gamma=0.5), warmup_start_value=0.0, warmup_end_value=0.1, warmup_duration=3
     )
 
-    lrs = []
-    for _ in range(warmup_duration + 2):
+    backbone_lrs, head_lrs = [], []
+    for _ in range(6):
         scheduler(None)
-        lrs.append([pg["lr"] for pg in optimizer.param_groups])
+        backbone_lrs.append(optimizer.param_groups[0]["lr"])
+        head_lrs.append(optimizer.param_groups[1]["lr"])
 
-    for i, init_lr in enumerate(param_group_lrs):
-        assert lrs[0][i] == pytest.approx(0.0)
-        assert lrs[warmup_duration - 1][i] == pytest.approx(warmup_end_value)
-        # After the warm-up, every param group continues from its own initial lr
-        assert lrs[warmup_duration][i] == pytest.approx(init_lr), f"lrs={lrs}"
-        assert lrs[warmup_duration + 1][i] == pytest.approx(init_lr * 0.98), f"lrs={lrs}"
+    # Both groups warm up from 0.0 to 0.1 over 3 events, then each continues from its own lr, halved every event.
+    assert backbone_lrs == pytest.approx([0.0, 0.05, 0.1, backbone_lr, backbone_lr / 2, backbone_lr / 4])
+    assert head_lrs == pytest.approx([0.0, 0.05, 0.1, head_lr, head_lr / 2, head_lr / 4])
 
 
 def test_param_group_scheduler_asserts():
