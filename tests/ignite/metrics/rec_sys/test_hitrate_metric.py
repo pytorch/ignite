@@ -1,4 +1,4 @@
-import pytest
+﻿import pytest  # type: ignore[import-not-found]
 import torch
 import numpy as np
 
@@ -57,6 +57,12 @@ def test_shape_mismatch():
 def test_empty_top_k():
     with pytest.raises(ValueError, match="top_k must have at least one positive value"):
         HitRate(top_k=[])
+
+
+@pytest.mark.parametrize("top_k", [True, False, 2.5, [1, 2.5], [1, True]])
+def test_invalid_top_k_values(top_k):
+    with pytest.raises(ValueError):
+        HitRate(top_k=top_k)
 
 
 def test_invalid_top_k_type():
