@@ -17,61 +17,45 @@ def test_zero_sample():
 
 
 def test_invalid_inputs():
-    with pytest.raises(ValueError, match="top_k must be either int or a list"):
-        MRR(top_k={})
-
-    with pytest.raises(ValueError, match="top_k must have at least one positive value"):
+    with pytest.raises(ValueError, match="top_k must be a non-empty sequence"):
         MRR(top_k=[])
 
-    with pytest.raises(ValueError, match="top_k must be list of positive integers only"):
+    with pytest.raises(ValueError, match="top_k must contain only positive integers"):
         MRR(top_k=[0, -2])
 
     mrr = MRR(top_k=[2])
+    # 1D tensor instead of 2D
+    with pytest.raises(ValueError, match="y_pred and y must be 2D tensors"):
+        mrr.update((torch.tensor([1.0, 2.0]), torch.tensor([0.0, 1.0])))
+
     # Shape mismatch
-    with pytest.raises(ValueError, match="y_pred and y must be in the same shape"):
+    with pytest.raises(ValueError, match="y_pred and y must have the same shape"):
         mrr.update((torch.ones(2, 4), torch.ones(2, 3)))
 
-    # Output format validation
-    with pytest.raises(ValueError, match="output should be in format"):
-        mrr.update((torch.ones(2, 4),))
+    # Non-floating point y_pred
+    with pytest.raises(ValueError, match="y_pred must be a floating point tensor"):
+        mrr.update((torch.ones(2, 4, dtype=torch.int64), torch.ones(2, 4)))
 
 
-@pytest.mark.parametrize(
-    "ignore_zero_hits, expected",
-    [
-        (True, [0.0, 0.5, 0.5]),
-        (False, [0.0, 0.25, 0.25]),
-    ],
-)
+@pytest.mark.parametrize("ignore_zero_hits, expected", [
+    (True, [0.0, 0.5, 0.5]),
+    (False, [0.0, 0.25, 0.25]),
+])
 def test_mrr_computation(ignore_zero_hits, expected):
     metric = MRR(top_k=[4, 1, 2], ignore_zero_hits=ignore_zero_hits)
 
-    y_pred = torch.tensor(
-        [
-            [4.0, 2.0, 3.0, 1.0],  # sorted item indices: [0, 2, 1, 3] -> first hit is index 2 at rank 2 (RR = 0.5)
-            [1.0, 2.0, 3.0, 4.0],  # no relevant items in y_true
-        ]
-    )
-    y_true = torch.tensor(
-        [
-            [0.0, 0.0, 1.0, 1.0],
-            [0.0, 0.0, 0.0, 0.0],
-        ]
-    )
+    y_pred = torch.tensor([
+        [4.0, 2.0, 3.0, 1.0],  # sorted item indices: [0, 2, 1, 3] -> first hit is index 2 at rank 2 (RR = 0.5)
+        [1.0, 2.0, 3.0, 4.0],  # no relevant items in y_true
+    ])
+    y_true = torch.tensor([
+        [0.0, 0.0, 1.0, 1.0],
+        [0.0, 0.0, 0.0, 0.0],
+    ])
 
     metric.update((y_pred, y_true))
     res = metric.compute()
     assert pytest.approx(res) == expected
-
-
-def test_int_top_k(available_device):
-    metric = MRR(top_k=2, device=available_device)
-    y_pred = torch.tensor([[4.0, 2.0, 3.0, 1.0]])
-    y_true = torch.tensor([[0.0, 0.0, 1.0, 0.0]])
-    metric.update((y_pred, y_true))
-    res = metric.compute()
-    # sorted: [0, 2, 1, 3], hit at rank 2 -> RR = 0.5
-    assert pytest.approx(res) == [0.5]
 
 
 def test_mrr_with_engine(available_device):

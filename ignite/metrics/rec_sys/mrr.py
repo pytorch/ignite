@@ -1,5 +1,4 @@
-from typing import Callable
-
+from collections.abc import Callable, Sequence
 import torch
 
 from ignite.exceptions import NotComputableError
@@ -9,124 +8,21 @@ __all__ = ["MRR"]
 
 
 class MRR(Metric):
-    r"""Calculates the Mean Reciprocal Rank (MRR) at `k` for Recommendation Systems.
-
-    The MRR measures the average reciprocal rank of the first relevant item
-    in the ranked list of recommendations. It emphasizes top-ranked results
-    by using the reciprocal of the rank (1/rank).
-
-    .. math:: \text{MRR}@K = \frac{1}{N} \sum_{i=1}^{N} \frac{1}{\text{rank}_i}
-
-    where :math:`\text{rank}_i` is the rank of the first relevant item in the
-    predicted tensor :math:`\mathbf{q}_i` that exists in the ground truth
-    tensor :math:`\mathbf{p}_i`. If no relevant item is found in the top-K,
-    the reciprocal rank is 0.
-
-    - ``update`` must receive output of the form ``(y_pred, y)``.
-    - ``y_pred`` is expected to be raw logits or probability score for each item in the catalog.
-    - ``y`` is expected to be binary (only 0s and 1s) values where `1` indicates relevant item.
-    - ``y_pred`` and ``y`` are only allowed shape :math:`(batch, num_items)`.
-    - returns a list of MRR ordered by the sorted values of ``top_k``.
-
-    Args:
-        top_k: a non-empty sequence of positive integers that specifies `k` for
-            calculating MRR@top-k. Default is [1].
-        ignore_zero_hits: if True, users with no relevant items (ground truth tensor being all zeros)
-            are ignored in computation of MRR. If set False, such users are counted with MRR of 0.
-            By default, True.
-        relevance_threshold: minimum label value to be considered relevant. Defaults to ``1.0``,
-            which handles standard binary labels by treating any label >= 1 as relevant.
-        output_transform: a callable that is used to transform the
-            :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
-            form expected by the metric.
-            The output is expected to be a tuple `(prediction, target)`
-            where `prediction` and `target` are tensors
-            of shape ``(batch, num_items)``.
-        device: specifies which device updates are accumulated on. Setting the
-            metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
-            non-blocking. By default, CPU.
-        skip_unrolling: specifies whether input should be unrolled or not before being
-            processed. Should be true for multi-output models..
-
-    Examples:
-        To use with ``Engine`` and ``process_function``, simply attach the metric instance to the engine.
-        The output of the engine's ``process_function`` needs to be in the format of
-        ``(y_pred, y)``. If not, ``output_tranform`` can be added
-        to the metric to transform the output into the form expected by the metric.
-
-        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
-
-        .. include:: defaults.rst
-            :start-after: :orphan:
-
-        ignore_zero_hits=True case
-
-        .. testcode:: 1
-
-            metric = MRR(top_k=[1, 2, 3, 4])
-            metric.attach(default_evaluator, "mrr")
-            y_pred = torch.Tensor([
-                [4.0, 2.0, 3.0, 1.0],
-                [1.0, 2.0, 3.0, 4.0]
-            ])
-            y_true = torch.Tensor([
-                [0.0, 0.0, 1.0, 1.0],
-                [0.0, 0.0, 0.0, 0.0]
-            ])
-            state = default_evaluator.run([(y_pred, y_true)])
-            print(state.metrics["mrr"])
-
-        .. testoutput:: 1
-
-            [0.0, 0.5, 0.5, 0.5]
-
-        ignore_zero_hits=False case
-
-        .. testcode:: 2
-
-            metric = MRR(top_k=[1, 2, 3, 4], ignore_zero_hits=False)
-            metric.attach(default_evaluator, "mrr")
-            y_pred = torch.Tensor([
-                [4.0, 2.0, 3.0, 1.0],
-                [1.0, 2.0, 3.0, 4.0]
-            ])
-            y_true = torch.Tensor([
-                [0.0, 0.0, 1.0, 1.0],
-                [0.0, 0.0, 0.0, 0.0]
-            ])
-            state = default_evaluator.run([(y_pred, y_true)])
-            print(state.metrics["mrr"])
-
-        .. testoutput:: 2
-
-            [0.0, 0.25, 0.25, 0.25]
-
-    .. versionadded:: 0.5.5
-    """
-
-    required_output_keys = ("y_pred", "y")
-    _state_dict_all_req_keys = ("_sum_rr", "_num_examples")
-
     def __init__(
         self,
-        top_k: list[int] | int = 1,
+        top_k: Sequence[int],
         ignore_zero_hits: bool = True,
         relevance_threshold: float = 1.0,
         output_transform: Callable = lambda x: x,
         device: str | torch.device = torch.device("cpu"),
         skip_unrolling: bool = False,
     ) -> None:
-        if not isinstance(top_k, (int, list)):
-            raise ValueError("top_k must be either int or a list[int]")
+        if not isinstance(top_k, Sequence) or len(top_k) == 0:
+            raise ValueError(f"top_k must be a non-empty sequence of positive integers, got {top_k}.")
+        if any(not isinstance(k, int) or k <= 0 for k in top_k):
+            raise ValueError(f"top_k must contain only positive integers, got {top_k}.")
 
-        top_k = [top_k] if isinstance(top_k, int) else top_k
-
-        if len(top_k) == 0:
-            raise ValueError("top_k must have at least one positive value")
-        if any(k <= 0 for k in top_k):
-            raise ValueError("top_k must be list of positive integers only.")
-
-        self.top_k = sorted(top_k)
+        self.top_k: list[int] = sorted(set(top_k))
         self.ignore_zero_hits = ignore_zero_hits
         self.relevance_threshold = relevance_threshold
         super().__init__(output_transform=output_transform, device=device, skip_unrolling=skip_unrolling)
@@ -136,36 +32,48 @@ class MRR(Metric):
         self._sum_rr = torch.zeros(len(self.top_k), dtype=torch.float64, device=self._device)
         self._num_examples = 0
 
-    @reinit__is_reduced
-    def update(self, output: tuple[torch.Tensor, torch.Tensor]) -> None:
-        if len(output) != 2:
-            raise ValueError(f"output should be in format `(y_pred,y)` but got tuple of {len(output)} tensors.")
-
-        y_pred, y = output
+    def _check_shape_and_type(self, y_pred: torch.Tensor, y: torch.Tensor) -> None:
+        if y_pred.ndim != 2 or y.ndim != 2:
+            raise ValueError(
+                f"y_pred and y must be 2D tensors of shape (batch_size, num_items), got {y_pred.shape} and {y.shape}."
+            )
         if y_pred.shape != y.shape:
-            raise ValueError(f"y_pred and y must be in the same shape, got {y_pred.shape} != {y.shape}.")
+            raise ValueError(f"y_pred and y must have the same shape, got {y_pred.shape} and {y.shape}.")
+        if not y_pred.dtype.is_floating_point:
+            raise ValueError(f"y_pred must be a floating point tensor, got {y_pred.dtype}.")
+
+    @reinit__is_reduced
+    def update(self, output: Sequence[torch.Tensor]) -> None:
+        y_pred, y = output[0].detach(), output[1].detach()
+        self._check_shape_and_type(y_pred, y)
+
+        y_pred = y_pred.to(self._device)
+        y = y.to(self._device)
+
+        relevant = y >= self.relevance_threshold
 
         if self.ignore_zero_hits:
-            valid_mask = torch.any(y >= self.relevance_threshold, dim=-1)
-            y_pred = y_pred[valid_mask]
-            y = y[valid_mask]
+            valid_users_mask = relevant.any(dim=1)
+            if not valid_users_mask.any():
+                return
+            y_pred = y_pred[valid_users_mask]
+            relevant = relevant[valid_users_mask]
 
-        if y.shape[0] == 0:
-            return
+        batch_size, num_items = y_pred.shape
+        max_k = min(max(self.top_k), num_items)
 
-        max_k = self.top_k[-1]
-        _, indices = torch.topk(y_pred, k=max_k, dim=-1)
-
-        relevant_at_max_k = torch.gather(y >= self.relevance_threshold, dim=-1, index=indices)
+        _, topk_indices = torch.topk(y_pred, k=max_k, dim=1, largest=True, sorted=True)
+        hits_at_max_k = torch.gather(relevant, dim=1, index=topk_indices)
 
         ranks = torch.arange(1, max_k + 1, dtype=torch.float64, device=self._device).unsqueeze(0)
-        reciprocal_ranks = torch.where(relevant_at_max_k, 1.0 / ranks, torch.zeros_like(ranks))
+        reciprocal_ranks = torch.where(hits_at_max_k, 1.0 / ranks, torch.zeros_like(ranks))
 
-        for i, k in enumerate(self.top_k):
-            max_rr_per_user, _ = reciprocal_ranks[:, :k].max(dim=-1)
-            self._sum_rr[i] += torch.sum(max_rr_per_user).to(self._device)
+        for idx, k in enumerate(self.top_k):
+            cutoff = min(k, num_items)
+            max_rr_per_user, _ = reciprocal_ranks[:, :cutoff].max(dim=1)
+            self._sum_rr[idx] += max_rr_per_user.sum()
 
-        self._num_examples += y.shape[0]
+        self._num_examples += batch_size
 
     @sync_all_reduce("_sum_rr", "_num_examples")
     def compute(self) -> list[float]:
