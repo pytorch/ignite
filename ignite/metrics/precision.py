@@ -78,13 +78,13 @@ class _BasePrecisionRecall(_BaseClassification):
                     f"y_pred contains fewer classes than y. Number of classes in the prediction is {num_classes}"
                     f" and an element in y has invalid class = {y.max().item() + 1}."
                 )
-            y = y.view(-1)
+            y = y.reshape(-1)
             if self._type == "binary" and self._average is False:
-                y_pred = y_pred.view(-1)
+                y_pred = y_pred.reshape(-1)
             else:
                 y = to_onehot(y.long(), num_classes=num_classes)
                 indices = torch.argmax(y_pred, dim=1) if self._type == "multiclass" else y_pred.long()
-                y_pred = to_onehot(indices.view(-1), num_classes=num_classes)
+                y_pred = to_onehot(indices.reshape(-1), num_classes=num_classes)
         elif self._type == "multilabel":
             # if y, y_pred shape is (N, C, ...) -> (N * ..., C)
             num_labels = y_pred.size(1)
