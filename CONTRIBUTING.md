@@ -168,7 +168,7 @@ pre-commit install
 ```
 
 2. When files are committed:
-   - If the stages files are not compliant, the tools autoformat the staged files. If this were to happen, files should be staged and committed again. See example code below.
+   - If the staged files are not compliant, the tools autoformat the staged files. If this were to happen, files should be staged and committed again. See example code below.
    - If the staged files are not compliant errors will be raised. These errors should be fixed and the files should be committed again. See example code below.
 
 ```bash
