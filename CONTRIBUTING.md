@@ -224,7 +224,7 @@ To change any config for specific folder, please see the file pyrefly.toml
 
 #### Send a PR
 
-AI tools are allowed. Read [AGENTS.md](AGENTS.md) first. We do not accept AI-generated issue or PR descriptions, automated submissions, or generated replies to reviewers.
+AI tools are allowed. Read [AGENTS.md](AGENTS.md) first. We do not accept AI-generated issues or PR descriptions, automated submissions, or generated replies to reviewers.
 
 If everything is OK, please send a Pull Request to https://github.com/pytorch/ignite from your fork.
 
