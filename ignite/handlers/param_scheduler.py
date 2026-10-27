@@ -1613,7 +1613,7 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
             history will be logged in `trainer`'s `state.output.param_history`.
             Default: False.
         param_group_index: `optimizer`'s parameters group
-            to use.  Default: None. Use all `optimizer`'s paramater groups.
+            to use.  Default: None. Use all `optimizer`'s parameter groups.
         scheduler_kwargs: Keyword arguments to be passed to the wrapped ``ReduceLROnPlateau``.
 
     Examples:
