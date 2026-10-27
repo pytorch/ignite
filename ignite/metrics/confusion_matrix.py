@@ -202,12 +202,6 @@ class ConfusionMatrix(Metric):
             raise ValueError("Argument average should be one of 'samples', 'recall', 'precision'")
 
 
-def _to_double(cm: ConfusionMatrix) -> MetricsLambda:
-    # Increase floating point precision and pass to CPU.
-    # A dtype is not stored among MetricsLambda arguments so that the result can be saved with state_dict().
-    return MetricsLambda(lambda matrix: matrix.to(torch.double), cm)
-
-
 def IoU(cm: ConfusionMatrix, ignore_index: int | None = None) -> MetricsLambda:
     r"""Calculates Intersection over Union using :class:`~ignite.metrics.confusion_matrix.ConfusionMatrix` metric.
 
@@ -262,7 +256,7 @@ def IoU(cm: ConfusionMatrix, ignore_index: int | None = None) -> MetricsLambda:
                 f"ignore_index should be integer and in the range of [0, {cm.num_classes}), but given {ignore_index}"
             )
 
-    cm_double = _to_double(cm)
+    cm_double = MetricsLambda(lambda matrix: matrix.to(torch.double), cm)
     iou: MetricsLambda = cm_double.diag() / (cm_double.sum(dim=1) + cm_double.sum(dim=0) - cm_double.diag() + 1e-15)
     if ignore_index is not None:
         ignore_idx: int = ignore_index  # used due to typing issues with mympy
@@ -335,7 +329,7 @@ def cmAccuracy(cm: ConfusionMatrix) -> MetricsLambda:
     Returns:
         MetricsLambda
     """
-    cm_double = _to_double(cm)
+    cm_double = MetricsLambda(lambda matrix: matrix.to(torch.double), cm)
     accuracy: MetricsLambda = cm_double.diag().sum() / (cm_double.sum() + 1e-15)
     return accuracy
 
@@ -353,7 +347,7 @@ def cmPrecision(cm: ConfusionMatrix, average: bool = True) -> MetricsLambda:
         MetricsLambda
     """
 
-    cm_double = _to_double(cm)
+    cm_double = MetricsLambda(lambda matrix: matrix.to(torch.double), cm)
     precision: MetricsLambda = cm_double.diag() / (cm_double.sum(dim=0) + 1e-15)
     if average:
         mean: MetricsLambda = precision.mean()
@@ -375,7 +369,7 @@ def cmRecall(cm: ConfusionMatrix, average: bool = True) -> MetricsLambda:
         MetricsLambda
     """
 
-    cm_double = _to_double(cm)
+    cm_double = MetricsLambda(lambda matrix: matrix.to(torch.double), cm)
     recall: MetricsLambda = cm_double.diag() / (cm_double.sum(dim=1) + 1e-15)
     if average:
         mean: MetricsLambda = recall.mean()
@@ -430,7 +424,7 @@ def DiceCoefficient(cm: ConfusionMatrix, ignore_index: int | None = None) -> Met
                 f"ignore_index should be integer and in the range of [0, {cm.num_classes}), but given {ignore_index}"
             )
 
-    cm_double = _to_double(cm)
+    cm_double = MetricsLambda(lambda matrix: matrix.to(torch.double), cm)
     dice: MetricsLambda = 2.0 * cm_double.diag() / (cm_double.sum(dim=1) + cm_double.sum(dim=0) + 1e-15)
 
     if ignore_index is not None:

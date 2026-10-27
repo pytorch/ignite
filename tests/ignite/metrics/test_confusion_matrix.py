@@ -460,28 +460,32 @@ def test_dice_coefficient(available_device):
 
 
 @pytest.mark.parametrize(
-    "metric_fn",
+    "metric_fn, metric_kwargs",
     [
-        IoU,
-        lambda cm: IoU(cm, ignore_index=0),
-        mIoU,
-        JaccardIndex,
-        DiceCoefficient,
-        cmAccuracy,
-        cmPrecision,
-        cmRecall,
+        pytest.param(IoU, {}, id="IoU"),
+        pytest.param(mIoU, {}, id="mIoU"),
+        pytest.param(JaccardIndex, {}, id="JaccardIndex"),
+        pytest.param(DiceCoefficient, {}, id="DiceCoefficient"),
+        pytest.param(cmAccuracy, {}, id="cmAccuracy"),
+        pytest.param(cmPrecision, {}, id="cmPrecision"),
+        pytest.param(cmRecall, {}, id="cmRecall"),
+        # Ignoring a class adds another MetricsLambda to the state being saved and restored.
+        pytest.param(IoU, {"ignore_index": 0}, id="IoU-ignore-index"),
+        pytest.param(mIoU, {"ignore_index": 0}, id="mIoU-ignore-index"),
+        pytest.param(JaccardIndex, {"ignore_index": 0}, id="JaccardIndex-ignore-index"),
+        pytest.param(DiceCoefficient, {"ignore_index": 0}, id="DiceCoefficient-ignore-index"),
     ],
 )
-def test_cm_derived_metric_state_dict(metric_fn, available_device):
+def test_cm_derived_metric_state_dict(metric_fn, metric_kwargs, available_device):
     y_true, y_pred = get_y_true_y_pred()
     th_y_true, th_y_logits = compute_th_y_true_y_logits(y_true, y_pred)
 
     cm = ConfusionMatrix(num_classes=3, device=available_device)
-    metric = metric_fn(cm)
+    metric = metric_fn(cm, **metric_kwargs)
     cm.update((th_y_logits, th_y_true))
     expected = metric.compute()
 
-    restored = metric_fn(ConfusionMatrix(num_classes=3, device=available_device))
+    restored = metric_fn(ConfusionMatrix(num_classes=3, device=available_device), **metric_kwargs)
     restored.load_state_dict(metric.state_dict())
 
     torch.testing.assert_close(restored.compute(), expected)
