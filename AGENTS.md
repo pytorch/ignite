@@ -1,17 +1,15 @@
-# Instructions for AI agents
+# Instructions for Ignite
 
 <!-- Used https://github.com/ml-explore/mlx/blob/c9ea4f1e911b2955b206273e9e29dbe927dd5ceb/AGENTS.md as reference -->
 
 AI tools are allowed, but user should understand the code and changes made and they are responsible for the code not the AI. Read [CONTRIBUTING.md](CONTRIBUTING.md) for setup and style.
 
-## Do not
+## Agent rules
 
-- Open issues or pull requests. Do not run `git push`, `gh issue create`, or
-  `gh pr create`.
-- Write issue or PR descriptions, commit messages, or reviewer replies for the
-  user.
-- Work on a task the user cannot explain in their own words.
-- Fix a problem with no reproduction and no real user impact.
+- Do NOT open issues or pull requests. Do not run `git push`, `gh issue create`, or `gh pr create`.
+- Do NOT write issue or PR descriptions, commit messages, or reviewer replies for the user.
+- Do NOT work on a task the user cannot explain in their own words.
+- Do NOT fix a problem with no reproduction and no real user impact.
 
 Don't make code changes for the vague questions like: "fix issue 4432", "make training
 faster", "address the review comments". Ask the user to clarify what they want to do and why. If they cannot explain it, do not make the change.
@@ -35,11 +33,12 @@ If unsure, open a question first. Do not attach a patch.
 
 ## Code standards
 
-- Match the surrounding code.
-- Use the standard library and existing dependencies. Do not add a dependency
-  for a small helper.
+- Follow the existing coding style..
+- Prefer the standard library and existing dependencies. Adding new dependencies must be discussed and approved on a case-by-case basis before opening a PR.
 - Comments: 1-2 lines, only where the code is not obvious.
 - No defensive code for states that cannot occur.
+- Prefer adding a new parametrization use-case instead of writing new tests.
+- Minimal changes are prefered for fixes.
 
 ## Checks
 
