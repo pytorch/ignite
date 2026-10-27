@@ -136,7 +136,7 @@ class BaseParamScheduler(metaclass=ABCMeta):
 
                 plt.figure(figsize=(10, 7))
                 LinearCyclicalScheduler.plot_values(num_events=50, param_name='lr',
-                                                    start_value=1e-1, end_value=1e-3, cycle_size=10))
+                                                    start_value=1e-1, end_value=1e-3, cycle_size=10)
         """
         try:
             import matplotlib.pyplot as plt
@@ -489,8 +489,8 @@ class LinearCyclicalScheduler(CyclicalScheduler):
         Added monotonic argument.
     """
 
-    def __init__(self, *args: Any, monotonic: bool = False, **kwagrs: Any):
-        super().__init__(*args, **kwagrs)
+    def __init__(self, *args: Any, monotonic: bool = False, **kwargs: Any):
+        super().__init__(*args, **kwargs)
         self.monotonic = monotonic
         if self.warmup_duration > 0 and not self.monotonic:
             raise ValueError(
