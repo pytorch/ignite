@@ -207,6 +207,9 @@ def IoU(cm: ConfusionMatrix, ignore_index: int | None = None) -> MetricsLambda:
 
     .. math:: \text{J}(A, B) = \frac{ \lvert A \cap B \rvert }{ \lvert A \cup B \rvert }
 
+    .. versionchanged:: 0.6.0
+        Added support for saving and restoring metric state.
+
     Args:
         cm: instance of confusion matrix metric
         ignore_index: index to ignore, e.g. background index
@@ -253,9 +256,8 @@ def IoU(cm: ConfusionMatrix, ignore_index: int | None = None) -> MetricsLambda:
                 f"ignore_index should be integer and in the range of [0, {cm.num_classes}), but given {ignore_index}"
             )
 
-    # Increase floating point precision and pass to CPU
-    cm = cm.to(torch.double)
-    iou: MetricsLambda = cm.diag() / (cm.sum(dim=1) + cm.sum(dim=0) - cm.diag() + 1e-15)
+    cm_double = MetricsLambda(lambda matrix: matrix.to(torch.double), cm)
+    iou: MetricsLambda = cm_double.diag() / (cm_double.sum(dim=1) + cm_double.sum(dim=0) - cm_double.diag() + 1e-15)
     if ignore_index is not None:
         ignore_idx: int = ignore_index  # used due to typing issues with mympy
 
@@ -273,6 +275,9 @@ def IoU(cm: ConfusionMatrix, ignore_index: int | None = None) -> MetricsLambda:
 
 def mIoU(cm: ConfusionMatrix, ignore_index: int | None = None) -> MetricsLambda:
     """Calculates mean Intersection over Union using :class:`~ignite.metrics.confusion_matrix.ConfusionMatrix` metric.
+
+    .. versionchanged:: 0.6.0
+        Added support for saving and restoring metric state.
 
     Args:
         cm: instance of confusion matrix metric
@@ -315,20 +320,25 @@ def mIoU(cm: ConfusionMatrix, ignore_index: int | None = None) -> MetricsLambda:
 def cmAccuracy(cm: ConfusionMatrix) -> MetricsLambda:
     """Calculates accuracy using :class:`~ignite.metrics.metric.ConfusionMatrix` metric.
 
+    .. versionchanged:: 0.6.0
+        Added support for saving and restoring metric state.
+
     Args:
         cm: instance of confusion matrix metric
 
     Returns:
         MetricsLambda
     """
-    # Increase floating point precision and pass to CPU
-    cm = cm.to(torch.double)
-    accuracy: MetricsLambda = cm.diag().sum() / (cm.sum() + 1e-15)
+    cm_double = MetricsLambda(lambda matrix: matrix.to(torch.double), cm)
+    accuracy: MetricsLambda = cm_double.diag().sum() / (cm_double.sum() + 1e-15)
     return accuracy
 
 
 def cmPrecision(cm: ConfusionMatrix, average: bool = True) -> MetricsLambda:
     """Calculates precision using :class:`~ignite.metrics.metric.ConfusionMatrix` metric.
+
+    .. versionchanged:: 0.6.0
+        Added support for saving and restoring metric state.
 
     Args:
         cm: instance of confusion matrix metric
@@ -337,9 +347,8 @@ def cmPrecision(cm: ConfusionMatrix, average: bool = True) -> MetricsLambda:
         MetricsLambda
     """
 
-    # Increase floating point precision and pass to CPU
-    cm = cm.to(torch.double)
-    precision: MetricsLambda = cm.diag() / (cm.sum(dim=0) + 1e-15)
+    cm_double = MetricsLambda(lambda matrix: matrix.to(torch.double), cm)
+    precision: MetricsLambda = cm_double.diag() / (cm_double.sum(dim=0) + 1e-15)
     if average:
         mean: MetricsLambda = precision.mean()
         return mean
@@ -349,6 +358,10 @@ def cmPrecision(cm: ConfusionMatrix, average: bool = True) -> MetricsLambda:
 def cmRecall(cm: ConfusionMatrix, average: bool = True) -> MetricsLambda:
     """
     Calculates recall using :class:`~ignite.metrics.confusion_matrix.ConfusionMatrix` metric.
+
+    .. versionchanged:: 0.6.0
+        Added support for saving and restoring metric state.
+
     Args:
         cm: instance of confusion matrix metric
         average: if True metric value is averaged over all classes
@@ -356,9 +369,8 @@ def cmRecall(cm: ConfusionMatrix, average: bool = True) -> MetricsLambda:
         MetricsLambda
     """
 
-    # Increase floating point precision and pass to CPU
-    cm = cm.to(torch.double)
-    recall: MetricsLambda = cm.diag() / (cm.sum(dim=1) + 1e-15)
+    cm_double = MetricsLambda(lambda matrix: matrix.to(torch.double), cm)
+    recall: MetricsLambda = cm_double.diag() / (cm_double.sum(dim=1) + 1e-15)
     if average:
         mean: MetricsLambda = recall.mean()
         return mean
@@ -367,6 +379,9 @@ def cmRecall(cm: ConfusionMatrix, average: bool = True) -> MetricsLambda:
 
 def DiceCoefficient(cm: ConfusionMatrix, ignore_index: int | None = None) -> MetricsLambda:
     """Calculates Dice Coefficient for a given :class:`~ignite.metrics.confusion_matrix.ConfusionMatrix` metric.
+
+    .. versionchanged:: 0.6.0
+        Added support for saving and restoring metric state.
 
     Args:
         cm: instance of confusion matrix metric
@@ -409,9 +424,8 @@ def DiceCoefficient(cm: ConfusionMatrix, ignore_index: int | None = None) -> Met
                 f"ignore_index should be integer and in the range of [0, {cm.num_classes}), but given {ignore_index}"
             )
 
-    # Increase floating point precision and pass to CPU
-    cm = cm.to(torch.double)
-    dice: MetricsLambda = 2.0 * cm.diag() / (cm.sum(dim=1) + cm.sum(dim=0) + 1e-15)
+    cm_double = MetricsLambda(lambda matrix: matrix.to(torch.double), cm)
+    dice: MetricsLambda = 2.0 * cm_double.diag() / (cm_double.sum(dim=1) + cm_double.sum(dim=0) + 1e-15)
 
     if ignore_index is not None:
         ignore_idx: int = ignore_index  # used due to typing issues with mympy
@@ -433,6 +447,9 @@ def DiceCoefficient(cm: ConfusionMatrix, ignore_index: int | None = None) -> Met
 def JaccardIndex(cm: ConfusionMatrix, ignore_index: int | None = None) -> MetricsLambda:
     r"""Calculates the Jaccard Index using :class:`~ignite.metrics.confusion_matrix.ConfusionMatrix` metric.
     Implementation is based on :meth:`~ignite.metrics.IoU`.
+
+    .. versionchanged:: 0.6.0
+        Added support for saving and restoring metric state.
 
     .. math:: \text{J}(A, B) = \frac{ \lvert A \cap B \rvert }{ \lvert A \cup B \rvert }
 
