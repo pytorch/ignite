@@ -1,0 +1,47 @@
+﻿Bleu
+====
+
+.. currentmodule:: ignite.metrics
+
+.. autoclass:: Bleu
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~Bleu.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~Bleu.reset
+   
+   
+   
+   
+   
+   
+   
+      ~Bleu.update
+   
+   
+   
+   

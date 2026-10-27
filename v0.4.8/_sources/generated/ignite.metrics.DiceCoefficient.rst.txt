@@ -1,0 +1,6 @@
+﻿DiceCoefficient
+===============
+
+.. currentmodule:: ignite.metrics
+
+.. autofunction:: DiceCoefficient

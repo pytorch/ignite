@@ -1,0 +1,47 @@
+﻿PSNR
+====
+
+.. currentmodule:: ignite.metrics
+
+.. autoclass:: PSNR
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~PSNR.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~PSNR.reset
+   
+   
+   
+   
+   
+   
+   
+      ~PSNR.update
+   
+   
+   
+   

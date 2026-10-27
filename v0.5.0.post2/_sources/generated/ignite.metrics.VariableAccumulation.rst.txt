@@ -1,0 +1,47 @@
+﻿VariableAccumulation
+====================
+
+.. currentmodule:: ignite.metrics
+
+.. autoclass:: VariableAccumulation
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~VariableAccumulation.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~VariableAccumulation.reset
+   
+   
+   
+   
+   
+   
+   
+      ~VariableAccumulation.update
+   
+   
+   
+   
