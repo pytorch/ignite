@@ -105,6 +105,30 @@ def test_state_dict_with_mode():
     assert trainer.should_terminate
 
 
+def test_load_state_dict_backward_compatibility():
+    trainer = Engine(do_nothing_update_fn)
+
+    # 1. Legacy state dictionary
+    h = EarlyStopping(patience=2, score_function=lambda engine: 0, trainer=trainer, threshold_mode="rel")
+    h.load_state_dict({"counter": 2, "best_score": 10.5})
+    assert h.counter == 2
+    assert h.best_score == 10.5
+    assert h.threshold_mode == "rel"
+
+    # 2. Current state dictionary
+    h.load_state_dict({"counter": 3, "best_score": 15.0, "threshold_mode": "abs"})
+    assert h.counter == 3
+    assert h.best_score == 15.0
+    assert h.threshold_mode == "abs"
+
+    # 3. Required-key validation
+    with pytest.raises(ValueError, match=r"Required state attribute 'counter' is absent"):
+        h.load_state_dict({"best_score": 15.0})
+
+    with pytest.raises(ValueError, match=r"Required state attribute 'best_score' is absent"):
+        h.load_state_dict({"counter": 3})
+
+
 def test_early_stopping_on_threshold():
     scores = iter([1.0, 2.0, 2.01, 3.0, 3.01, 3.02])
 
