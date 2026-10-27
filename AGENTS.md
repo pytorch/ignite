@@ -1,6 +1,6 @@
 # Instructions for AI agents
 
-<!-- used https://github.com/aaishwarymishra/mlx/blob/388f227f466ef600243bcfce64181ad0d675c476/AGENTS.md as reference -->
+<!-- Used https://github.com/ml-explore/mlx/blob/c9ea4f1e911b2955b206273e9e29dbe927dd5ceb/AGENTS.md as reference -->
 
 AI tools are allowed, but user should understand the code and changes made and they are responsible for the code not the AI. Read [CONTRIBUTING.md](CONTRIBUTING.md) for setup and style.
 
