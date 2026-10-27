@@ -41,7 +41,7 @@ class Perplexity(Metric):
             metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
             non-blocking. By default, CPU.
         ignore_index: index of the target token to ignore in the loss computation.
-            Defaults to -100, which is the typical ignore index used in NLP classification losses.
+            By default, -100.
 
     Examples:
 
