@@ -18,3 +18,13 @@ about: Submit a bug report to help us improve Ignite
 - How you installed Ignite (`conda`, `pip`, source):
 - Python version:
 - Any other relevant information:
+
+## Checklist
+
+- [ ] AI was used to assist in this issue.
+- [ ] I wrote this issue myself and understand the problem.
+- [ ] I can reproduce this on the current `master` branch.
+- [ ] This affects real users, not only a theoretical edge case.
+
+<!-- Note: It is prohibited to use AI to generate issue descriptions and the issue can be closed if the description is AI-generated.
+AI-assisted issues are allowed, but you must understand the problem and write the description yourself. -->
