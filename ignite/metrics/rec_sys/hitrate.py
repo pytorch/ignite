@@ -121,6 +121,9 @@ class HitRate(Metric):
     .. versionadded:: 0.5.4
     .. versionchanged:: 0.5.4
         `top_k` now accepts a single positive integer in addition to a list of integers.
+
+    .. versionchanged:: 0.5.6
+        ``top_k`` values greater than the number of items no longer raise an error; all items are considered instead.
     """
 
     required_output_keys = ("y_pred", "y")
@@ -170,7 +173,7 @@ class HitRate(Metric):
         if y.shape[0] == 0:
             return
 
-        max_k = self.top_k[-1]
+        max_k = min(self.top_k[-1], y_pred.shape[-1])
         _, indices = torch.topk(y_pred, k=max_k, dim=-1)
 
         hits_at_max_k = torch.gather(y, dim=-1, index=indices)
