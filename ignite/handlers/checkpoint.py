@@ -1,5 +1,6 @@
 import numbers
 import os
+import shutil
 import stat
 import tempfile
 from abc import ABCMeta, abstractmethod
@@ -24,7 +25,7 @@ from ignite.base import Serializable
 from ignite.engine import Engine, Events, EventEnum
 from ignite.utils import _tree_apply2, _tree_map
 
-__all__ = ["Checkpoint", "DiskSaver", "ModelCheckpoint", "BaseSaveHandler", "CheckpointEvents"]
+__all__ = ["Checkpoint", "DiskSaver", "ModelCheckpoint", "BaseSaveHandler", "CheckpointEvents", "TorchSnapshotSaver"]
 
 
 class CheckpointEvents(EventEnum):
@@ -925,6 +926,38 @@ class DiskSaver(BaseSaveHandler):
         if idist.get_rank() == self.save_on_rank:
             path = self.dirname / filename
             path.unlink()
+
+
+class TorchSnapshotSaver(BaseSaveHandler):
+    """Save handler that uses torchsnapshot.Snapshot.take to save objects.
+
+    Args:
+        dirname: Directory path where snapshots will be saved.
+        kwargs: Additional keyword arguments passed to `torchsnapshot.Snapshot.take`.
+    """
+
+    def __init__(self, dirname: str | Path, **kwargs: Any) -> None:
+        try:
+            import torchsnapshot
+        except ImportError:
+            raise RuntimeError(
+                "TorchSnapshotSaver requires 'torchsnapshot' to be installed. "
+                "Please install it using 'pip install torchsnapshot'."
+            )
+
+        self.dirname = Path(dirname).expanduser()
+        self.kwargs = kwargs
+
+    def __call__(self, checkpoint: Mapping, filename: str, metadata: Mapping | None = None) -> None:
+        import torchsnapshot
+
+        save_path = str(self.dirname / filename)
+        torchsnapshot.Snapshot.take(path=save_path, app_state=checkpoint, **self.kwargs)
+
+    def remove(self, filename: str) -> None:
+        path = self.dirname / filename
+        if path.exists() and path.is_dir():
+            shutil.rmtree(path)
 
 
 class ModelCheckpoint(Checkpoint):
