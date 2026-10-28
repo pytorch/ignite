@@ -106,7 +106,7 @@ class Average(VariableAccumulation):
         For input `x` being an ND `torch.Tensor` with N > 1, the first dimension is seen as the number of samples and
         is summed up and added to the accumulator: `accumulator += x.sum(dim=0)`
 
-        ``output_tranform`` can be added to the metric to transform the output into the form expected by the metric.
+        ``output_transform`` can be added to the metric to transform the output into the form expected by the metric.
 
     Args:
         output_transform: a callable that is used to transform the
@@ -230,7 +230,7 @@ class GeometricAverage(VariableAccumulation):
         For input `x` being an ND `torch.Tensor` with N > 1, the first dimension is seen as the number of samples and
         is aggregated and added to the accumulator: `accumulator *= prod(x, dim=0)`
 
-        ``output_tranform`` can be added to the metric to transform the output into the form expected by the metric.
+        ``output_transform`` can be added to the metric to transform the output into the form expected by the metric.
 
     Examples:
 

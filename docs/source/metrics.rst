@@ -149,10 +149,10 @@ This API gives a more fine-grained/custom usage on how to compute a metric. For 
     print("Precision: ", precision.compute())
 
 
-Metric arithmetics
-------------------
+Metric arithmetic
+-----------------
 
-Metrics could be combined together to form new metrics. This could be done through arithmetics, such
+Metrics could be combined together to form new metrics. This could be done through arithmetic, such
 as ``metric1 + metric2``, use PyTorch operators, such as ``(metric1 + metric2).pow(2).mean()``,
 or use a lambda function, such as ``MetricsLambda(lambda a, b: torch.mean(a + b), metric1, metric2)``.
 
@@ -303,7 +303,7 @@ In the above example, ``CustomAccuracy`` has ``reset``, ``update``, ``compute`` 
 with :meth:`~ignite.metrics.metric.reinit__is_reduced`, :meth:`~ignite.metrics.metric.sync_all_reduce`. The purpose of these features is to adapt metrics in distributed
 computations on supported backend and devices (see :doc:`distributed` for more details). More precisely, in the above
 example we added ``@sync_all_reduce("_num_examples", "_num_correct:SUM")`` over ``compute`` method. This means that when ``compute``
-method is called, metric's interal variables ``self._num_examples`` and ``self._num_correct:SUM`` are summed up over all participating
+method is called, metric's internal variables ``self._num_examples`` and ``self._num_correct:SUM`` are summed up over all participating
 devices. We specify the reduction operation ``self._num_correct:SUM`` or we keep the default ``self._num_examples`` as the default is ``SUM``.
 We currently support four reduction operations (SUM, MAX, MIN, PRODUCT).
 Therefore, once collected, these internal variables can be used to compute the final metric value.

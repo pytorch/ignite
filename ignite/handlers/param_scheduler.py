@@ -136,7 +136,7 @@ class BaseParamScheduler(metaclass=ABCMeta):
 
                 plt.figure(figsize=(10, 7))
                 LinearCyclicalScheduler.plot_values(num_events=50, param_name='lr',
-                                                    start_value=1e-1, end_value=1e-3, cycle_size=10))
+                                                    start_value=1e-1, end_value=1e-3, cycle_size=10)
         """
         try:
             import matplotlib.pyplot as plt
@@ -489,8 +489,8 @@ class LinearCyclicalScheduler(CyclicalScheduler):
         Added monotonic argument.
     """
 
-    def __init__(self, *args: Any, monotonic: bool = False, **kwagrs: Any):
-        super().__init__(*args, **kwagrs)
+    def __init__(self, *args: Any, monotonic: bool = False, **kwargs: Any):
+        super().__init__(*args, **kwargs)
         self.monotonic = monotonic
         if self.warmup_duration > 0 and not self.monotonic:
             raise ValueError(
@@ -1613,7 +1613,7 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
             history will be logged in `trainer`'s `state.output.param_history`.
             Default: False.
         param_group_index: `optimizer`'s parameters group
-            to use.  Default: None. Use all `optimizer`'s paramater groups.
+            to use.  Default: None. Use all `optimizer`'s parameter groups.
         scheduler_kwargs: Keyword arguments to be passed to the wrapped ``ReduceLROnPlateau``.
 
     Examples:
@@ -1677,6 +1677,9 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
             [[0.1], [0.1], [0.1], [0.1], [0.1], [0.1], [0.05], [0.05]]
 
     .. versionadded:: 0.4.9
+
+    .. versionchanged:: 0.6.0
+        ``min_lr`` is applied when ``param_group_index`` is None or greater than 0.
     """
 
     def __init__(
@@ -1693,27 +1696,18 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
         self.trainer = trainer
         self.optimizer = optimizer
 
-        min_lr: float | list[float]
-        if "min_lr" in scheduler_kwargs and param_group_index is not None:
-            min_lr = scheduler_kwargs["min_lr"]
-            if not isinstance(min_lr, float):
-                raise TypeError(f"When param_group_index is given, min_lr should be a float, but given {type(min_lr)}")
-            _min_lr = min_lr
-            min_lr = [0] * len(optimizer.param_groups)
-            min_lr[param_group_index] = _min_lr
-        else:
-            min_lr = 0
-        _scheduler_kwargs = scheduler_kwargs.copy()
-        _scheduler_kwargs["min_lr"] = min_lr
+        min_lr = scheduler_kwargs.get("min_lr", 0.0)
+        if param_group_index is not None and not isinstance(min_lr, float):
+            raise TypeError(f"When param_group_index is given, min_lr should be a float, but given {type(min_lr)}")
 
-        if "verbose" in _scheduler_kwargs:
+        if "verbose" in scheduler_kwargs:
             warnings.warn(
                 "Found verbose=True in provided scheduler_kwargs. "
                 "It would be set to False. Please use save_history instead."
             )
-            _scheduler_kwargs["verbose"] = False
+            scheduler_kwargs["verbose"] = False
 
-        self.scheduler = ReduceLROnPlateau(optimizer, **_scheduler_kwargs)
+        self.scheduler = ReduceLROnPlateau(optimizer, **scheduler_kwargs)
         self.scheduler._reduce_lr = self._reduce_lr
 
         self._state_attrs += ["metric_name", "scheduler"]
