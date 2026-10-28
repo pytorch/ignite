@@ -11,6 +11,7 @@ pytest-timeout
 pytest-xdist
 setuptools
 fairlearn
+torchsnapshot
 # Test contrib dependencies
 scipy
 # pytorch-fid is not maintained anymore, using our fork
