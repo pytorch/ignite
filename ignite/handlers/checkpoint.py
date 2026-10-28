@@ -950,9 +950,24 @@ class TorchSnapshotSaver(BaseSaveHandler):
 
     def __call__(self, checkpoint: Mapping, filename: str, metadata: Mapping | None = None) -> None:
         import torchsnapshot
+        from torchsnapshot.stateful import Stateful
 
         save_path = str(self.dirname / filename)
-        torchsnapshot.Snapshot.take(path=save_path, app_state=checkpoint, **self.kwargs)
+
+        # Wrap raw state_dict mappings automatically into torchsnapshot.StateDict
+        app_state = {}
+        if isinstance(checkpoint, Mapping):
+            for k, v in checkpoint.items():
+                if isinstance(v, Stateful):
+                    app_state[k] = v
+                elif isinstance(v, Mapping):
+                    app_state[k] = torchsnapshot.StateDict(v)
+                else:
+                    app_state[k] = v
+        else:
+            app_state = checkpoint
+
+        torchsnapshot.Snapshot.take(path=save_path, app_state=app_state, **self.kwargs)
 
     def remove(self, filename: str) -> None:
         path = self.dirname / filename
