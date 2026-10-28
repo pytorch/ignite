@@ -20,6 +20,14 @@ if Version(torch.__version__) >= Version("1.9.0"):
 else:
     HAVE_ZERO = False
 
+try:
+    import torchsnapshot
+    from torchsnapshot.stateful import Stateful
+
+    HAVE_TORCHSNAPSHOT = True
+except ImportError:
+    HAVE_TORCHSNAPSHOT = False
+
 import ignite.distributed as idist
 from ignite.base import Serializable
 from ignite.engine import Engine, Events, EventEnum
@@ -937,9 +945,7 @@ class TorchSnapshotSaver(BaseSaveHandler):
     """
 
     def __init__(self, dirname: str | Path, **kwargs: Any) -> None:
-        try:
-            import torchsnapshot
-        except ImportError:
+        if not HAVE_TORCHSNAPSHOT:
             raise RuntimeError(
                 "TorchSnapshotSaver requires 'torchsnapshot' to be installed. "
                 "Please install it using 'pip install torchsnapshot'."
@@ -949,9 +955,6 @@ class TorchSnapshotSaver(BaseSaveHandler):
         self.kwargs = kwargs
 
     def __call__(self, checkpoint: Mapping, filename: str, metadata: Mapping | None = None) -> None:
-        import torchsnapshot
-        from torchsnapshot.stateful import Stateful
-
         save_path = str(self.dirname / filename)
 
         # Wrap raw state_dict mappings automatically into torchsnapshot.StateDict
