@@ -19,8 +19,8 @@ def coco_tensor_list_to_dict_list(
 
     Input format is a `(N, 6)` or (`N, 5)` tensor which `N` is the number of predicted/target bounding boxes for the
     image and the second dimension contains `(x1, y1, x2, y2, confidence, class)`/`(x1, y1, x2, y2, class[, iscrowd])`.
-    Output format is a str-to-tensor dictionary containing 'bbox' and `class` keys, plus `confidence` key for `y_pred`
-    and possibly `iscrowd` (dtype: `torch.bool`) for `y`.
+    Output format is a str-to-tensor dictionary containing `bbox` and `labels` (dtype: `torch.long`) keys,
+    plus `scores` for `y_pred` and possibly `iscrowd` (dtype: `torch.bool`) for `y`.
 
     Args:
         output: `(y_pred,y)` tuple whose members are either list of tensors or list of dicts.
@@ -30,12 +30,17 @@ def coco_tensor_list_to_dict_list(
     """
     y_pred, y = output
     if len(y_pred) > 0 and isinstance(y_pred[0], torch.Tensor):
-        y_pred = [{"bbox": t[:, :4], "confidence": t[:, 4], "class": t[:, 5]} for t in cast(list[torch.Tensor], y_pred)]
+        y_pred = [
+            {"bbox": t[:, :4], "scores": t[:, 4], "labels": t[:, 5].long()} for t in cast(list[torch.Tensor], y_pred)
+        ]
     if len(y) > 0 and isinstance(y[0], torch.Tensor):
         if y[0].size(1) == 5:
-            y = [{"bbox": t[:, :4], "class": t[:, 4]} for t in cast(list[torch.Tensor], y)]
+            y = [{"bbox": t[:, :4], "labels": t[:, 4].long()} for t in cast(list[torch.Tensor], y)]
         else:
-            y = [{"bbox": t[:, :4], "class": t[:, 4], "iscrowd": t[:, 5]} for t in cast(list[torch.Tensor], y)]
+            y = [
+                {"bbox": t[:, :4], "labels": t[:, 4].long(), "iscrowd": t[:, 5].bool()}
+                for t in cast(list[torch.Tensor], y)
+            ]
     return cast(tuple[list[dict[str, torch.Tensor]], list[dict[str, torch.Tensor]]], (y_pred, y))
 
 
