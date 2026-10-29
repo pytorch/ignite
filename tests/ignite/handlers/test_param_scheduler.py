@@ -1,3 +1,5 @@
+import io
+import math
 from packaging.version import Version
 from unittest.mock import MagicMock, patch
 
@@ -1474,6 +1476,118 @@ def test_create_lr_scheduler_with_warmup_cosine(warmup_end_value, T_0, T_mult):
     else:
         np.testing.assert_allclose(np.linspace(warm_start, lr, warm_steps), warm_lrs[:warm_steps])
         assert warm_lrs[real_warm_steps:] == cosine_lrs
+
+
+def test_cosine_annealing_warm_restarts_state_dict_representation():
+    param = torch.nn.Parameter(torch.zeros(1))
+    optimizer = torch.optim.SGD([param], lr=0.1)
+    py_sched = CosineAnnealingWarmRestarts(optimizer, T_0=5)
+    scheduler = LRScheduler(py_sched)
+
+    scheduler(None)
+    sd = scheduler.state_dict()
+
+    assert "lr_scheduler" in sd
+    inner_sd = sd["lr_scheduler"]
+    assert isinstance(inner_sd, dict)
+    assert "T_0" in inner_sd
+    assert "T_cur" in inner_sd
+    assert "base_lrs" in inner_sd
+    assert inner_sd["T_0"] == 5
+    assert inner_sd["T_cur"] == 1
+
+
+def test_cosine_annealing_warm_restarts_safe_serialization_round_trip():
+    param = torch.nn.Parameter(torch.zeros(1))
+    optimizer = torch.optim.SGD([param], lr=0.1)
+    scheduler = LRScheduler(CosineAnnealingWarmRestarts(optimizer, T_0=5))
+    scheduler(None)
+    scheduler(None)
+
+    sd = scheduler.state_dict()
+    buf = io.BytesIO()
+    torch.save(sd, buf)
+    buf.seek(0)
+
+    if Version(torch.__version__) >= Version("1.13.0"):
+        loaded_sd = torch.load(buf, weights_only=True)
+    else:
+        loaded_sd = torch.load(buf)
+
+    assert isinstance(loaded_sd, dict)
+    assert isinstance(loaded_sd["lr_scheduler"], dict)
+    assert loaded_sd["lr_scheduler"]["T_cur"] == 2
+    assert loaded_sd["event_index"] == 2
+
+
+def test_cosine_annealing_warm_restarts_restoration_different_optimizer():
+    p1 = torch.nn.Parameter(torch.zeros(1))
+    p2 = torch.nn.Parameter(torch.zeros(1))
+    opt_src = torch.optim.SGD([p1], lr=0.1)
+    opt_dst = torch.optim.SGD([p2], lr=0.5)
+
+    sched_src = LRScheduler(CosineAnnealingWarmRestarts(opt_src, T_0=5))
+    sched_dst = LRScheduler(CosineAnnealingWarmRestarts(opt_dst, T_0=5))
+
+    sched_src(None)
+    sched_src(None)
+    state = sched_src.state_dict()
+
+    sched_dst.load_state_dict(state)
+
+    assert sched_dst.optimizer is opt_dst
+    assert sched_dst.lr_scheduler.optimizer is opt_dst
+
+    sched_dst(None)
+    expected_lr = 0.1 * (1 + math.cos(3.0 * math.pi / 5.0)) / 2.0
+    assert abs(opt_dst.param_groups[0]["lr"] - expected_lr) < 1e-6
+    assert opt_src.param_groups[0]["lr"] == pytest.approx(0.0654508497)
+
+
+def test_concat_scheduler_simulation_with_cosine_warm_restarts():
+    param = torch.nn.Parameter(torch.zeros(1))
+    optimizer = torch.optim.SGD([param], lr=0.1)
+
+    s1 = LRScheduler(CosineAnnealingWarmRestarts(optimizer, T_0=5))
+    s2 = LRScheduler(StepLR(optimizer, step_size=2, gamma=0.5))
+
+    lr_before = optimizer.param_groups[0]["lr"]
+    values = ConcatScheduler.simulate_values(10, [s1, s2], durations=[5])
+
+    assert len(values) == 10
+    assert optimizer.param_groups[0]["lr"] == lr_before
+    assert s1.event_index == 0
+    assert s2.event_index == 0
+    assert s1.lr_scheduler.last_epoch == 0
+
+
+def test_cosine_annealing_warm_restarts_state_round_trip_equivalence():
+    param1 = torch.nn.Parameter(torch.zeros(1))
+    param2 = torch.nn.Parameter(torch.zeros(1))
+    opt1 = torch.optim.SGD([param1], lr=0.1)
+    opt2 = torch.optim.SGD([param2], lr=0.1)
+
+    sched1 = LRScheduler(CosineAnnealingWarmRestarts(opt1, T_0=5, T_mult=2))
+    for _ in range(4):
+        sched1(None)
+
+    buf = io.BytesIO()
+    torch.save(sched1.state_dict(), buf)
+    buf.seek(0)
+    if Version(torch.__version__) >= Version("1.13.0"):
+        loaded_state = torch.load(buf, weights_only=True)
+    else:
+        loaded_state = torch.load(buf)
+
+    sched2 = LRScheduler(CosineAnnealingWarmRestarts(opt2, T_0=5, T_mult=2))
+    sched2.load_state_dict(loaded_state)
+
+    for _ in range(6):
+        sched1(None)
+        sched2(None)
+        assert opt1.param_groups[0]["lr"] == pytest.approx(opt2.param_groups[0]["lr"])
+        assert sched1.lr_scheduler._lr_scheduler.T_cur == sched2.lr_scheduler._lr_scheduler.T_cur
+        assert sched1.lr_scheduler._lr_scheduler.T_i == sched2.lr_scheduler._lr_scheduler.T_i
 
 
 def test_batch_size_scheduler_asserts():

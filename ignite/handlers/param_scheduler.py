@@ -883,6 +883,12 @@ class _CosineAnnealingWarmRestarts:
     def optimizer(self) -> torch.optim.Optimizer:
         return self._lr_scheduler.optimizer
 
+    def state_dict(self) -> dict[str, Any]:
+        return self._lr_scheduler.state_dict()
+
+    def load_state_dict(self, state_dict: Mapping[str, Any]) -> None:
+        self._lr_scheduler.load_state_dict(dict(state_dict))
+
     def get_lr(self, epoch: int | None = None) -> list[torch.Tensor | float]:
         T_mult = self._lr_scheduler.T_mult
         eta_min = self._lr_scheduler.eta_min
