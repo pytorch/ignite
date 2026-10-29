@@ -286,8 +286,8 @@ class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
             yp = torch.transpose(y_pred, 1, 0).reshape(num_classes, -1)
             yt = torch.transpose(y, 1, 0).reshape(num_classes, -1)
         elif self._type == "binary":
-            yp = y_pred.view(1, -1)
-            yt = y.view(1, -1)
+            yp = y_pred.reshape(1, -1)
+            yt = y.reshape(1, -1)
         else:  # Multiclass
             num_classes = y_pred.size(1)
             if y.max() + 1 > num_classes:
@@ -295,7 +295,7 @@ class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
                     f"y_pred contains fewer classes than y. Number of classes in prediction is {num_classes}"
                     f" and an element in y has invalid class = {y.max().item() + 1}."
                 )
-            yt = y.view(-1)
+            yt = y.reshape(-1)
             yp = torch.transpose(y_pred, 1, 0).reshape(num_classes, -1)
 
         return yp, yt
@@ -310,6 +310,7 @@ class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
                 This metric follows the same rules on ``output`` members shape as the
                 :meth:`Precision.update <.metrics.precision.Precision.update>` except for ``y_pred`` of binary and
                 multilabel data which should be comprised of positive class probabilities here.
+                Non-contiguous tensors are supported.
         """
         self._check_shape(output)
         self._check_type(output)
