@@ -49,6 +49,21 @@ def test_invalid_ssim():
         ssim.update((y_pred, y))
         ssim.compute()
 
+    with pytest.raises(ValueError, match=r"Expected ndims to be 2 or 3. Got 4."):
+        ssim = SSIM(data_range=1.0, ndims=4)
+        ssim.update((y_pred, y))
+        ssim.compute()
+
+    with pytest.raises(ValueError, match=r"Expected kernel_size to have length of 2. Got 3."):
+        ssim = SSIM(data_range=1.0, kernel_size=[7, 7, 7])
+        ssim.update((y_pred, y))
+        ssim.compute()
+
+    with pytest.raises(ValueError, match=r"Expected sigma to have length of 2. Got 3."):
+        ssim = SSIM(data_range=1.0, sigma=[1.5, 1.5, 1.5])
+        ssim.update((y_pred, y))
+        ssim.compute()
+
     with pytest.raises(ValueError, match=r"Expected y_pred and y to have the same shape."):
         y = y.squeeze(dim=0)
         ssim = SSIM(data_range=1.0)
@@ -119,7 +134,9 @@ def compare_ssim_ignite_skiimg(
 ):
     sigma = 1.5
 
-    ssim = SSIM(data_range=data_range, sigma=sigma, device=device, ndims=ndims)
+    ssim = SSIM(
+        data_range=data_range, sigma=sigma, device=device, ndims=ndims, kernel_size=kernel_size, gaussian=gaussian
+    )
     ssim.update((y_pred, y))
     ignite_ssim = ssim.compute()
 
