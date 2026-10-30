@@ -76,7 +76,6 @@ class EarlyStopping(Serializable, ResettableHandler):
     _state_dict_all_req_keys = (
         "counter",
         "best_score",
-        "threshold_mode",
     )
 
     def __init__(
