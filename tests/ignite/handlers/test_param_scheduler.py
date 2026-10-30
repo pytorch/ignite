@@ -53,7 +53,7 @@ def test_param_scheduler_asserts():
     with pytest.raises(TypeError, match=r"Argument state_dict should be a dictionary, but given"):
         lr_scheduler.load_state_dict(None)
 
-    with pytest.raises(ValueError, match=r"Required state attribute 'event_index' is absent in provided state_dict"):
+    with pytest.raises(ValueError, match=r"Required state attribute 'param_name' is absent in provided state_dict"):
         lr_scheduler.load_state_dict({})
 
     with pytest.raises(TypeError, match=r"Argument optimizer should be torch.optim.Optimizer"):
@@ -679,6 +679,74 @@ def test_lr_scheduler_asserts():
 
     with pytest.raises(TypeError, match=err_msg):
         LRScheduler.simulate_values(1, None)
+
+
+def test_lr_scheduler_load_dict():
+    t = torch.zeros([1], requires_grad=True)
+    optimizer = torch.optim.SGD([t], lr=0.1)
+
+    # 1. Loading the state dictionary of a current instance
+    scheduler = LRScheduler(StepLR(optimizer, step_size=5, gamma=0.1))
+    scheduler.event_index = 3
+    state_dict = scheduler.state_dict()
+
+    target = LRScheduler(StepLR(optimizer, step_size=5, gamma=0.1))
+    target.load_state_dict(state_dict)
+    assert target.event_index == 3
+    assert target.param_name == "lr"
+
+    # 2. Loading a valid legacy checkpoint without event_index
+    # 2a. Generic scheduler state_dict missing event_index
+    del state_dict["event_index"]
+    fresh = LRScheduler(StepLR(optimizer, step_size=5, gamma=0.1))
+    fresh.load_state_dict(state_dict)
+    assert fresh.event_index == 0
+
+    # 2b. Legacy PyTorch lr_scheduler checkpoint without event_index
+    raw_step_sd = StepLR(optimizer, step_size=5, gamma=0.1).state_dict()
+    raw_step_sd["last_epoch"] = 2
+    fresh.load_state_dict(raw_step_sd)
+    assert fresh.event_index == 0
+    assert fresh.lr_scheduler.last_epoch == 2
+
+    # 2c. ParamScheduler subclass (LinearCyclicalScheduler) without event_index
+    lcs = LinearCyclicalScheduler(optimizer, "lr", 0.1, 0.5, 10)
+    lcs_sd = lcs.state_dict()
+    del lcs_sd["event_index"]
+    lcs.load_state_dict(lcs_sd)
+    assert lcs.event_index == 0
+    assert lcs.start_value == 0.1
+    assert lcs.end_value == 0.5
+
+    # 2d. Legacy PyTorch CosineAnnealingWarmRestarts checkpoint without event_index
+    opt_src = torch.optim.SGD([torch.zeros(1)], lr=0.1)
+    cawr_src = CosineAnnealingWarmRestarts(opt_src, T_0=5, T_mult=1)
+    for _ in range(3):
+        opt_src.step()
+        cawr_src.step()
+    raw_cawr_sd = cawr_src.state_dict()
+    assert "event_index" not in raw_cawr_sd
+
+    cawr_dst = CosineAnnealingWarmRestarts(optimizer, T_0=5, T_mult=1)
+    cawr_scheduler = LRScheduler(cawr_dst)
+    cawr_scheduler.load_state_dict(raw_cawr_sd)
+    assert cawr_scheduler.event_index == 0
+    assert cawr_dst.last_epoch == 3
+    assert cawr_dst.T_cur == 3
+
+    # 3. Handling dictionaries with missing required attributes
+    with pytest.raises(ValueError, match=r"Required state attribute 'param_name' is absent"):
+        fresh.load_state_dict({})
+
+    with pytest.raises(ValueError, match=r"Required state attribute 'save_history' is absent"):
+        fresh.load_state_dict({"param_name": "lr"})
+
+    with pytest.raises(ValueError, match=r"Required state attribute 'lr_scheduler' is absent"):
+        fresh.load_state_dict({"param_name": "lr", "save_history": False, "param_group_index": None, "last_epoch": 2})
+
+    with pytest.raises(ValueError, match=r"Required state attribute 'start_value' is absent"):
+        del lcs_sd["start_value"]
+        lcs.load_state_dict(lcs_sd)
 
 
 @pytest.mark.xfail

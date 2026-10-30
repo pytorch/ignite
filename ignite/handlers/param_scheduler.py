@@ -79,6 +79,8 @@ class BaseParamScheduler(metaclass=ABCMeta):
 
         for name in self._state_attrs:
             if name not in state_dict:
+                if name == "event_index":
+                    continue
                 raise ValueError(
                     f"Required state attribute '{name}' is absent in provided state_dict '{state_dict.keys()}'"
                 )
@@ -1007,6 +1009,31 @@ class LRScheduler(ParamScheduler):
     def __call__(self, engine: Engine | None, name: str | None = None) -> None:
         super().__call__(engine, name)
         self.lr_scheduler.last_epoch += 1
+
+    def load_state_dict(self, state_dict: Mapping) -> None:
+        """Copies parameters from :attr:`state_dict` into this LRScheduler.
+
+        Args:
+            state_dict: a dict containing parameters.
+        """
+        if not isinstance(state_dict, Mapping):
+            raise TypeError(f"Argument state_dict should be a dictionary, but given {type(state_dict)}")
+
+        is_legacy_raw = (
+            "lr_scheduler" not in state_dict
+            and "param_name" not in state_dict
+            and any(k in state_dict for k in ("base_lrs", "last_epoch"))
+        )
+        if is_legacy_raw:
+            lr_sd = {k: v for k, v in state_dict.items() if k != "event_index"}
+            if hasattr(self.lr_scheduler, "load_state_dict"):
+                self.lr_scheduler.load_state_dict(lr_sd)
+            elif hasattr(self.lr_scheduler, "_lr_scheduler"):
+                self.lr_scheduler._lr_scheduler.load_state_dict(lr_sd)
+            if "event_index" in state_dict:
+                self.event_index = state_dict["event_index"]
+        else:
+            super().load_state_dict(state_dict)
 
     def get_param(self) -> torch.Tensor | float | list[torch.Tensor | float]:  # type: ignore[override]
         """Method to get current optimizer's parameter value"""
