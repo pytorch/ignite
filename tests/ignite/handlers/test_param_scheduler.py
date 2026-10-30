@@ -1,3 +1,5 @@
+import io
+import math
 from packaging.version import Version
 from unittest.mock import MagicMock, patch
 
@@ -51,7 +53,7 @@ def test_param_scheduler_asserts():
     with pytest.raises(TypeError, match=r"Argument state_dict should be a dictionary, but given"):
         lr_scheduler.load_state_dict(None)
 
-    with pytest.raises(ValueError, match=r"Required state attribute 'event_index' is absent in provided state_dict"):
+    with pytest.raises(ValueError, match=r"Required state attribute 'param_name' is absent in provided state_dict"):
         lr_scheduler.load_state_dict({})
 
     with pytest.raises(TypeError, match=r"Argument optimizer should be torch.optim.Optimizer"):
@@ -677,6 +679,74 @@ def test_lr_scheduler_asserts():
 
     with pytest.raises(TypeError, match=err_msg):
         LRScheduler.simulate_values(1, None)
+
+
+def test_lr_scheduler_load_dict():
+    t = torch.zeros([1], requires_grad=True)
+    optimizer = torch.optim.SGD([t], lr=0.1)
+
+    # 1. Loading the state dictionary of a current instance
+    scheduler = LRScheduler(StepLR(optimizer, step_size=5, gamma=0.1))
+    scheduler.event_index = 3
+    state_dict = scheduler.state_dict()
+
+    target = LRScheduler(StepLR(optimizer, step_size=5, gamma=0.1))
+    target.load_state_dict(state_dict)
+    assert target.event_index == 3
+    assert target.param_name == "lr"
+
+    # 2. Loading a valid legacy checkpoint without event_index
+    # 2a. Generic scheduler state_dict missing event_index
+    del state_dict["event_index"]
+    fresh = LRScheduler(StepLR(optimizer, step_size=5, gamma=0.1))
+    fresh.load_state_dict(state_dict)
+    assert fresh.event_index == 0
+
+    # 2b. Legacy PyTorch lr_scheduler checkpoint without event_index
+    raw_step_sd = StepLR(optimizer, step_size=5, gamma=0.1).state_dict()
+    raw_step_sd["last_epoch"] = 2
+    fresh.load_state_dict(raw_step_sd)
+    assert fresh.event_index == 0
+    assert fresh.lr_scheduler.last_epoch == 2
+
+    # 2c. ParamScheduler subclass (LinearCyclicalScheduler) without event_index
+    lcs = LinearCyclicalScheduler(optimizer, "lr", 0.1, 0.5, 10)
+    lcs_sd = lcs.state_dict()
+    del lcs_sd["event_index"]
+    lcs.load_state_dict(lcs_sd)
+    assert lcs.event_index == 0
+    assert lcs.start_value == 0.1
+    assert lcs.end_value == 0.5
+
+    # 2d. Legacy PyTorch CosineAnnealingWarmRestarts checkpoint without event_index
+    opt_src = torch.optim.SGD([torch.zeros(1)], lr=0.1)
+    cawr_src = CosineAnnealingWarmRestarts(opt_src, T_0=5, T_mult=1)
+    for _ in range(3):
+        opt_src.step()
+        cawr_src.step()
+    raw_cawr_sd = cawr_src.state_dict()
+    assert "event_index" not in raw_cawr_sd
+
+    cawr_dst = CosineAnnealingWarmRestarts(optimizer, T_0=5, T_mult=1)
+    cawr_scheduler = LRScheduler(cawr_dst)
+    cawr_scheduler.load_state_dict(raw_cawr_sd)
+    assert cawr_scheduler.event_index == 0
+    assert cawr_dst.last_epoch == 3
+    assert cawr_dst.T_cur == 3
+
+    # 3. Handling dictionaries with missing required attributes
+    with pytest.raises(ValueError, match=r"Required state attribute 'param_name' is absent"):
+        fresh.load_state_dict({})
+
+    with pytest.raises(ValueError, match=r"Required state attribute 'save_history' is absent"):
+        fresh.load_state_dict({"param_name": "lr"})
+
+    with pytest.raises(ValueError, match=r"Required state attribute 'lr_scheduler' is absent"):
+        fresh.load_state_dict({"param_name": "lr", "save_history": False, "param_group_index": None, "last_epoch": 2})
+
+    with pytest.raises(ValueError, match=r"Required state attribute 'start_value' is absent"):
+        del lcs_sd["start_value"]
+        lcs.load_state_dict(lcs_sd)
 
 
 @pytest.mark.xfail
@@ -1474,6 +1544,118 @@ def test_create_lr_scheduler_with_warmup_cosine(warmup_end_value, T_0, T_mult):
     else:
         np.testing.assert_allclose(np.linspace(warm_start, lr, warm_steps), warm_lrs[:warm_steps])
         assert warm_lrs[real_warm_steps:] == cosine_lrs
+
+
+def test_cosine_annealing_warm_restarts_state_dict_representation():
+    param = torch.nn.Parameter(torch.zeros(1))
+    optimizer = torch.optim.SGD([param], lr=0.1)
+    py_sched = CosineAnnealingWarmRestarts(optimizer, T_0=5)
+    scheduler = LRScheduler(py_sched)
+
+    scheduler(None)
+    sd = scheduler.state_dict()
+
+    assert "lr_scheduler" in sd
+    inner_sd = sd["lr_scheduler"]
+    assert isinstance(inner_sd, dict)
+    assert "T_0" in inner_sd
+    assert "T_cur" in inner_sd
+    assert "base_lrs" in inner_sd
+    assert inner_sd["T_0"] == 5
+    assert inner_sd["T_cur"] == 1
+
+
+def test_cosine_annealing_warm_restarts_safe_serialization_round_trip():
+    param = torch.nn.Parameter(torch.zeros(1))
+    optimizer = torch.optim.SGD([param], lr=0.1)
+    scheduler = LRScheduler(CosineAnnealingWarmRestarts(optimizer, T_0=5))
+    scheduler(None)
+    scheduler(None)
+
+    sd = scheduler.state_dict()
+    buf = io.BytesIO()
+    torch.save(sd, buf)
+    buf.seek(0)
+
+    if Version(torch.__version__) >= Version("1.13.0"):
+        loaded_sd = torch.load(buf, weights_only=True)
+    else:
+        loaded_sd = torch.load(buf)
+
+    assert isinstance(loaded_sd, dict)
+    assert isinstance(loaded_sd["lr_scheduler"], dict)
+    assert loaded_sd["lr_scheduler"]["T_cur"] == 2
+    assert loaded_sd["event_index"] == 2
+
+
+def test_cosine_annealing_warm_restarts_restoration_different_optimizer():
+    p1 = torch.nn.Parameter(torch.zeros(1))
+    p2 = torch.nn.Parameter(torch.zeros(1))
+    opt_src = torch.optim.SGD([p1], lr=0.1)
+    opt_dst = torch.optim.SGD([p2], lr=0.5)
+
+    sched_src = LRScheduler(CosineAnnealingWarmRestarts(opt_src, T_0=5))
+    sched_dst = LRScheduler(CosineAnnealingWarmRestarts(opt_dst, T_0=5))
+
+    sched_src(None)
+    sched_src(None)
+    state = sched_src.state_dict()
+
+    sched_dst.load_state_dict(state)
+
+    assert sched_dst.optimizer is opt_dst
+    assert sched_dst.lr_scheduler.optimizer is opt_dst
+
+    sched_dst(None)
+    expected_lr = 0.1 * (1 + math.cos(3.0 * math.pi / 5.0)) / 2.0
+    assert abs(opt_dst.param_groups[0]["lr"] - expected_lr) < 1e-6
+    assert opt_src.param_groups[0]["lr"] == pytest.approx(0.0654508497)
+
+
+def test_concat_scheduler_simulation_with_cosine_warm_restarts():
+    param = torch.nn.Parameter(torch.zeros(1))
+    optimizer = torch.optim.SGD([param], lr=0.1)
+
+    s1 = LRScheduler(CosineAnnealingWarmRestarts(optimizer, T_0=5))
+    s2 = LRScheduler(StepLR(optimizer, step_size=2, gamma=0.5))
+
+    lr_before = optimizer.param_groups[0]["lr"]
+    values = ConcatScheduler.simulate_values(10, [s1, s2], durations=[5])
+
+    assert len(values) == 10
+    assert optimizer.param_groups[0]["lr"] == lr_before
+    assert s1.event_index == 0
+    assert s2.event_index == 0
+    assert s1.lr_scheduler.last_epoch == 0
+
+
+def test_cosine_annealing_warm_restarts_state_round_trip_equivalence():
+    param1 = torch.nn.Parameter(torch.zeros(1))
+    param2 = torch.nn.Parameter(torch.zeros(1))
+    opt1 = torch.optim.SGD([param1], lr=0.1)
+    opt2 = torch.optim.SGD([param2], lr=0.1)
+
+    sched1 = LRScheduler(CosineAnnealingWarmRestarts(opt1, T_0=5, T_mult=2))
+    for _ in range(4):
+        sched1(None)
+
+    buf = io.BytesIO()
+    torch.save(sched1.state_dict(), buf)
+    buf.seek(0)
+    if Version(torch.__version__) >= Version("1.13.0"):
+        loaded_state = torch.load(buf, weights_only=True)
+    else:
+        loaded_state = torch.load(buf)
+
+    sched2 = LRScheduler(CosineAnnealingWarmRestarts(opt2, T_0=5, T_mult=2))
+    sched2.load_state_dict(loaded_state)
+
+    for _ in range(6):
+        sched1(None)
+        sched2(None)
+        assert opt1.param_groups[0]["lr"] == pytest.approx(opt2.param_groups[0]["lr"])
+        assert sched1.lr_scheduler._lr_scheduler.T_cur == sched2.lr_scheduler._lr_scheduler.T_cur
+        assert sched1.lr_scheduler._lr_scheduler.T_i == sched2.lr_scheduler._lr_scheduler.T_i
 
 
 def test_batch_size_scheduler_asserts():
