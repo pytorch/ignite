@@ -617,6 +617,10 @@ def initialize(backend: str, **kwargs: Any) -> None:
 
     .. versionchanged:: 0.4.5
         ``kwargs`` now accepts ``init_method``, ``rank``, ``world_size`` for PyTorch native distributed backend.
+
+    .. versionchanged:: 0.6.0
+        The first visible CUDA device is selected when the local rank is larger than the number of devices the
+        process can see, for example with SLURM ``--ntasks-per-gpu``.
     """
     if not (has_xla_support or has_native_dist_support or has_hvd_support):
         # nothing to do => serial model
