@@ -17,6 +17,14 @@ from ignite.distributed.comp_models import native as idist_native
 from ignite.distributed.comp_models import xla as idist_xla
 from ignite.utils import setup_logger
 
+try:
+    from torch.distributed._composable.fsdp import fully_shard
+    from torch.distributed.device_mesh import init_device_mesh
+
+    HAVE_FSDP2 = True
+except ImportError:
+    HAVE_FSDP2 = False
+
 __all__ = ["auto_dataloader", "auto_model", "auto_optim", "DistributedProxySampler"]
 
 
@@ -141,7 +149,7 @@ def auto_dataloader(dataset: Dataset, **kwargs: Any) -> DataLoader | _MpDeviceLo
     return dataloader
 
 
-def auto_model(model: nn.Module, sync_bn: bool = False, **kwargs: Any) -> nn.Module:
+def auto_model(model: nn.Module, sync_bn: bool = False, use_fsdp: bool = False, **kwargs: Any) -> nn.Module:
     """Helper method to adapt provided model for non-distributed and distributed configurations (supporting
     all available backends from :meth:`~ignite.distributed.utils.available_backends()`).
 
@@ -149,6 +157,8 @@ def auto_model(model: nn.Module, sync_bn: bool = False, **kwargs: Any) -> nn.Mod
 
     - send model to current :meth:`~ignite.distributed.utils.device()` if model's parameters are not on the device.
     - wrap the model to `torch DistributedDataParallel`_ for native torch distributed if world size is larger than 1.
+    - wrap the model with `torch FSDP2 fully_shard`_ instead of DDP if ``use_fsdp=True`` and native torch
+      distributed is used with world size larger than 1.
     - wrap the model to `torch DataParallel`_ if no distributed context found and more than one CUDA devices available.
     - broadcast the initial variable states from rank 0 to all other processes if Horovod distributed framework is used.
 
@@ -156,9 +166,16 @@ def auto_model(model: nn.Module, sync_bn: bool = False, **kwargs: Any) -> nn.Mod
         model: model to adapt.
         sync_bn: if True, applies `torch convert_sync_batchnorm`_ to the model for native torch
             distributed only. Default, False. Note, if using Nvidia/Apex, batchnorm conversion should be
-            applied before calling ``amp.initialize``.
-        kwargs: kwargs to model's wrapping class: `torch DistributedDataParallel`_ or `torch DataParallel`_
-            if applicable. Please, make sure to use acceptable kwargs for given backend.
+            applied before calling ``amp.initialize``. Incompatible with ``use_fsdp=True``.
+        use_fsdp: if True, applies `torch FSDP2 fully_shard`_ to the model instead of wrapping with
+            ``DistributedDataParallel`` for native torch distributed backends (NCCL, GLOO, MPI).
+            Default, False. When enabled, ``kwargs`` are forwarded to ``fully_shard()``, allowing
+            control over ``reshard_after_forward``, ``mp_policy``, ``offload_policy``, etc.
+            Note: FSDP2 does not support ``auto_wrap_policy``; manually call ``fully_shard()`` on
+            submodules before passing the model to ``auto_model``. Requires PyTorch >= 2.0.
+        kwargs: kwargs forwarded to the wrapping class: `torch DistributedDataParallel`_,
+            `torch FSDP2 fully_shard`_ (when ``use_fsdp=True``), or `torch DataParallel`_
+            if applicable. Please, make sure to use acceptable kwargs for the given backend.
 
     Returns:
         torch.nn.Module
@@ -179,8 +196,26 @@ def auto_model(model: nn.Module, sync_bn: bool = False, **kwargs: Any) -> nn.Mod
             model, optimizer = amp.initialize(model, optimizer, opt_level=opt_level)
             model = idist.auto_model(model)
 
+        To use FSDP2 with bf16 mixed precision:
+
+        .. code-block:: python
+
+            import torch
+            import ignite.distributed as idist
+            from torch.distributed._composable.fsdp import fully_shard, MixedPrecisionPolicy
+
+            bf16_policy = MixedPrecisionPolicy(
+                param_dtype=torch.bfloat16,
+                reduce_dtype=torch.bfloat16,
+            )
+            # Optionally shard submodules first:
+            for layer in model.layers:
+                fully_shard(layer)
+            model = idist.auto_model(model, use_fsdp=True, mp_policy=bf16_policy)
+
     .. _torch DistributedDataParallel: https://pytorch.org/docs/stable/generated/torch.nn.parallel.
         DistributedDataParallel.html
+    .. _torch FSDP2 fully_shard: https://pytorch.org/docs/stable/distributed.fsdp2.html
     .. _torch DataParallel: https://pytorch.org/docs/stable/generated/torch.nn.DataParallel.html
     .. _torch convert_sync_batchnorm: https://pytorch.org/docs/stable/generated/torch.nn.SyncBatchNorm.html#
         torch.nn.SyncBatchNorm.convert_sync_batchnorm
@@ -192,8 +227,12 @@ def auto_model(model: nn.Module, sync_bn: bool = False, **kwargs: Any) -> nn.Mod
 
     .. versionchanged:: 0.4.3
         Added kwargs to ``idist.auto_model``.
+
     """
     logger = setup_logger(__name__ + ".auto_model")
+
+    if use_fsdp and sync_bn:
+        raise ValueError("Arguments use_fsdp and sync_bn are mutually exclusive. FSDP does not support SyncBatchNorm.")
 
     # Put model's parameters to device if its parameters are not on the device
     device = idist.device()
@@ -204,23 +243,39 @@ def auto_model(model: nn.Module, sync_bn: bool = False, **kwargs: Any) -> nn.Mod
     if idist.get_world_size() > 1:
         bnd = idist.backend()
         if idist.has_native_dist_support and bnd in (idist_native.NCCL, idist_native.GLOO, idist_native.MPI):
-            if sync_bn:
-                logger.info("Convert batch norm to sync batch norm")
-                model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
-
-            if torch.cuda.is_available():
-                if "device_ids" in kwargs:
-                    raise ValueError(f"Argument kwargs should not contain 'device_ids', but got {kwargs}")
-
-                lrank = idist.get_local_rank()
-                logger.info(f"Apply torch DistributedDataParallel on model, device id: {lrank}")
-                kwargs["device_ids"] = [
-                    lrank,
-                ]
+            if use_fsdp:
+                if not HAVE_FSDP2:
+                    raise RuntimeError(
+                        "fully_shard (FSDP2) is not available. Please upgrade to PyTorch >= 2.6."
+                    )
+                ddp_only_kwargs = {"device_ids", "output_device", "find_unused_parameters", "gradient_as_bucket_view"}
+                bad_kwargs = ddp_only_kwargs & set(kwargs)
+                if bad_kwargs:
+                    raise ValueError(
+                        f"Argument(s) {bad_kwargs} are DDP-only and cannot be used with use_fsdp=True."
+                    )
+                if "mesh" not in kwargs:
+                    kwargs["mesh"] = init_device_mesh(device.type, (idist.get_world_size(),))
+                logger.info("Apply torch FSDP2 (fully_shard) on model")
+                model = fully_shard(model, **kwargs)
             else:
-                logger.info("Apply torch DistributedDataParallel on model")
+                if sync_bn:
+                    logger.info("Convert batch norm to sync batch norm")
+                    model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
 
-            model = torch.nn.parallel.DistributedDataParallel(model, **kwargs)
+                if torch.cuda.is_available():
+                    if "device_ids" in kwargs:
+                        raise ValueError(f"Argument kwargs should not contain 'device_ids', but got {kwargs}")
+
+                    lrank = idist.get_local_rank()
+                    logger.info(f"Apply torch DistributedDataParallel on model, device id: {lrank}")
+                    kwargs["device_ids"] = [
+                        lrank,
+                    ]
+                else:
+                    logger.info("Apply torch DistributedDataParallel on model")
+
+                model = torch.nn.parallel.DistributedDataParallel(model, **kwargs)
         elif idist.has_hvd_support and bnd == idist_hvd.HOROVOD:
             import horovod.torch as hvd
 
