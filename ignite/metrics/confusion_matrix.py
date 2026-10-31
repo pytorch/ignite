@@ -202,6 +202,11 @@ class ConfusionMatrix(Metric):
             raise ValueError("Argument average should be one of 'samples', 'recall', 'precision'")
 
 
+def _check_confusion_matrix_average(cm: ConfusionMatrix) -> None:
+    if cm.average not in (None, "samples"):
+        raise ValueError("ConfusionMatrix should have average attribute either None or 'samples'")
+
+
 def IoU(cm: ConfusionMatrix, ignore_index: int | None = None) -> MetricsLambda:
     r"""Calculates Intersection over Union using :class:`~ignite.metrics.confusion_matrix.ConfusionMatrix` metric.
 
@@ -244,8 +249,7 @@ def IoU(cm: ConfusionMatrix, ignore_index: int | None = None) -> MetricsLambda:
     if not isinstance(cm, ConfusionMatrix):
         raise TypeError(f"Argument cm should be instance of ConfusionMatrix, but given {type(cm)}")
 
-    if not (cm.average in (None, "samples")):
-        raise ValueError("ConfusionMatrix should have average attribute either None or 'samples'")
+    _check_confusion_matrix_average(cm)
 
     if ignore_index is not None:
         if not (isinstance(ignore_index, numbers.Integral) and 0 <= ignore_index < cm.num_classes):
@@ -321,6 +325,8 @@ def cmAccuracy(cm: ConfusionMatrix) -> MetricsLambda:
     Returns:
         MetricsLambda
     """
+    _check_confusion_matrix_average(cm)
+
     # Increase floating point precision and pass to CPU
     cm = cm.to(torch.double)
     accuracy: MetricsLambda = cm.diag().sum() / (cm.sum() + 1e-15)
@@ -336,6 +342,7 @@ def cmPrecision(cm: ConfusionMatrix, average: bool = True) -> MetricsLambda:
     Returns:
         MetricsLambda
     """
+    _check_confusion_matrix_average(cm)
 
     # Increase floating point precision and pass to CPU
     cm = cm.to(torch.double)
@@ -355,6 +362,7 @@ def cmRecall(cm: ConfusionMatrix, average: bool = True) -> MetricsLambda:
     Returns:
         MetricsLambda
     """
+    _check_confusion_matrix_average(cm)
 
     # Increase floating point precision and pass to CPU
     cm = cm.to(torch.double)
@@ -402,6 +410,8 @@ def DiceCoefficient(cm: ConfusionMatrix, ignore_index: int | None = None) -> Met
 
     if not isinstance(cm, ConfusionMatrix):
         raise TypeError(f"Argument cm should be instance of ConfusionMatrix, but given {type(cm)}")
+
+    _check_confusion_matrix_average(cm)
 
     if ignore_index is not None:
         if not (isinstance(ignore_index, numbers.Integral) and 0 <= ignore_index < cm.num_classes):
