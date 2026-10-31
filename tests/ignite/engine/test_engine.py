@@ -341,20 +341,17 @@ class TestEngine:
         data = range(10)
         max_epochs = 3
 
-        # TODO: Bug: Events.GET_BATCH_STARTED(once=12) is called twice !
-        # prevent call_terminate_epoch to be called twice
         call_count = 0
 
         @engine.on(terminate_epoch_event)
         def call_terminate_epoch():
             assert not engine.should_terminate_single_epoch
             nonlocal call_count
-            if call_count < 1:
-                engine.terminate_epoch(skip_epoch_completed)
-                if skip_epoch_completed:
-                    assert engine.should_terminate_single_epoch == "skip_epoch_completed"
-                else:
-                    assert engine.should_terminate_single_epoch == True  # noqa: E712
+            engine.terminate_epoch(skip_epoch_completed)
+            if skip_epoch_completed:
+                assert engine.should_terminate_single_epoch == "skip_epoch_completed"
+            else:
+                assert engine.should_terminate_single_epoch == True  # noqa: E712
 
             call_count += 1
 
@@ -395,6 +392,7 @@ class TestEngine:
 
             epoch_completed_events = [e for e in engine.called_events if e[2] == Events.EPOCH_COMPLETED.name]
             assert len(epoch_completed_events) == max_epochs - skip_epoch_completed
+            assert call_count == 1
 
     @pytest.mark.parametrize("data", [None, "mock_data_loader"])
     def test_iteration_events_are_fired(self, data):
