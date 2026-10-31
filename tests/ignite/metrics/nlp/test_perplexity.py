@@ -171,26 +171,23 @@ class TestDistributed:
             assert pytest.approx(res, abs=1e-4) == ref
 
 
-def test_float16_uniform_logits_no_overflow():
-    """Float16 logits with large token count must not overflow to inf.
+@pytest.mark.parametrize(
+    "dtype,batch,seq",
+    [
+        (torch.float16, 32, 1024),
+        (torch.bfloat16, 8, 128),
+    ],
+)
+def test_low_precision_uniform_logits_no_overflow(dtype, batch, seq):
+    """Low-precision logits with large token count must not overflow to inf.
 
     With uniform logits over a vocabulary of 16, every token has probability
-    1/16, so perplexity must be exactly 16.  The summed NLL for 32*1024 tokens
-    is ~90852, which exceeds float16's finite range (~65504).
+    1/16, so perplexity must be exactly 16.  For float16 the summed NLL for
+    32*1024 tokens is ~90852, which exceeds float16's finite range (~65504).
     """
     ppl = Perplexity()
-    logits = torch.zeros(32, 16, 1024, dtype=torch.float16)
-    targets = torch.zeros(32, 1024, dtype=torch.long)
-    ppl.update((logits, targets))
-    result = ppl.compute()
-    assert result == pytest.approx(16.0, abs=1e-3)
-
-
-def test_bfloat16_uniform_logits():
-    """bfloat16 path is also cast to float32 for consistency."""
-    ppl = Perplexity()
-    logits = torch.zeros(8, 16, 128, dtype=torch.bfloat16)
-    targets = torch.zeros(8, 128, dtype=torch.long)
+    logits = torch.zeros(batch, 16, seq, dtype=dtype)
+    targets = torch.zeros(batch, seq, dtype=torch.long)
     ppl.update((logits, targets))
     result = ppl.compute()
     assert result == pytest.approx(16.0, abs=1e-3)
