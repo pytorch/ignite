@@ -83,6 +83,18 @@ def test_compute_matches_reference(n_times, available_device):
     assert pytest.approx(ppl.compute(), abs=1e-4) == ref
 
 
+@pytest.mark.parametrize("dtype", [torch.float16, torch.bfloat16])
+def test_low_precision_large_sequence(dtype):
+    ppl = Perplexity()
+
+    y_pred = torch.zeros(1, 16, 30000, dtype=dtype)
+    y = torch.zeros(1, 30000, dtype=torch.long)
+
+    ppl.update((y_pred, y))
+
+    assert ppl.compute() == pytest.approx(16.0, abs=1e-3)
+
+
 @pytest.mark.parametrize("n_times", range(3))
 def test_token_weighted_accumulation(n_times, available_device):
     """Token-weighted accumulation across multiple batches."""
