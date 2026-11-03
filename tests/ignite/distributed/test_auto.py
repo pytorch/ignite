@@ -1,4 +1,5 @@
 import os
+from collections import Counter
 
 import pytest
 import torch
@@ -11,7 +12,14 @@ from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data.sampler import BatchSampler, RandomSampler, Sampler, SequentialSampler, WeightedRandomSampler
 
 import ignite.distributed as idist
-from ignite.distributed.auto import auto_dataloader, auto_model, auto_optim, DistributedProxySampler
+from ignite.distributed.auto import (
+    auto_dataloader,
+    auto_model,
+    auto_optim,
+    DistributedProxySampler,
+    StratifiedBatchSampler,
+)
+from ignite.engine.deterministic import ReproducibleBatchSampler
 from tests.ignite import is_mps_available_and_functional
 
 
@@ -315,3 +323,125 @@ def test_dist_proxy_sampler():
 
     with pytest.raises(TypeError, match=r"Argument sampler must not be a distributed sampler already"):
         DistributedProxySampler(DistributedSampler(sampler, num_replicas=num_replicas, rank=0))
+
+
+_STRATIFIED_LABELS = [0] * 100 + [1] * 20 + [2] * 5
+
+
+def _groups_of(batch, labels=_STRATIFIED_LABELS):
+    return Counter(labels[i] for i in batch)
+
+
+def test_stratified_batch_sampler():
+    sampler = StratifiedBatchSampler(_STRATIFIED_LABELS, batch_size=9)
+    for batch in sampler:
+        assert len(batch) == 9
+        assert _groups_of(batch) == Counter({0: 3, 1: 3, 2: 3})
+
+    # batch_size is not divisible by the number of groups: leftover slots rotate over the groups
+    sampler = StratifiedBatchSampler(_STRATIFIED_LABELS, batch_size=10)
+    counts = Counter()
+    for batch in sampler:
+        assert len(batch) == 10
+        assert set(_groups_of(batch)) == {0, 1, 2}
+        counts.update(_groups_of(batch))
+    assert max(counts.values()) - min(counts.values()) <= len(sampler)
+
+    labels = ["cat", "dog", "cat", "dog", "cat", "dog"]
+    sampler = StratifiedBatchSampler(labels, batch_size=2)
+    for batch in sampler:
+        assert {labels[i] for i in batch} == {"cat", "dog"}
+
+    sampler = StratifiedBatchSampler(torch.tensor(_STRATIFIED_LABELS), batch_size=9)
+    assert len(list(sampler)) == len(sampler)
+
+
+def test_stratified_batch_sampler_strategies():
+    oversample = StratifiedBatchSampler(_STRATIFIED_LABELS, batch_size=3, strategy="oversample")
+    undersample = StratifiedBatchSampler(_STRATIFIED_LABELS, batch_size=3, strategy="undersample")
+
+    # oversample lasts until the largest group is exhausted, undersample until the smallest one is
+    assert len(oversample) == 100
+    assert len(undersample) == 5
+    assert len(list(oversample)) == len(oversample)
+    assert len(list(undersample)) == len(undersample)
+
+    indices = [i for batch in undersample for i in batch]
+    assert len(indices) == len(set(indices))
+
+    # the discarded part of the largest group changes at every epoch
+    undersample.set_epoch(0)
+    first = {i for batch in undersample for i in batch if _STRATIFIED_LABELS[i] == 0}
+    undersample.set_epoch(1)
+    second = {i for batch in undersample for i in batch if _STRATIFIED_LABELS[i] == 0}
+    assert first != second
+
+    oversample.set_epoch(0)
+    seen = Counter(i for batch in oversample for i in batch)
+    assert set(seen) == set(range(len(_STRATIFIED_LABELS)))
+
+
+def test_stratified_batch_sampler_seed():
+    sampler = StratifiedBatchSampler(_STRATIFIED_LABELS, batch_size=9, seed=42)
+    batches = list(sampler)
+    assert list(sampler) == batches
+
+    sampler.set_epoch(1)
+    assert list(sampler) != batches
+
+    other = StratifiedBatchSampler(_STRATIFIED_LABELS, batch_size=9, seed=43)
+    assert list(other) != batches
+
+
+def test_stratified_batch_sampler_num_replicas():
+    num_replicas = 4
+    samplers = [
+        StratifiedBatchSampler(_STRATIFIED_LABELS, batch_size=9, num_replicas=num_replicas, rank=i)
+        for i in range(num_replicas)
+    ]
+
+    # all ranks should yield the same number of batches, otherwise collective ops hang
+    assert len({len(s) for s in samplers}) == 1
+
+    indices_per_rank = []
+    for s in samplers:
+        s.set_epoch(0)
+        rank_indices = []
+        for batch in s:
+            assert set(_groups_of(batch)) == {0, 1, 2}
+            rank_indices += batch
+        indices_per_rank.append(set(rank_indices))
+
+    for i in range(num_replicas):
+        for j in range(i + 1, num_replicas):
+            assert not indices_per_rank[i] & indices_per_rank[j]
+
+
+def test_stratified_batch_sampler_with_dataloader():
+    dataloader = DataLoader(DummyDS(length=125), batch_sampler=StratifiedBatchSampler(_STRATIFIED_LABELS, 9))
+    for batch in dataloader:
+        assert set(_groups_of(batch.tolist())) == {0, 1, 2}
+
+    # a deterministic engine replaces the batch sampler, which requires a torch BatchSampler
+    sampler = StratifiedBatchSampler(_STRATIFIED_LABELS, batch_size=9)
+    assert len(list(ReproducibleBatchSampler(sampler))) == len(sampler)
+
+
+def test_stratified_batch_sampler_asserts():
+    with pytest.raises(ValueError, match=r"Argument strategy should be 'oversample' or 'undersample'"):
+        StratifiedBatchSampler(_STRATIFIED_LABELS, batch_size=9, strategy="drop")
+
+    with pytest.raises(ValueError, match=r"Argument labels should be one-dimensional"):
+        StratifiedBatchSampler(torch.zeros(4, 2), batch_size=2)
+
+    with pytest.raises(ValueError, match=r"Argument labels should not be empty"):
+        StratifiedBatchSampler([], batch_size=1)
+
+    with pytest.raises(ValueError, match=r"Argument batch_size should be larger or equal to the number of groups"):
+        StratifiedBatchSampler(_STRATIFIED_LABELS, batch_size=2)
+
+    with pytest.raises(ValueError, match=r"Argument rank should be in \[0, 2\)"):
+        StratifiedBatchSampler(_STRATIFIED_LABELS, batch_size=9, num_replicas=2, rank=2)
+
+    with pytest.raises(ValueError, match=r"Smallest group has 5 samples, less than num_replicas=8"):
+        StratifiedBatchSampler(_STRATIFIED_LABELS, batch_size=9, num_replicas=8, rank=0)

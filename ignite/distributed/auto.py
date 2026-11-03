@@ -9,7 +9,7 @@ import torch.nn as nn
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 from torch.utils.data.distributed import DistributedSampler
-from torch.utils.data.sampler import Sampler
+from torch.utils.data.sampler import BatchSampler, Sampler
 
 from ignite.distributed import utils as idist
 from ignite.distributed.comp_models import horovod as idist_hvd
@@ -17,7 +17,7 @@ from ignite.distributed.comp_models import native as idist_native
 from ignite.distributed.comp_models import xla as idist_xla
 from ignite.utils import setup_logger
 
-__all__ = ["auto_dataloader", "auto_model", "auto_optim", "DistributedProxySampler"]
+__all__ = ["auto_dataloader", "auto_model", "auto_optim", "DistributedProxySampler", "StratifiedBatchSampler"]
 
 
 def auto_dataloader(dataset: Dataset, **kwargs: Any) -> DataLoader | _MpDeviceLoader:
@@ -328,6 +328,160 @@ class DistributedProxySampler(DistributedSampler):
             raise RuntimeError(f"{len(indices)} vs {self.num_samples}")
 
         return iter(indices)
+
+
+class StratifiedBatchSampler(BatchSampler):
+    """Batch sampler guaranteeing that every group is represented in every batch.
+
+    Unlike `torch WeightedRandomSampler`_, which only makes rare groups more likely, this sampler puts a fixed
+    number of samples of each group into each batch. This is required by methods where a missing group zeroes out
+    a loss term, e.g. Group Distributionally Robust Optimization or contrastive learning.
+
+    It is a batch sampler and should be passed to ``batch_sampler`` of a dataloader, not to ``sampler``:
+
+    .. code-block:: python
+
+        batch_sampler = StratifiedBatchSampler(group_ids, batch_size=32)
+        dataloader = DataLoader(dataset, batch_sampler=batch_sampler)
+
+        @trainer.on(Events.EPOCH_STARTED)
+        def set_epoch(engine):
+            batch_sampler.set_epoch(engine.state.epoch)
+
+    Args:
+        labels: group id of every dataset sample, as a sequence, numpy array or 1-D tensor. Groups are derived from
+            the distinct values, which can be of any hashable type.
+        batch_size: number of samples per batch. Should be larger or equal to the number of groups. Every yielded
+            batch has exactly this size. If it is not divisible by the number of groups, the leftover slots are
+            given to a rotating subset of the groups.
+        strategy: if ``"oversample"`` (default), an epoch lasts until the largest group is exhausted and smaller
+            groups are cycled, such that no sample is discarded. If ``"undersample"``, an epoch stops once the
+            smallest group is exhausted and larger groups are truncated. Groups are reshuffled at every epoch, so
+            the truncated part of a larger group is different at every epoch and no sample is permanently unused.
+        num_replicas: number of processes participating in distributed training. Defaults to
+            :meth:`~ignite.distributed.utils.get_world_size`.
+        rank: rank of the current process within ``num_replicas``. Defaults to
+            :meth:`~ignite.distributed.utils.get_rank`.
+        seed: random seed used to shuffle the groups. The seed of an epoch is ``seed + epoch``.
+
+    .. note::
+        In a distributed configuration, groups are sharded across ranks individually, so that every batch of every
+        rank still contains every group. Wrapping this sampler with
+        :class:`~ignite.distributed.auto.DistributedProxySampler` or `torch DistributedSampler`_ instead would shard
+        the flat index list and could leave a rank without any sample of a rare group. Each group should therefore
+        have at least
+        ``num_replicas`` samples. Groups are truncated to a multiple of ``num_replicas``, so that all ranks yield
+        the same number of batches.
+
+    .. note::
+        As for `torch DistributedSampler`_, :meth:`set_epoch` should be called at the beginning of every epoch,
+        otherwise the same batches are produced at every epoch.
+
+    .. _torch WeightedRandomSampler:
+        https://pytorch.org/docs/stable/data.html#torch.utils.data.WeightedRandomSampler
+    .. _torch DistributedSampler:
+        https://pytorch.org/docs/stable/data.html#torch.utils.data.distributed.DistributedSampler
+
+    .. versionadded:: 0.6.0
+    """
+
+    def __init__(
+        self,
+        labels: Any,
+        batch_size: int,
+        strategy: str = "oversample",
+        num_replicas: int | None = None,
+        rank: int | None = None,
+        seed: int = 0,
+    ) -> None:
+        if strategy not in ("oversample", "undersample"):
+            raise ValueError(f"Argument strategy should be 'oversample' or 'undersample', but given {strategy}")
+
+        ndim = getattr(labels, "ndim", 1)
+        if ndim != 1:
+            raise ValueError(f"Argument labels should be one-dimensional, but given {ndim} dimensions")
+        if hasattr(labels, "tolist"):
+            labels = labels.tolist()
+
+        groups: dict[Any, list[int]] = {}
+        for index, label in enumerate(labels):
+            groups.setdefault(label, []).append(index)
+        if len(groups) == 0:
+            raise ValueError("Argument labels should not be empty")
+
+        self.groups = list(groups.values())
+        num_groups = len(self.groups)
+        if batch_size < num_groups:
+            raise ValueError(
+                f"Argument batch_size should be larger or equal to the number of groups ({num_groups}), "
+                f"but given {batch_size}"
+            )
+
+        self.num_replicas = idist.get_world_size() if num_replicas is None else num_replicas
+        self.rank = idist.get_rank() if rank is None else rank
+        if not 0 <= self.rank < self.num_replicas:
+            raise ValueError(f"Argument rank should be in [0, {self.num_replicas}), but given {self.rank}")
+
+        # all ranks drop the same tail, otherwise they yield a different number of batches and collective ops hang
+        self.shard_sizes = [len(group) // self.num_replicas for group in self.groups]
+        if min(self.shard_sizes) == 0:
+            smallest = min(len(group) for group in self.groups)
+            raise ValueError(
+                f"Smallest group has {smallest} samples, less than num_replicas={self.num_replicas}. "
+                "Every group should have at least one sample per rank"
+            )
+
+        self.samples_per_group = batch_size // num_groups
+        self.leftover_slots = batch_size % num_groups
+        if strategy == "oversample":
+            self.num_batches = max(-(-size // self.samples_per_group) for size in self.shard_sizes)
+        else:
+            self.num_batches = max(1, min(size // self.samples_per_group for size in self.shard_sizes))
+
+        self.strategy = strategy
+        self.seed = seed
+        self.epoch = 0
+        super().__init__(sampler=None, batch_size=batch_size, drop_last=False)  # type: ignore[arg-type]
+
+    def set_epoch(self, epoch: int) -> None:
+        """Set the epoch used to seed the shuffling of the groups.
+
+        Args:
+            epoch: epoch number.
+        """
+        self.epoch = epoch
+
+    def _cycle(self, shard: list[int], generator: torch.Generator) -> Iterator[int]:
+        # reshuffled on every pass, unlike itertools.cycle which replays a frozen order
+        while True:
+            for i in torch.randperm(len(shard), generator=generator).tolist():
+                yield shard[i]
+
+    def __iter__(self) -> Iterator[list[int]]:
+        generator = torch.Generator().manual_seed(self.seed + self.epoch)
+
+        cycles = []
+        for group, size in zip(self.groups, self.shard_sizes):
+            perm = torch.randperm(len(group), generator=generator).tolist()
+            shuffled = [group[i] for i in perm]
+            # same permutation on every rank, so that the strided shards are disjoint
+            cycles.append(self._cycle(shuffled[self.rank :: self.num_replicas][:size], generator))
+
+        offset = 0
+        for _ in range(self.num_batches):
+            # rotated, such that no group systematically gets the slots left over by the integer division
+            bonus = {(offset + i) % len(cycles) for i in range(self.leftover_slots)}
+            offset += self.leftover_slots
+
+            batch = []
+            for i, cycle in enumerate(cycles):
+                for _ in range(self.samples_per_group + (1 if i in bonus else 0)):
+                    batch.append(next(cycle))
+
+            yield [batch[i] for i in torch.randperm(len(batch), generator=generator).tolist()]
+
+    def __len__(self) -> int:
+        return self.num_batches
 
 
 if idist.has_xla_support:
