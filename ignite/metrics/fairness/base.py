@@ -1,5 +1,4 @@
 import copy
-from collections import OrderedDict
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
@@ -14,6 +13,7 @@ class _SubgroupBase(Metric):
     """Internal base class for metrics that compute results per subgroup."""
 
     required_output_keys = ("y_pred", "y", "group_labels")
+    _state_dict_all_req_keys = ("_metrics",)
 
     def __init__(
         self,
@@ -53,23 +53,27 @@ class _SubgroupBase(Metric):
                 continue
         return results
 
-    def state_dict(self) -> OrderedDict:
-        state_dict = super().state_dict()
-        state_dict["_metrics"] = {str(g): m.state_dict() for g, m in self._metrics.items()}
-        return state_dict
-
     def load_state_dict(self, state_dict: Mapping) -> None:
-        state_dict_dict = dict(state_dict)
-        metrics_state = state_dict_dict.pop("_metrics")
-        super().load_state_dict(state_dict_dict)
-        for g, m_state in metrics_state.items():
-            found_g = None
-            for original_g in self._metrics.keys():
-                if str(original_g) == g:
-                    found_g = original_g
-                    break
-            if found_g is not None:
-                self._metrics[found_g].load_state_dict(m_state)
+        if isinstance(state_dict, Mapping) and "_metrics" in state_dict:
+            # Older standalone checkpoints stored each subgroup's full state at the top level.
+            state_dict = dict(state_dict)
+            metrics_state = state_dict.pop("_metrics")
+            rank_key = "__metric_state_per_rank"
+            rank_states = []
+            for rank, state in enumerate(state_dict[rank_key]):
+                state = dict(state)
+                state["_metrics"] = {}
+                for group, metric in self._metrics.items():
+                    if str(group) in metrics_state:
+                        group_states = metrics_state[str(group)][rank_key]
+                        if len(group_states) != len(state_dict[rank_key]):
+                            raise ValueError("Subgroup state must have the same world size as the parent metric state.")
+                        state["_metrics"][group] = group_states[rank]
+                    else:
+                        state["_metrics"][group] = metric._state_dict_per_rank()
+                rank_states.append(state)
+            state_dict[rank_key] = rank_states
+        super().load_state_dict(state_dict)
 
 
 class SubgroupMetric(_SubgroupBase):
@@ -88,6 +92,9 @@ class SubgroupMetric(_SubgroupBase):
         device: specifies which device updates are accumulated on.
 
     .. versionadded:: 0.5.4
+
+    .. versionchanged:: 0.6.0
+        Subgroup state is preserved when checkpointed inside another metric.
     """
 
     def compute(self) -> dict[Any, Any]:
@@ -111,6 +118,9 @@ class SubgroupDifference(_SubgroupBase):
         device: specifies the computation device.
 
     .. versionadded:: 0.5.4
+
+    .. versionchanged:: 0.6.0
+        Subgroup state is preserved when checkpointed inside another metric.
     """
 
     def compute(self) -> float:
