@@ -223,6 +223,34 @@ def test_multilabel_input_per_label_batched(available_device):
     assert torch.allclose(acc.compute(), expected)
 
 
+@pytest.mark.parametrize("data_type", ["binary", "multiclass"])
+@pytest.mark.parametrize("noncontiguous_input", ["predictions", "targets", "both"])
+def test_update_noncontiguous(data_type, noncontiguous_input):
+    torch.manual_seed(12)
+    y = torch.randint(0, 2, size=(4, 5, 6))
+    if data_type == "binary":
+        y_pred = torch.randint(0, 2, size=(4, 5, 6))
+    else:
+        y_pred = torch.rand(4, 2, 5, 6)
+    if noncontiguous_input in ("predictions", "both"):
+        y_pred = y_pred.transpose(-1, -2)
+        assert not y_pred.is_contiguous()
+    else:
+        y_pred = y_pred.transpose(-1, -2).contiguous()
+    if noncontiguous_input in ("targets", "both"):
+        y = y.transpose(-1, -2)
+        assert not y.is_contiguous()
+    else:
+        y = y.transpose(-1, -2).contiguous()
+
+    reference = Accuracy()
+    reference.update((y_pred.contiguous(), y.contiguous()))
+    acc = Accuracy()
+    acc.update((y_pred, y))
+
+    assert acc.compute() == pytest.approx(reference.compute())
+
+
 def test_incorrect_type():
     acc = Accuracy()
 
