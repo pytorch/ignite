@@ -192,6 +192,10 @@ def auto_model(model: nn.Module, sync_bn: bool = False, **kwargs: Any) -> nn.Mod
 
     .. versionchanged:: 0.4.3
         Added kwargs to ``idist.auto_model``.
+
+    .. versionchanged:: 0.6.0
+        ``device_ids`` passed to `torch DistributedDataParallel`_ is now the current CUDA device instead of the
+        local rank, such that it always matches :meth:`~ignite.distributed.utils.device()`.
     """
     logger = setup_logger(__name__ + ".auto_model")
 
@@ -212,10 +216,10 @@ def auto_model(model: nn.Module, sync_bn: bool = False, **kwargs: Any) -> nn.Mod
                 if "device_ids" in kwargs:
                     raise ValueError(f"Argument kwargs should not contain 'device_ids', but got {kwargs}")
 
-                lrank = idist.get_local_rank()
-                logger.info(f"Apply torch DistributedDataParallel on model, device id: {lrank}")
+                device_id = torch.cuda.current_device()
+                logger.info(f"Apply torch DistributedDataParallel on model, device id: {device_id}")
                 kwargs["device_ids"] = [
-                    lrank,
+                    device_id,
                 ]
             else:
                 logger.info("Apply torch DistributedDataParallel on model")
