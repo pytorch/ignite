@@ -1156,6 +1156,10 @@ def create_lr_scheduler_with_warmup(
             trainer.add_event_handler(combined_events, scheduler)
 
     .. versionadded:: 0.4.5
+
+    .. versionchanged:: 0.6.0
+        With a PyTorch ``lr_scheduler`` and several optimizer param groups, every param group continues from its own
+        initial lr after the warm-up.
     """
     if not isinstance(lr_scheduler, (ParamScheduler, PyTorchLRScheduler)):
         raise TypeError(
@@ -1172,6 +1176,7 @@ def create_lr_scheduler_with_warmup(
 
     warmup_schedulers: list[ParamScheduler] = []
     milestones_values: list[tuple[int, float]] = []
+    warmup_end_index = 0
 
     for param_group_index, param_group in enumerate(lr_scheduler.optimizer.param_groups):
         if warmup_end_value is None:
@@ -1185,14 +1190,6 @@ def create_lr_scheduler_with_warmup(
             init_lr = param_group["lr"]
             if init_lr != param_group_warmup_end_value:
                 milestones_values.append((warmup_duration, init_lr))
-
-            # We need to advance torch lr_scheduler to avoid duplicated lr value
-            # given by PiecewiseLinear and LRScheduler.
-            # We suggest to attach output scheduler on ITERATION_STARTED but
-            # torch lr_scheduler works with ITERATION_COMPLETED
-            # See also https://github.com/pytorch/ignite/pull/2496#issuecomment-1065984440
-            lr_scheduler.last_epoch += 1
-            lr_scheduler = LRScheduler(lr_scheduler, save_history=save_history)
         else:
             init_lr = lr_scheduler.get_param()
             if init_lr == param_group_warmup_end_value:
@@ -1202,6 +1199,7 @@ def create_lr_scheduler_with_warmup(
                 else:
                     milestones_values.pop(-1)
 
+        warmup_end_index = max(warmup_end_index, milestones_values[-1][0])
         warmup_schedulers.append(
             PiecewiseLinear(
                 lr_scheduler.optimizer,
@@ -1212,13 +1210,22 @@ def create_lr_scheduler_with_warmup(
             )
         )
 
+    if isinstance(lr_scheduler, PyTorchLRScheduler):
+        # We need to advance torch lr_scheduler to avoid duplicated lr value
+        # given by PiecewiseLinear and LRScheduler.
+        # We suggest to attach output scheduler on ITERATION_STARTED but
+        # torch lr_scheduler works with ITERATION_COMPLETED
+        # See also https://github.com/pytorch/ignite/pull/2496#issuecomment-1065984440
+        lr_scheduler.last_epoch += 1
+        lr_scheduler = LRScheduler(lr_scheduler, save_history=save_history)
+
     warmup_scheduler = ParamGroupScheduler(warmup_schedulers, save_history=save_history)
 
     schedulers: list[ParamScheduler | ParamGroupScheduler | PyTorchLRScheduler] = [
         warmup_scheduler,
         lr_scheduler,
     ]
-    durations = [milestones_values[-1][0] + 1]
+    durations = [warmup_end_index + 1]
     # pyrefly: ignore [bad-argument-type]
     combined_scheduler = ConcatScheduler(schedulers, durations=durations, save_history=save_history)
 
