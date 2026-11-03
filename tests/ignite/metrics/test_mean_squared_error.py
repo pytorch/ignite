@@ -6,7 +6,21 @@ import torch
 
 import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
-from ignite.metrics import MeanSquaredError
+from ignite.metrics import MeanSquaredError, RootMeanSquaredError
+
+
+@pytest.mark.parametrize("metric_cls", [MeanSquaredError, RootMeanSquaredError])
+@pytest.mark.parametrize("prediction", [300.0, 200.0, 0.0001])
+def test_float16_error_arithmetic(metric_cls, prediction):
+    y_pred = torch.tensor([prediction, -prediction], dtype=torch.float16)
+    y = torch.zeros_like(y_pred)
+    expected = (y_pred.double() - y.double()).square().mean().item()
+    if metric_cls is RootMeanSquaredError:
+        expected = expected**0.5
+
+    metric = metric_cls()
+    metric.update((y_pred, y))
+    assert metric.compute() == pytest.approx(expected, rel=1e-6)
 
 
 def test_zero_sample():

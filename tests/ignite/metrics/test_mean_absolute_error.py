@@ -9,6 +9,17 @@ from ignite.exceptions import NotComputableError
 from ignite.metrics import MeanAbsoluteError
 
 
+@pytest.mark.parametrize("predictions,targets", [([40000.0, 40000.0], [0.0, 0.0]), ([40000.0], [-40000.0])])
+def test_float16_error_arithmetic(predictions, targets):
+    y_pred = torch.tensor(predictions, dtype=torch.float16)
+    y = torch.tensor(targets, dtype=torch.float16)
+    expected = (y_pred.double() - y.double()).abs().mean().item()
+
+    metric = MeanAbsoluteError()
+    metric.update((y_pred, y))
+    assert metric.compute() == pytest.approx(expected)
+
+
 def test_no_update():
     mae = MeanAbsoluteError()
     with pytest.raises(

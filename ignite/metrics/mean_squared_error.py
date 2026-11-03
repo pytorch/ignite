@@ -75,6 +75,10 @@ class MeanSquaredError(Metric):
     @reinit__is_reduced
     def update(self, output: Sequence[torch.Tensor]) -> None:
         y_pred, y = output[0].detach(), output[1].detach()
+        if y_pred.dtype == torch.float16:
+            y_pred = y_pred.float()
+        if y.dtype == torch.float16:
+            y = y.float()
         squared_errors = torch.pow(y_pred - y.view_as(y_pred), 2)
         self._sum_of_squared_errors += torch.sum(squared_errors).to(self._device)
         self._num_examples += y.shape[0]
