@@ -1249,6 +1249,71 @@ def _test_checkpoint_load_objects_ddp(device):
     Checkpoint.load_objects(to_load, checkpoint)
 
 
+def _test_checkpoint_with_fsdp(device, dirname):
+    from ignite.handlers.checkpoint import HAVE_FSDP2
+
+    if not HAVE_FSDP2 or "cuda" not in device.type:
+        return
+
+    from torch.distributed._composable.fsdp import fully_shard
+
+    torch.manual_seed(0)
+    model = DummyModel().to(device)
+    fully_shard(model)
+    to_save = {"model": model}
+
+    saver = DiskSaver(str(dirname), create_dir=True, require_empty=False)
+    checkpointer = Checkpoint(to_save, saver)
+    engine = Engine(lambda e, b: None)
+    engine.state = State(epoch=0, iteration=0)
+    checkpointer(engine)
+
+    # Rank 0 should have written a checkpoint with the full model weights
+    if idist.get_rank() == 0:
+        ckpt_path = list(dirname.glob("model_*.pt"))
+        assert len(ckpt_path) == 1
+        saved = torch.load(ckpt_path[0], map_location="cpu")
+        # Saved state dict keys should match the unwrapped model's keys (no FSDP prefix)
+        assert set(saved.keys()) == set(DummyModel().state_dict().keys())
+
+
+def _test_checkpoint_load_objects_fsdp(device):
+    from ignite.handlers.checkpoint import HAVE_FSDP2
+
+    if not HAVE_FSDP2 or "cuda" not in device.type:
+        return
+
+    from torch.distributed._composable.fsdp import fully_shard
+    from torch.distributed.checkpoint.state_dict import StateDictOptions, get_model_state_dict, set_model_state_dict
+
+    def _full_state(m):
+        return {
+            k: v.clone()
+            for k, v in get_model_state_dict(
+                m, options=StateDictOptions(full_state_dict=True, cpu_offload=True)
+            ).items()
+        }
+
+    torch.manual_seed(0)
+    model = DummyModel().to(device)
+    fully_shard(model)
+    original_state = _full_state(model)
+
+    # Perturb weights, then reload the original state dict via Checkpoint.load_objects
+    perturbed = {k: v + 99.0 for k, v in original_state.items()}
+    set_model_state_dict(model, perturbed, options=StateDictOptions(full_state_dict=True))
+
+    Checkpoint.load_objects({"model": model}, original_state)
+
+    # After loading, weights should match the original
+    after = _full_state(model)
+    if idist.get_rank() == 0:
+        for k in original_state:
+            assert torch.allclose(original_state[k].cpu(), after[k].cpu()), (
+                f"Mismatch on param '{k}' after FSDP2 checkpoint load"
+            )
+
+
 def _test_checkpoint_with_ZeRO(device, dirname, local_rank):
     from torch.distributed.optim import ZeroRedundancyOptimizer
 
@@ -1284,6 +1349,8 @@ def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo, dirname, 
     _test_save_model_optimizer_lr_scheduler_with_state_dict(device, rank_zero_dirname / "2", just_on_zero_rank=True)
     _test_checkpoint_with_ddp(device)
     _test_checkpoint_load_objects_ddp(device)
+    _test_checkpoint_with_fsdp(device, rank_zero_dirname / "fsdp_save")
+    _test_checkpoint_load_objects_fsdp(device)
 
     from ignite.handlers.checkpoint import HAVE_ZERO
 
@@ -1301,6 +1368,8 @@ def test_distrib_nccl_gpu(distributed_context_single_node_nccl, get_rank_zero_di
     _test_save_model_optimizer_lr_scheduler_with_state_dict("cpu", dirname / "2", just_on_zero_rank=True)
     _test_checkpoint_with_ddp(device=device)
     _test_checkpoint_load_objects_ddp(device=device)
+    _test_checkpoint_with_fsdp(device, dirname / "fsdp_save")
+    _test_checkpoint_load_objects_fsdp(device)
 
 
 @pytest.mark.distributed
