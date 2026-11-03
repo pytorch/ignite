@@ -43,8 +43,8 @@ class EMAHandler:
           warmup_iters: iterations of warmup.
           handle_buffers: how to handle model buffers during training. There are three options: 1. "copy" means
               a shallow buffers copy or reusing the buffers of the online model; 2. "update" means applying EMA to the
-              buffers of the online
-              model; 3. "ema_train" means set the EMA model to ``train`` mode and skip copying or updating the buffers.
+              buffers of the online model; 3. "ema_train" means set the EMA model to ``train`` mode and skip copying or
+              updating the buffers.
 
     Attributes:
           ema_model: the exponential moving averaged model.
