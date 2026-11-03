@@ -17,6 +17,33 @@ def np_entropy(np_y_pred: np.ndarray):
     return ent
 
 
+@pytest.mark.parametrize("shape", [(32768, 16), (2, 16, 128, 128)], ids=["classification", "segmentation"])
+@pytest.mark.parametrize("dtype", [torch.float16, torch.bfloat16, torch.float32, torch.float64])
+def test_uniform_logits_precision(shape, dtype, available_device):
+    if available_device == "mps" and dtype in (torch.bfloat16, torch.float64):
+        pytest.skip("These dtypes are not supported on all supported MPS versions.")
+    logits = torch.zeros(shape, dtype=dtype, device=available_device)
+    metric = Entropy(device=available_device)
+    metric.update((logits, None))
+    expected = np.log(shape[1])
+    assert metric.compute() == pytest.approx(expected, rel=1e-6)
+
+    evaluator = Engine(lambda engine, batch: (batch, None))
+    metric.attach(evaluator, "entropy")
+    batch_size = 1024 if len(shape) == 2 else 1
+    state = evaluator.run(logits.split(batch_size))
+    assert state.metrics["entropy"] == pytest.approx(expected, rel=1e-6)
+
+
+def test_float64_logits_preserve_range(available_device):
+    if available_device == "mps":
+        pytest.skip("MPS does not support float64.")
+    logits = torch.tensor([[1e40, 0.0, -1e40]], dtype=torch.float64, device=available_device)
+    metric = Entropy(device=available_device)
+    metric.update((logits, None))
+    assert metric.compute() == 0.0
+
+
 def test_zero_sample():
     ent = Entropy()
     with pytest.raises(NotComputableError, match=r"Entropy must have at least one example before it can be computed"):
