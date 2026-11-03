@@ -688,8 +688,16 @@ class Metric(Serializable, metaclass=ABCMeta):
 
         for attr_name in self._state_dict_all_req_keys:
             attr = getattr(self, attr_name)
+            state_attr = state_dict[attr_name]
+            if isinstance(attr, list) and isinstance(state_attr, list):
+                is_list_backed_state = all(
+                    item is None or isinstance(item, _CollectionItem.types_as_collection_item) for item in state_attr
+                )
+                if is_list_backed_state:
+                    attr[:] = state_attr
+                    continue
             attr = _CollectionItem.wrap(self.__dict__, attr_name, attr)
-            _tree_apply2(func, attr, state_dict[attr_name])
+            _tree_apply2(func, attr, state_attr)
 
     def load_state_dict(self, state_dict: Mapping) -> None:
         """Method replaces internal state of the class with provided state dict data.
