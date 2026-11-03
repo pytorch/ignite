@@ -1,5 +1,6 @@
 import os
 import stat
+import tempfile
 import warnings
 from collections import OrderedDict
 from collections.abc import Mapping
@@ -1923,3 +1924,21 @@ def test_checkpoint_on_exception(dirname):
 
     metadata = {"basename": "model", "score_name": None, "priority": 1}
     save_handler.assert_called_with(model.state_dict(), "model_1.pt", metadata)
+
+
+def test_torch_snapshot_saver():
+    torchsnapshot = pytest.importorskip("torchsnapshot")
+    from ignite.handlers.checkpoint import TorchSnapshotSaver
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        saver = TorchSnapshotSaver(dirname=tmpdir)
+        checkpoint_dir = Path(tmpdir) / "test_snapshot"
+
+        # Test save functionality using StateDict wrapper
+        state_dict = {"model": torchsnapshot.StateDict(torch.nn.Linear(2, 2).state_dict())}
+        saver(state_dict, "test_snapshot")
+        assert checkpoint_dir.exists()
+
+        # Test remove functionality
+        saver.remove("test_snapshot")
+        assert not checkpoint_dir.exists()

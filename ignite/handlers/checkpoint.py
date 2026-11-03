@@ -1,5 +1,6 @@
 import numbers
 import os
+import shutil
 import stat
 import tempfile
 from abc import ABCMeta, abstractmethod
@@ -19,12 +20,20 @@ if Version(torch.__version__) >= Version("1.9.0"):
 else:
     HAVE_ZERO = False
 
+try:
+    import torchsnapshot
+    from torchsnapshot.stateful import Stateful
+
+    HAVE_TORCHSNAPSHOT = True
+except ImportError:
+    HAVE_TORCHSNAPSHOT = False
+
 import ignite.distributed as idist
 from ignite.base import Serializable
 from ignite.engine import Engine, Events, EventEnum
 from ignite.utils import _tree_apply2, _tree_map
 
-__all__ = ["Checkpoint", "DiskSaver", "ModelCheckpoint", "BaseSaveHandler", "CheckpointEvents"]
+__all__ = ["Checkpoint", "DiskSaver", "ModelCheckpoint", "BaseSaveHandler", "CheckpointEvents", "TorchSnapshotSaver"]
 
 
 class CheckpointEvents(EventEnum):
@@ -925,6 +934,48 @@ class DiskSaver(BaseSaveHandler):
         if idist.get_rank() == self.save_on_rank:
             path = self.dirname / filename
             path.unlink()
+
+
+class TorchSnapshotSaver(BaseSaveHandler):
+    """Save handler that uses torchsnapshot.Snapshot.take to save objects.
+
+    Args:
+        dirname: Directory path where snapshots will be saved.
+        kwargs: Additional keyword arguments passed to `torchsnapshot.Snapshot.take`.
+    """
+
+    def __init__(self, dirname: str | Path, **kwargs: Any) -> None:
+        if not HAVE_TORCHSNAPSHOT:
+            raise RuntimeError(
+                "TorchSnapshotSaver requires 'torchsnapshot' to be installed. "
+                "Please install it using 'pip install torchsnapshot'."
+            )
+
+        self.dirname = Path(dirname).expanduser()
+        self.kwargs = kwargs
+
+    def __call__(self, checkpoint: Mapping, filename: str, metadata: Mapping | None = None) -> None:
+        save_path = str(self.dirname / filename)
+
+        # Wrap raw state_dict mappings automatically into torchsnapshot.StateDict
+        app_state = {}
+        if isinstance(checkpoint, Mapping):
+            for k, v in checkpoint.items():
+                if isinstance(v, Stateful):
+                    app_state[k] = v
+                elif isinstance(v, Mapping):
+                    app_state[k] = torchsnapshot.StateDict(v)
+                else:
+                    app_state[k] = v
+        else:
+            app_state = checkpoint
+
+        torchsnapshot.Snapshot.take(path=save_path, app_state=app_state, **self.kwargs)
+
+    def remove(self, filename: str) -> None:
+        path = self.dirname / filename
+        if path.exists() and path.is_dir():
+            shutil.rmtree(path)
 
 
 class ModelCheckpoint(Checkpoint):
