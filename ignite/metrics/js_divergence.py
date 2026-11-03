@@ -1,3 +1,5 @@
+import math
+
 import torch
 import torch.nn.functional as F
 from packaging.version import Version
@@ -77,24 +79,27 @@ class JSDivergence(KLDivergence):
 
     .. versionchanged:: 0.5.1
         ``skip_unrolling`` argument is added.
+
+    .. versionchanged:: 0.6.0
+        Compute the mixture in log space to avoid underflow for extreme finite logits.
     """
 
     def _update(self, y_pred: torch.Tensor, y: torch.Tensor) -> None:
-        y_pred_prob = F.softmax(y_pred, dim=1)
-        y_prob = F.softmax(y, dim=1)
-        m_prob = (y_pred_prob + y_prob) / 2
-        m_log = m_prob.log()
-
         if TORCH_VERSION_GE_160:
             # log_target option can be used from 1.6.0
             y_pred_log = F.log_softmax(y_pred, dim=1)
             y_log = F.log_softmax(y, dim=1)
+            m_log = torch.logaddexp(y_pred_log, y_log) - math.log(2.0)
             self._sum_of_kl += (
                 F.kl_div(m_log, y_pred_log, log_target=True, reduction="sum")
                 + F.kl_div(m_log, y_log, log_target=True, reduction="sum")
             ).to(self._device)
         else:
             # y_pred and y are expected to be probabilities
+            y_pred_prob = F.softmax(y_pred, dim=1)
+            y_prob = F.softmax(y, dim=1)
+            m_prob = (y_pred_prob + y_prob) / 2
+            m_log = m_prob.log()
             self._sum_of_kl += (
                 F.kl_div(m_log, y_pred_prob, reduction="sum") + F.kl_div(m_log, y_prob, reduction="sum")
             ).to(self._device)
