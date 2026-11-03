@@ -61,12 +61,12 @@ class R2Score(_BaseRegression):
     @reinit__is_reduced
     def reset(self) -> None:
         self._num_examples = 0
-        self._sum_of_errors = torch.tensor(0.0, device=self._device)
-        self._y_sq_sum = torch.tensor(0.0, device=self._device)
-        self._y_sum = torch.tensor(0.0, device=self._device)
+        self._sum_of_errors = torch.tensor(0.0, dtype=self._double_dtype, device=self._device)
+        self._y_sq_sum = torch.tensor(0.0, dtype=self._double_dtype, device=self._device)
+        self._y_sum = torch.tensor(0.0, dtype=self._double_dtype, device=self._device)
 
     def _update(self, output: tuple[torch.Tensor, torch.Tensor]) -> None:
-        y_pred, y = output
+        y_pred, y = output[0].to(self._double_dtype), output[1].to(self._double_dtype)
         self._num_examples += y.shape[0]
         self._sum_of_errors += torch.sum(torch.pow(y_pred - y, 2)).to(self._device)
 
@@ -77,4 +77,10 @@ class R2Score(_BaseRegression):
     def compute(self) -> float:
         if self._num_examples == 0:
             raise NotComputableError("R2Score must have at least one example before it can be computed.")
-        return 1 - self._sum_of_errors.item() / (self._y_sq_sum.item() - (self._y_sum.item() ** 2) / self._num_examples)
+        y_sq_sum = self._y_sq_sum.item()
+        ss_tot = y_sq_sum - (self._y_sum.item() ** 2) / self._num_examples
+        # ss_tot is a difference of two large numbers when |mean(y)| >> std(y). Below the rounding error
+        # of y_sq_sum nothing meaningful is left, which also covers constant targets.
+        if ss_tot <= torch.finfo(self._double_dtype).eps * y_sq_sum:
+            raise NotComputableError("R2Score is undefined when all target values are identical.")
+        return 1 - self._sum_of_errors.item() / ss_tot

@@ -236,3 +236,27 @@ def _test_distrib_xla_nprocs(index):
 def test_distrib_xla_nprocs(xmp_executor):
     n = int(os.environ["NUM_TPU_WORKERS"])
     xmp_executor(_test_distrib_xla_nprocs, args=(), nprocs=n)
+
+
+@pytest.mark.parametrize("mean", [1e3, 1e5, 1e6])
+def test_r2_score_large_mean_numerical_stability(mean):
+    # With float32 accumulators sum(y^2) - sum(y)^2 / n cancels when |mean(y)| >> std(y)
+    torch.manual_seed(0)
+    y = torch.full((1000,), mean) + torch.randn(1000)
+    y_pred = y + 0.5 * torch.randn(1000)
+
+    m = R2Score()
+    for i in range(0, 1000, 100):
+        m.update((y_pred[i : i + 100], y[i : i + 100]))
+
+    y64, y_pred64 = y.double().numpy(), y_pred.double().numpy()
+    expected = 1 - ((y64 - y_pred64) ** 2).sum() / ((y64 - y64.mean()) ** 2).sum()
+    assert m.compute() == pytest.approx(expected, rel=1e-4)
+
+
+@pytest.mark.parametrize("value", [1.0, 0.1])
+def test_r2_score_constant_target_raises(value):
+    m = R2Score()
+    m.update((torch.zeros(10), torch.full((10,), value)))
+    with pytest.raises(NotComputableError, match="identical"):
+        m.compute()
