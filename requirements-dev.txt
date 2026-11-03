@@ -4,6 +4,7 @@ filelock
 pyrefly
 numpy
 pre-commit
+# temporary fix, https://github.com/pytorch/ignite/pull/3932
 pytest==9.1.1
 pytest-cov
 pytest-order
