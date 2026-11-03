@@ -42,7 +42,8 @@ class EMAHandler:
           momentum_warmup: the initial update momentum during warmup phase.
           warmup_iters: iterations of warmup.
           handle_buffers: how to handle model buffers during training. There are three options: 1. "copy" means
-              sharing the buffers with the online model; 2. "update" means applying EMA to the buffers of the online
+              a shallow buffers copy or reusing the buffers of the online model; 2. "update" means applying EMA to the
+              buffers of the online
               model; 3. "ema_train" means set the EMA model to ``train`` mode and skip copying or updating the buffers.
 
     Attributes:
