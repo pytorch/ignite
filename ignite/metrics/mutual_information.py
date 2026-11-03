@@ -93,7 +93,7 @@ class MutualInformation(Entropy):
             raise NotComputableError("MutualInformation must have at least one example before it can be computed.")
 
         marginal_prob = self._sum_of_probabilities / n
-        marginal_ent = -(marginal_prob * torch.log(marginal_prob)).sum()
+        marginal_ent = -torch.special.xlogy(marginal_prob, marginal_prob).sum()
         conditional_ent = self._sum_of_entropies / n
         mi = marginal_ent - conditional_ent
         mi = torch.clamp(mi, min=0.0)  # mutual information cannot be negative
