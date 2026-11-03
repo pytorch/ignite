@@ -404,6 +404,14 @@ def test_cm_with_average(available_device):
     np.testing.assert_almost_equal(true_res, res)
 
 
+@pytest.mark.parametrize("metric", [cmAccuracy, cmPrecision, cmRecall, DiceCoefficient])
+@pytest.mark.parametrize("average", ["precision", "recall"])
+def test_cm_derived_metric_rejects_normalized_confusion_matrix(metric, average):
+    cm = ConfusionMatrix(num_classes=3, average=average)
+    with pytest.raises(ValueError, match=r"ConfusionMatrix should have average attribute either None or 'samples'"):
+        metric(cm)
+
+
 def test_dice_coefficient_wrong_input():
     with pytest.raises(TypeError, match="Argument cm should be instance of ConfusionMatrix"):
         DiceCoefficient(None)
