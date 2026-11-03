@@ -771,7 +771,7 @@ class ConcatScheduler(ParamScheduler):
         )
 
     def __call__(self, engine: Engine | None, name: str | None = None) -> None:
-        if self._current_duration == 0:
+        while self._current_duration == 0:
             self._scheduler_index += 1
             self._setup_scheduler()
         self._current_scheduler(engine, name)

@@ -394,6 +394,31 @@ def test_concat_scheduler_asserts():
         ConcatScheduler.simulate_values(3, [scheduler_1, scheduler_3], durations=[30])
 
 
+@pytest.mark.parametrize(
+    "durations, expected",
+    [
+        ([0, 0], [3, 3, 3, 3]),
+        ([1, 0, 1], [1, 3, 4, 4]),
+        ([0, 1, 0], [2, 4, 4, 4]),
+        ([1, 0, 0], [1, 4, 4, 4]),
+        ([1, 1, 1], [1, 2, 3, 4]),
+    ],
+)
+def test_concat_scheduler_zero_duration(durations, expected):
+    optimizer = torch.optim.SGD([torch.zeros(1, requires_grad=True)], lr=0)
+    schedulers = [PiecewiseLinear(optimizer, "lr", [(0, i + 1)]) for i in range(len(durations) + 1)]
+    scheduler = ConcatScheduler(schedulers, durations)
+
+    values = []
+    for _ in expected:
+        scheduler(None)
+        values.append(optimizer.param_groups[0]["lr"])
+
+    assert values == expected
+    for child, duration in zip(schedulers, durations):
+        assert child.event_index == duration
+
+
 def test_concat_scheduler_state_dict():
     tensor = torch.zeros([1], requires_grad=True)
     optimizer = torch.optim.SGD([tensor], lr=0)
