@@ -1,0 +1,41 @@
+﻿DaviesBouldinScore
+==================
+
+.. currentmodule:: ignite.metrics.clustering
+
+.. autoclass:: DaviesBouldinScore
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   

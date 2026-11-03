@@ -1,0 +1,33 @@
+﻿CosineAnnealingScheduler
+========================
+
+.. currentmodule:: ignite.handlers.param_scheduler
+
+.. autoclass:: CosineAnnealingScheduler
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+      ~CosineAnnealingScheduler.get_param
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   

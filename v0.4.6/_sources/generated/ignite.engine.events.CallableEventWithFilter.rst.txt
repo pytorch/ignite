@@ -1,0 +1,31 @@
+﻿CallableEventWithFilter
+=======================
+
+.. currentmodule:: ignite.engine.events
+
+.. autoclass:: CallableEventWithFilter
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+      ~CallableEventWithFilter.default_event_filter
+   
+   
+   
+      ~CallableEventWithFilter.every_event_filter
+   
+   
+   
+      ~CallableEventWithFilter.once_event_filter
+   
+   
+   
+   

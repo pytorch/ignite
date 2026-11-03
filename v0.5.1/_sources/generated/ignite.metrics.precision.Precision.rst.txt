@@ -1,0 +1,43 @@
+﻿Precision
+=========
+
+.. currentmodule:: ignite.metrics.precision
+
+.. autoclass:: Precision
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~Precision.update
+   
+   
+   
+   

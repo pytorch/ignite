@@ -1,0 +1,51 @@
+﻿RunningAverage
+==============
+
+.. currentmodule:: ignite.metrics
+
+.. autoclass:: RunningAverage
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+      ~RunningAverage.attach
+   
+   
+   
+   
+   
+      ~RunningAverage.compute
+   
+   
+   
+      ~RunningAverage.detach
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~RunningAverage.reset
+   
+   
+   
+   
+   
+   
+   
+      ~RunningAverage.update
+   
+   
+   
+   

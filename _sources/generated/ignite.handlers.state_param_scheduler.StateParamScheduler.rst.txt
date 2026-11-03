@@ -1,0 +1,35 @@
+﻿StateParamScheduler
+===================
+
+.. currentmodule:: ignite.handlers.state_param_scheduler
+
+.. autoclass:: StateParamScheduler
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+      ~StateParamScheduler.attach
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~StateParamScheduler.simulate_values
+   
+   
+   
+   
+   
+   

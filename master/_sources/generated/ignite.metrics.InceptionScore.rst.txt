@@ -1,0 +1,47 @@
+﻿InceptionScore
+==============
+
+.. currentmodule:: ignite.metrics
+
+.. autoclass:: InceptionScore
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~InceptionScore.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~InceptionScore.reset
+   
+   
+   
+   
+   
+   
+   
+      ~InceptionScore.update
+   
+   
+   
+   

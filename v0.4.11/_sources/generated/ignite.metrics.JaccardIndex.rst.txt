@@ -1,0 +1,6 @@
+﻿JaccardIndex
+============
+
+.. currentmodule:: ignite.metrics
+
+.. autofunction:: JaccardIndex

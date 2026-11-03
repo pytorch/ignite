@@ -1,0 +1,45 @@
+﻿MutualInformation
+=================
+
+.. currentmodule:: ignite.metrics
+
+.. autoclass:: MutualInformation
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~MutualInformation.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~MutualInformation.reset
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   

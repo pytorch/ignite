@@ -1,0 +1,45 @@
+﻿KendallRankCorrelation
+======================
+
+.. currentmodule:: ignite.metrics.regression
+
+.. autoclass:: KendallRankCorrelation
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~KendallRankCorrelation.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~KendallRankCorrelation.update
+   
+   
+   
+   

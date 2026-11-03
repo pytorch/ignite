@@ -1,0 +1,47 @@
+﻿Accuracy
+========
+
+.. currentmodule:: ignite.metrics
+
+.. autoclass:: Accuracy
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~Accuracy.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~Accuracy.reset
+   
+   
+   
+   
+   
+   
+   
+      ~Accuracy.update
+   
+   
+   
+   

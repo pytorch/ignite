@@ -1,0 +1,51 @@
+﻿ConfusionMatrix
+===============
+
+.. currentmodule:: ignite.metrics.confusion_matrix
+
+.. autoclass:: ConfusionMatrix
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~ConfusionMatrix.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~ConfusionMatrix.normalize
+   
+   
+   
+      ~ConfusionMatrix.reset
+   
+   
+   
+   
+   
+   
+   
+      ~ConfusionMatrix.update
+   
+   
+   
+   

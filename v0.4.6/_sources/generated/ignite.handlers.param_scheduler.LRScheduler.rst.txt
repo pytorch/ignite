@@ -1,0 +1,33 @@
+﻿LRScheduler
+===========
+
+.. currentmodule:: ignite.handlers.param_scheduler
+
+.. autoclass:: LRScheduler
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+      ~LRScheduler.get_param
+   
+   
+   
+   
+   
+   
+   
+      ~LRScheduler.simulate_values
+   
+   
+   
+   
+   
+   
