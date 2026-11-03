@@ -11,7 +11,7 @@ import torch
 import ignite.distributed as idist
 from ignite.engine import Engine, Events, State
 from ignite.engine.deterministic import keep_random_state
-from ignite.metrics import Average
+from ignite.metrics import Average, RunningAverage
 from tests.ignite.engine import BatchChecker, EpochCounter, IterationCounter
 
 
@@ -53,6 +53,28 @@ class TestEngine:
             assert engine.should_terminate == "skip_completed"
         else:
             assert engine.should_terminate == True  # noqa: E712
+
+    def test_terminate_iteration(self):
+        def process(engine, batch):
+            if batch % 2 == 0:
+                engine.terminate_iteration()
+            return batch
+
+        trainer = Engine(process)
+        completed_iterations = []
+        trainer.add_event_handler(Events.ITERATION_COMPLETED, lambda e: completed_iterations.append(e.state.iteration))
+        RunningAverage(output_transform=lambda output: output).attach(trainer, "running_average")
+
+        state = trainer.run(range(1, 5))
+
+        assert completed_iterations == [1, 3]
+        assert state.metrics["running_average"] == pytest.approx(1.04)
+        assert state.iteration == 4
+        assert not trainer.should_terminate_single_iteration
+
+        evaluator = Engine(process)
+        Average().attach(evaluator, "average")
+        assert evaluator.run(range(1, 5)).metrics["average"] == pytest.approx(2.0)
 
     def test_invalid_process_raises_with_invalid_signature(self):
         with pytest.raises(ValueError, match=r"Engine must be given a processing function in order to run"):

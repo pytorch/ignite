@@ -145,6 +145,7 @@ class Engine(Serializable):
         # should_terminate_single_epoch flag: False - don't terminate, True - terminate,
         # "skip_epoch_completed" - terminate and skip the event "EPOCH_COMPLETED"
         self.should_terminate_single_epoch: bool | str = False
+        self.should_terminate_single_iteration: bool = False
         self.should_interrupt = False
         self.state = State()
         self._state_dict_user_keys: list[str] = []
@@ -671,6 +672,19 @@ class Engine(Serializable):
         )
         self.should_terminate_single_epoch = "skip_epoch_completed" if skip_epoch_completed else True
 
+    def terminate_iteration(self) -> None:
+        """Signals that the current iteration should finish without firing
+        :attr:`~ignite.engine.events.Events.ITERATION_COMPLETED`.
+
+        This can be used to ignore a batch without triggering handlers that consume ``state.output``.
+        The iteration counter is still incremented, and other events such as
+        :attr:`~ignite.engine.events.Events.ITERATION_STARTED` are still fired.
+
+        .. versionadded:: 0.6.0
+        """
+        self.logger.info("Terminate current iteration is signaled.")
+        self.should_terminate_single_iteration = True
+
     def _handle_exception(self, e: BaseException) -> None:
         if Events.EXCEPTION_RAISED in self._event_handlers:
             self._fire_event(Events.EXCEPTION_RAISED, e)
@@ -1103,6 +1117,7 @@ class Engine(Serializable):
 
     def _internal_run_as_gen(self) -> Generator[Any, None, State]:
         self.should_terminate = self.should_terminate_single_epoch = self.should_interrupt = False
+        self.should_terminate_single_iteration = False
         self._init_timers(self.state)
         start_time = time.time()
         try:
@@ -1267,7 +1282,9 @@ class Engine(Serializable):
                 yield from self._maybe_terminate_or_interrupt()
 
                 self.state.output = self._process_function(self, self.state.batch)
-                self._fire_event(Events.ITERATION_COMPLETED)
+                if not self.should_terminate_single_iteration:
+                    self._fire_event(Events.ITERATION_COMPLETED)
+                self.should_terminate_single_iteration = False
                 yield from self._maybe_terminate_or_interrupt()
 
                 if self.state.epoch_length is not None and iter_counter == self.state.epoch_length:
@@ -1302,6 +1319,7 @@ class Engine(Serializable):
     def _internal_run_legacy(self) -> State:
         # internal_run without generator for BC
         self.should_terminate = self.should_terminate_single_epoch = self.should_interrupt = False
+        self.should_terminate_single_iteration = False
         self._init_timers(self.state)
         start_time = time.time()
         try:
@@ -1453,7 +1471,9 @@ class Engine(Serializable):
                 self._maybe_terminate_legacy()
 
                 self.state.output = self._process_function(self, self.state.batch)
-                self._fire_event(Events.ITERATION_COMPLETED)
+                if not self.should_terminate_single_iteration:
+                    self._fire_event(Events.ITERATION_COMPLETED)
+                self.should_terminate_single_iteration = False
                 self._maybe_terminate_legacy()
 
                 if self.state.epoch_length is not None and iter_counter == self.state.epoch_length:
