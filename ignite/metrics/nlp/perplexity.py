@@ -109,6 +109,10 @@ class Perplexity(Metric):
                 f"(expected y_pred[0] == y[0] and y_pred[2:] == y[1:])."
             )
 
+        # Compute cross-entropy in float32 for float16/bfloat16 logits to avoid
+        # overflow of the summed negative log-likelihood (float16 max ~65504).
+        if y_pred.dtype in (torch.float16, torch.bfloat16):
+            y_pred = y_pred.to(torch.float32)
         nll = F.cross_entropy(y_pred, y, reduction="sum", ignore_index=self._ignore_index)
         self._sum_of_nll += nll.to(self._device)
         self._num_tokens += (y != self._ignore_index).sum().to(self._device)
