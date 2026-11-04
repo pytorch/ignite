@@ -40,6 +40,10 @@ def test_wrong_classification_input():
     with pytest.raises(ValueError, match="y_pred contains fewer classes than y"):
         metric.update((torch.tensor([[0.5, 0.4, 0.1]]), torch.tensor([3])))
 
+    metric = MeanAveragePrecision()
+    with pytest.raises(ValueError, match="For binary cases, y must be comprised of 0's and 1's."):
+        metric.update((torch.rand(4), torch.tensor([0, 1, 2, 1])))
+
 
 def test__prepare_output():
     metric = MeanAveragePrecision()
@@ -112,6 +116,18 @@ def test__compute_average_precision():
         )
     ignite_ap = np.array(ignite_ap)
     assert np.allclose(ignite_ap, ap)
+
+
+def test__compute_average_precision_with_rec_thresholds():
+    m = MeanAveragePrecision(rec_thresholds=(0.0, 0.5, 1.0))
+    assert torch.equal(m.rec_thresholds, torch.tensor([0.0, 0.5, 1.0], dtype=torch.float64))
+
+    # Precision is taken at the first point whose recall reaches each threshold and is 0
+    # for thresholds the curve never reaches. Second row stops at recall 0.5.
+    recall = torch.tensor([[0.5, 1.0], [0.25, 0.5]], dtype=torch.float64)
+    precision = torch.tensor([[1.0, 0.5], [1.0, 0.5]], dtype=torch.float64)
+    ignite_ap = m._compute_average_precision(recall, precision)
+    assert np.allclose(ignite_ap.numpy(), [0.5 * 1.0 + 0.5 * 0.5, 0.5 * 0.5 + 0.5 * 0.0])
 
 
 def test_compute_binary_data():
