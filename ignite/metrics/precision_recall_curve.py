@@ -34,7 +34,9 @@ class PrecisionRecallCurve(EpochMetric):
         skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
             true for multi-output model, for example, if ``y_pred`` contains multi-output as ``(y_pred_a, y_pred_b)``
             Alternatively, ``output_transform`` can be used to handle this.
-
+        device: specifies which device updates are accumulated on. Setting the
+            metric's device to be the same as your ``update`` arguments ensures the ``update``
+            method is non-blocking. By default, CPU.
     Note:
         PrecisionRecallCurve expects y to be comprised of 0's and 1's. y_pred must either be probability estimates
         or confidence values. To apply an activation to y_pred, use output_transform as shown below:

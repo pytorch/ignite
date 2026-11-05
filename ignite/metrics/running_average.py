@@ -20,7 +20,7 @@ class RunningAverage(Metric):
         alpha: running average decay factor, default 0.98
         output_transform: a function to use to transform the output if `src` is None and
             corresponds the output of process function. Otherwise it should be None.
-        epoch_bound: whether the running average should be reset after each epoch. It is depracated in favor of
+        epoch_bound: whether the running average should be reset after each epoch. It is deprecated in favor of
             ``usage`` argument in :meth:`attach` method. Setting ``epoch_bound`` to ``False`` is equivalent to
             ``usage=SingleEpochRunningBatchWise()`` and setting it to ``True`` is equivalent to
             ``usage=RunningBatchWise()`` in the :meth:`attach` method. Default None.

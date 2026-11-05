@@ -190,6 +190,14 @@ def _test_distrib_all_gather(device):
     true_res = ["abc"] + [base_x] * (ws - 1)
     assert res == true_res
 
+    # Non-ASCII strings take more UTF-8 bytes than characters
+    x = "héllo wörld"
+    if rank == 0:
+        x = "日本語"
+    res = idist.all_gather(x)
+    true_res = ["日本語"] + ["héllo wörld"] * (ws - 1)
+    assert res == true_res
+
     t = torch.arange(100, device=device).reshape(4, 25) * (rank + 1)
     in_dtype = t.dtype
     res = idist.all_gather(t)
@@ -366,6 +374,10 @@ def _test_distrib_broadcast(device):
     _test("test-abcdefg", "", safe_mode=False)
     _test("test-abcdefg", None, safe_mode=True)
     _test("test-abcdefg", 1.2, safe_mode=True)
+
+    _test("héllo-日本語", "", safe_mode=False)
+    _test("héllo-日本語", None, safe_mode=True)
+    _test(Path("checkpoints/modèle"), Path(""), safe_mode=False)
 
     path = Path("tests/ignite/distributed/utils/test_horovod.py")
     _test(path, Path(""), safe_mode=False)
