@@ -61,6 +61,15 @@ def test_reset_clears_state():
         ppl.compute()
 
 
+@pytest.mark.parametrize("dtype", [torch.float16, torch.bfloat16])
+def test_low_precision_logits(dtype):
+    # Uniform logits over 16 classes give perplexity 16, but the summed NLL
+    # (32 * 1024 * log(16)) is larger than the float16 maximum.
+    ppl = Perplexity()
+    ppl.update((torch.zeros(32, 16, 1024, dtype=dtype), torch.zeros(32, 1024, dtype=torch.long)))
+    assert ppl.compute() == pytest.approx(16.0, rel=1e-5)
+
+
 def _reference_perplexity(y_pred, y):
     """Reference implementation: token-weighted NLL."""
     nll = F.cross_entropy(y_pred, y, reduction="sum")
