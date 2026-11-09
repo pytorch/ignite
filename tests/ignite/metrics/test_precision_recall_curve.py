@@ -8,6 +8,7 @@ from sklearn.metrics import precision_recall_curve
 
 import ignite.distributed as idist
 from ignite.engine import Engine
+from ignite.exceptions import NotComputableError
 from ignite.metrics.epoch_metric import EpochMetricWarning
 from ignite.metrics.precision_recall_curve import PrecisionRecallCurve
 
@@ -23,6 +24,14 @@ def test_no_sklearn(mock_no_sklearn):
         y = torch.tensor([1, 1])
         pr_curve = PrecisionRecallCurve()
         pr_curve.update((y, y))
+        pr_curve.compute()
+
+
+def test_no_update():
+    pr_curve = PrecisionRecallCurve()
+    with pytest.raises(
+        NotComputableError, match=r"^PrecisionRecallCurve must have at least one example before it can be computed\.$"
+    ):
         pr_curve.compute()
 
 
