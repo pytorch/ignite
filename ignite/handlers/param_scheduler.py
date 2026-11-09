@@ -1603,6 +1603,10 @@ class _ReduceLROnPlateau(ReduceLROnPlateau):
         super().__init__(optimizer, **kwargs)
         self.param_group_index = param_group_index
 
+    def load_state_dict(self, state_dict: dict[str, Any]) -> None:
+        # Checkpoints from earlier versions hold the bound method ignite used to patch over _reduce_lr
+        super().load_state_dict({k: v for k, v in state_dict.items() if k != "_reduce_lr"})
+
     def _reduce_lr(self, epoch: int) -> None:
         param_groups = self.optimizer.param_groups
         if self.param_group_index is not None:

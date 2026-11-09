@@ -1409,23 +1409,37 @@ def test_reduce_lr_on_plateau_scheduler(use_attach, param_group_index):
     )
 
 
-def test_reduce_lr_on_plateau_scheduler_state_dict(tmp_path):
-    optimizer = torch.optim.SGD([torch.zeros([1], requires_grad=True)], lr=1.0)
-    trainer = Engine(lambda engine, batch: None)
-    scheduler = ReduceLROnPlateauScheduler(optimizer, metric_name="loss", factor=0.5, patience=0, trainer=trainer)
-    torch.save(scheduler.state_dict(), tmp_path / "scheduler.pt")
-    torch.load(tmp_path / "scheduler.pt", weights_only=True)
+@pytest.mark.parametrize("old_checkpoint", [False, True])
+@pytest.mark.parametrize("param_group_index", [None, 1])
+def test_reduce_lr_on_plateau_scheduler_state_dict(tmp_path, param_group_index, old_checkpoint):
+    def make_optimizer():
+        return torch.optim.SGD([{"params": [torch.zeros([1], requires_grad=True)]} for _ in range(2)], lr=1.0)
 
-    optimizer2 = torch.optim.SGD([torch.zeros([1], requires_grad=True)], lr=1.0)
-    scheduler2 = ReduceLROnPlateauScheduler(optimizer2, metric_name="loss", factor=0.5, patience=0)
-    scheduler2.load_state_dict(scheduler.state_dict())
+    optimizer = make_optimizer()
+    trainer = Engine(lambda engine, batch: None)
+    scheduler = ReduceLROnPlateauScheduler(
+        optimizer, metric_name="loss", factor=0.5, patience=0, param_group_index=param_group_index, trainer=trainer
+    )
+    torch.save(scheduler.state_dict(), tmp_path / "scheduler.pt")
+    state_dict = torch.load(tmp_path / "scheduler.pt", weights_only=True)
+    if old_checkpoint:
+        # earlier versions saved the method patched over the torch scheduler's _reduce_lr
+        state_dict["scheduler"]["_reduce_lr"] = scheduler.scheduler._reduce_lr
+
+    optimizer2 = make_optimizer()
+    scheduler2 = ReduceLROnPlateauScheduler(
+        optimizer2, metric_name="loss", factor=0.5, patience=0, param_group_index=param_group_index
+    )
+    scheduler2.load_state_dict(state_dict)
     evaluator = Engine(lambda engine, batch: None)
     evaluator.state.metrics = {"loss": 1.0}
     lrs = []
     for _ in range(4):
         scheduler2(evaluator)
-        lrs.append((optimizer.param_groups[0]["lr"], optimizer2.param_groups[0]["lr"]))
-    assert lrs == [(1.0, 1.0), (1.0, 0.5), (1.0, 0.25), (1.0, 0.125)]
+        lrs.append([group["lr"] for group in optimizer.param_groups + optimizer2.param_groups])
+    reduced = [1.0, 0.5, 0.25, 0.125]
+    group0 = [1.0] * 4 if param_group_index == 1 else reduced
+    assert lrs == [[1.0, 1.0, lr0, lr1] for lr0, lr1 in zip(group0, reduced)]
 
 
 def test_reduce_lr_on_plateau_scheduler_asserts():
