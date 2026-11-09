@@ -1597,6 +1597,27 @@ class ParamGroupScheduler:
         return [scheduler.get_param() for scheduler in self.schedulers]
 
 
+class _ReduceLROnPlateau(ReduceLROnPlateau):
+    # Reduces only the param group at param_group_index (all groups when None).
+    def __init__(self, optimizer: Optimizer, param_group_index: int | None = None, **kwargs: Any):
+        super().__init__(optimizer, **kwargs)
+        self.param_group_index = param_group_index
+
+    def load_state_dict(self, state_dict: dict[str, Any]) -> None:
+        # Checkpoints from earlier versions hold the bound method ignite used to patch over _reduce_lr
+        super().load_state_dict({k: v for k, v in state_dict.items() if k != "_reduce_lr"})
+
+    def _reduce_lr(self, epoch: int) -> None:
+        param_groups = self.optimizer.param_groups
+        if self.param_group_index is not None:
+            param_groups = [param_groups[self.param_group_index]]
+        for i, param_group in enumerate(param_groups):
+            old_lr = float(param_group["lr"])
+            new_lr = max(old_lr * self.factor, self.min_lrs[i])
+            if old_lr - new_lr > self.eps:
+                param_group["lr"] = new_lr
+
+
 class ReduceLROnPlateauScheduler(ParamScheduler):
     """Reduce LR when a metric stops improving.
     Wrapper of `torch.optim.lr_scheduler.ReduceLROnPlateau
@@ -1707,8 +1728,7 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
             )
             scheduler_kwargs["verbose"] = False
 
-        self.scheduler = ReduceLROnPlateau(optimizer, **scheduler_kwargs)
-        self.scheduler._reduce_lr = self._reduce_lr
+        self.scheduler = _ReduceLROnPlateau(optimizer, param_group_index, **scheduler_kwargs)
 
         self._state_attrs += ["metric_name", "scheduler"]
 
@@ -1724,13 +1744,6 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
     def get_param(self) -> float | list[float]:
         lrs = [pg["lr"] for pg in self.optimizer_param_groups]
         return lrs[0] if len(lrs) == 1 else lrs
-
-    def _reduce_lr(self, epoch: int) -> None:
-        for i, param_group in enumerate(self.optimizer_param_groups):
-            old_lr = float(param_group["lr"])
-            new_lr = max(old_lr * self.scheduler.factor, self.scheduler.min_lrs[i])
-            if old_lr - new_lr > self.scheduler.eps:
-                param_group["lr"] = new_lr
 
     @classmethod
     def simulate_values(  # type: ignore[override]
