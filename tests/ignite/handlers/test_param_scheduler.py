@@ -1527,3 +1527,62 @@ def test_batch_size_scheduler_state_dict():
     new_scheduler = BatchSizeScheduler(dataloader, scheduler_fn=lambda e: 10 + e * 10)
     new_scheduler.load_state_dict(sd)
     assert new_scheduler.event_index == 2
+
+
+def test_lr_scheduler_cosine_annealing_warm_restarts_state_dict():
+    # tests https://github.com/pytorch/ignite/issues/3926
+    import io
+
+    t = torch.zeros([1], requires_grad=True)
+    optimizer = torch.optim.SGD([t], lr=0.1)
+    torch_scheduler = CosineAnnealingWarmRestarts(optimizer, T_0=5, T_mult=1)
+    scheduler = LRScheduler(torch_scheduler)
+
+    sd = scheduler.state_dict()
+    assert isinstance(sd, dict)
+    assert isinstance(sd["lr_scheduler"], dict)
+    assert "T_0" in sd["lr_scheduler"]
+
+    # Verify serialization works with weights_only=True
+    buffer = io.BytesIO()
+    torch.save(sd, buffer)
+    buffer.seek(0)
+    loaded_sd = torch.load(buffer, weights_only=True)
+    assert isinstance(loaded_sd["lr_scheduler"], dict)
+
+    # Step the scheduler and save state
+    for _ in range(3):
+        scheduler(None)
+
+    sd_after_3 = scheduler.state_dict()
+    epoch_at_3 = scheduler.lr_scheduler.last_epoch
+    lr_at_3 = optimizer.param_groups[0]["lr"]
+
+    # Step further
+    for _ in range(3):
+        scheduler(None)
+    assert optimizer.param_groups[0]["lr"] != lr_at_3
+    assert scheduler.lr_scheduler.last_epoch != epoch_at_3
+
+    # Restore state and verify continuity
+    scheduler.load_state_dict(sd_after_3)
+    assert scheduler.event_index == 3
+    assert scheduler.lr_scheduler.last_epoch == epoch_at_3
+
+    # Step again and verify matching values
+    scheduler(None)
+    lr_at_4 = optimizer.param_groups[0]["lr"]
+
+    # Simulate fresh scheduler from scratch to verify exact match
+    opt_fresh = torch.optim.SGD([t], lr=0.1)
+    sched_fresh = LRScheduler(CosineAnnealingWarmRestarts(opt_fresh, T_0=5, T_mult=1))
+    for _ in range(4):
+        sched_fresh(None)
+    assert lr_at_4 == pytest.approx(opt_fresh.param_groups[0]["lr"])
+
+    # Verify ConcatScheduler.simulate_values works with CosineAnnealingWarmRestarts
+    opt_concat = torch.optim.SGD([t], lr=0.1)
+    cos_sched = LRScheduler(CosineAnnealingWarmRestarts(opt_concat, T_0=5, T_mult=1))
+    step_sched = LRScheduler(StepLR(opt_concat, step_size=5, gamma=0.5))
+    sim_values = ConcatScheduler.simulate_values(num_events=10, schedulers=[cos_sched, step_sched], durations=[5])
+    assert len(sim_values) == 10
