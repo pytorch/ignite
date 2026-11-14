@@ -664,3 +664,13 @@ def test_get_sequence_transform_ignore_index():
     assert y_pred_multi_t.shape == (4, 2)  # 4 positions masked out
     assert y_multi_t.shape == (4,)
     assert y_multi_t.tolist() == [1, 1, 0, 1]
+
+    # test generator ignore_index is not exhausted by the first call
+    transform_gen = Accuracy.get_sequence_transform(ignore_index=(i for i in [-1, 2]))
+    y_pred_g1, y_g1 = transform_gen((y_pred, y_multi))
+    y_pred_g2, y_g2 = transform_gen((y_pred, y_multi))
+
+    assert y_g1.tolist() == [1, 1, 0, 1]
+    assert y_g2.tolist() == [1, 1, 0, 1]
+    assert y_pred_g1.shape == (4, 2)
+    assert y_pred_g2.shape == (4, 2)
