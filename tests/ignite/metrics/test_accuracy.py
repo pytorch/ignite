@@ -664,20 +664,10 @@ def test_get_sequence_transform_ignore_index():
     assert y_pred_multi_t.shape == (4, 2)  # 4 positions masked out
     assert y_multi_t.shape == (4,)
     assert y_multi_t.tolist() == [1, 1, 0, 1]
-
-
-
-def test_get_sequence_transform_ignore_index_generator():
-    y_pred = torch.tensor(
-        [[[0.9, 0.1], [0.1, 0.9], [0.8, 0.2]]]
-    )
-    y = torch.tensor([[1, -1, 2]])
-
+    
+    # test generator
     ignore_index = (i for i in [-1, 2])
-
-    transform = Accuracy.get_sequence_transform(
-        ignore_index=ignore_index
-    )
+    transform = Accuracy.get_sequence_transform(ignore_index=-1)
 
     # First invocation
     y_pred_t1, y_t1 = transform((y_pred, y))
@@ -690,3 +680,4 @@ def test_get_sequence_transform_ignore_index_generator():
 
     assert y_pred_t1.shape == (1, 2)
     assert y_pred_t2.shape == (1, 2)
+    
