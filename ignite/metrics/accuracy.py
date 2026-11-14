@@ -135,7 +135,6 @@ class _BaseClassification(Metric):
             # Flatten: (N, S, C) -> (N*S, C) and (N, S) -> (N*S,)
             y_pred = y_pred.reshape(-1, y_pred.size(-1))
             y = y.reshape(-1)
-            
             if ignore_index is not None:
                 if isinstance(ignore_index, Iterable):
                     mask = torch.ones_like(y, dtype=torch.bool)
