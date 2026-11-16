@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import collections.abc as collections
+import copy
 import functools
 import hashlib
 import logging
@@ -75,7 +76,22 @@ def apply_to_type(
     if isinstance(x, (str, bytes)):
         return x
     if isinstance(x, collections.Mapping):
-        return cast(Callable, type(x))({k: apply_to_type(sample, input_type, func) for k, sample in x.items()})
+        # Follow PyTorch's mapping handling:
+        # https://github.com/pytorch/pytorch/blob/ba56102387ef21a3b04b357e5b183d48f0afefc7/torch/utils/data/_utils/collate.py#L165-L194
+        try:
+            if isinstance(x, collections.MutableMapping):
+                # The mapping type may have extra properties, so we can't just
+                # use `type(x)(...)` to create the new mapping.
+                # Create a clone and update it if the mapping type is mutable.
+                clone = copy.copy(x)
+                clone.update({k: apply_to_type(sample, input_type, func) for k, sample in x.items()})
+                return clone
+            else:
+                return cast(Callable, type(x))({k: apply_to_type(sample, input_type, func) for k, sample in x.items()})
+        except TypeError:
+            # The mapping type may not support `copy()` / `update(mapping)`
+            # or `__init__(iterable)`.
+            return {k: apply_to_type(sample, input_type, func) for k, sample in x.items()}
     if isinstance(x, tuple) and hasattr(x, "_fields"):  # namedtuple
         return cast(Callable, type(x))(*(apply_to_type(sample, input_type, func) for sample in x))
     if isinstance(x, collections.Sequence):

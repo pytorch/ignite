@@ -1,7 +1,7 @@
 import logging
 import platform
 import sys
-from collections import namedtuple
+from collections import defaultdict, namedtuple
 
 import pytest
 import torch
@@ -48,6 +48,13 @@ def test_convert_tensor():
     assert isinstance(dict_, dict)
     assert torch.is_tensor(dict_["a"])
     assert torch.is_tensor(dict_["b"])
+
+    x = defaultdict(list, {"a": torch.tensor([0.0])})
+    dict_ = convert_tensor(x, device="cpu")
+    assert isinstance(dict_, defaultdict)
+    assert dict_ is not x
+    assert dict_.default_factory is list
+    assert torch.is_tensor(dict_["a"])
 
     assert convert_tensor("a") == "a"
 

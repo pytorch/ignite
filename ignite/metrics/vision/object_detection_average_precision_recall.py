@@ -64,7 +64,7 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
         Average precision is computed by averaging precision over increasing levels of recall thresholds.
         In COCO, the maximum precision across thresholds greater or equal a recall threshold is
         considered as the average summation operand; In other words, the precision peek across lower or equal
-        sensivity levels is used for a recall threshold:
+        sensitivity levels is used for a recall threshold:
 
         .. math::
             \text{Average Precision} = \sum_{k=1}^{\#rec\_thresholds} (r_k - r_{k-1}) max(P_{k:})
@@ -185,7 +185,7 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
         This method is different from that of MeanAveragePrecision since in the pycocotools reference implementation,
         when there are predictions with the same scores, they're considered associated with different thresholds in the
         course of measuring recall values, although it's not logically correct as those predictions are really
-        associated with a single threshold, thus outputing a single recall value.
+        associated with a single threshold, thus outputting a single recall value.
 
         Shape of function inputs and return values follow the table below. N\ :sub:`pred` is the number of detections
         or predictions. ``...`` stands for the possible additional dimensions. Finally, \#unique scores represents
@@ -220,7 +220,7 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
 
     def _compute_average_precision(self, recall: torch.Tensor, precision: torch.Tensor) -> torch.Tensor:
         """Measuring average precision.
-        This method is overriden since :math:`1/#recall_thresholds` is used instead of :math:`r_k - r_{k-1}`
+        This method is overridden since :math:`1/#recall_thresholds` is used instead of :math:`r_k - r_{k-1}`
         as the recall differential in COCO's reference implementation i.e., pycocotools.
 
         Args:

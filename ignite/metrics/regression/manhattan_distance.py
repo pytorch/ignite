@@ -56,7 +56,7 @@ class ManhattanDistance(_BaseRegression):
     .. versionchanged:: 0.4.3
 
         - Fixed sklearn compatibility.
-        - Workes with DDP.
+        - Works with DDP.
     """
 
     _state_dict_all_req_keys = ("_sum_of_errors",)
