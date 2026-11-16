@@ -66,7 +66,7 @@ class Perplexity(Metric):
 
     .. versionadded:: 0.5.5
 
-    .. versionchanged:: 0.6.0
+    .. versionchanged:: 0.5.6
         Compute cross-entropy in float32 for float16 and bfloat16 logits.
     """
 
