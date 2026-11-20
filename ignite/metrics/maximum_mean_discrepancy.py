@@ -106,6 +106,10 @@ class MaximumMeanDiscrepancy(Metric):
     @reinit__is_reduced
     def update(self, output: Sequence[torch.Tensor]) -> None:
         x, y = output[0].detach(), output[1].detach()
+        if x.dtype in (torch.float16, torch.bfloat16):
+            x = x.float()
+        if y.dtype in (torch.float16, torch.bfloat16):
+            y = y.float()
         if x.shape != y.shape:
             raise ValueError(f"x and y must be in the same shape, got {x.shape} != {y.shape}.")
 
