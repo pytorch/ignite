@@ -338,7 +338,7 @@ class Accuracy(_BaseClassification):
 
         sum_dim: int | None = None
         if self._type == "binary":
-            correct = torch.eq(y_pred.view(-1).to(y), y.view(-1))
+            correct = torch.eq(y_pred.reshape(-1).to(y), y.reshape(-1))
         elif self._type == "multiclass":
             indices = torch.argmax(y_pred, dim=1)
             correct = torch.eq(indices, y).view(-1)
