@@ -109,6 +109,20 @@ def test_compute(n_times, sigma_x: float, sigma_y: float, test_case: tuple[Tenso
     assert pytest.approx(expected_hsic, abs=2e-5) == hsic.compute()
 
 
+@pytest.mark.parametrize("dtype", [torch.float16, torch.bfloat16])
+@pytest.mark.parametrize("sigma", [-1.0, 1.0])
+def test_low_precision_inputs(dtype, sigma: float):
+    torch.manual_seed(0)
+    x = torch.randn(20, 5).to(dtype)
+    y = torch.sin(x.float() * 2).to(dtype)
+
+    hsic = HSIC(sigma_x=sigma, sigma_y=sigma)
+    hsic.update((x, y))
+
+    expected_hsic = np_hsic(x.float(), y.float(), sigma, sigma)
+    assert pytest.approx(expected_hsic, abs=2e-5) == hsic.compute()
+
+
 def test_accumulator_detached(available_device):
     hsic = HSIC(device=available_device)
     assert hsic._device == torch.device(available_device)
