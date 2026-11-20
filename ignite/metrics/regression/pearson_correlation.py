@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 
 import torch
 
@@ -78,21 +78,35 @@ class PearsonCorrelation(_BaseRegression):
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._sum_of_y_preds = torch.tensor(0.0, device=self._device)
-        self._sum_of_ys = torch.tensor(0.0, device=self._device)
-        self._sum_of_y_pred_squares = torch.tensor(0.0, device=self._device)
-        self._sum_of_y_squares = torch.tensor(0.0, device=self._device)
-        self._sum_of_products = torch.tensor(0.0, device=self._device)
+        # Use float64 accumulators to avoid catastrophic cancellation in
+        # E[X^2] - (E[X])^2 when values have large magnitude.  MPS does not
+        # support float64, so fall back to float32 there.
+        acc_dtype = torch.float64 if self._device.type != "mps" else torch.float32
+        self._sum_of_y_preds = torch.tensor(0.0, dtype=acc_dtype, device=self._device)
+        self._sum_of_ys = torch.tensor(0.0, dtype=acc_dtype, device=self._device)
+        self._sum_of_y_pred_squares = torch.tensor(0.0, dtype=acc_dtype, device=self._device)
+        self._sum_of_y_squares = torch.tensor(0.0, dtype=acc_dtype, device=self._device)
+        self._sum_of_products = torch.tensor(0.0, dtype=acc_dtype, device=self._device)
         self._num_examples = 0
 
     def _update(self, output: tuple[torch.Tensor, torch.Tensor]) -> None:
-        y_pred, y = output[0].detach(), output[1].detach()
+        # Cast before square/product/reduction; widening their float32 results is too late.
+        y_pred = output[0].detach().to(dtype=self._sum_of_y_preds.dtype)
+        y = output[1].detach().to(dtype=self._sum_of_y_preds.dtype)
         self._sum_of_y_preds += y_pred.sum().to(self._device)
         self._sum_of_ys += y.sum().to(self._device)
         self._sum_of_y_pred_squares += y_pred.square().sum().to(self._device)
         self._sum_of_y_squares += y.square().sum().to(self._device)
         self._sum_of_products += (y_pred * y).sum().to(self._device)
         self._num_examples += y.shape[0]
+
+    def _load_state_dict_per_rank(self, state_dict: Mapping) -> None:
+        # Older checkpoints contain float32 sums. Keep the saved values while
+        # restoring the dtype chosen by reset() for this device.
+        acc_dtype = self._sum_of_y_preds.dtype
+        super()._load_state_dict_per_rank(state_dict)
+        for key in self._state_dict_all_req_keys[:-1]:
+            setattr(self, key, getattr(self, key).to(dtype=acc_dtype))
 
     @sync_all_reduce(
         "_sum_of_y_preds",
@@ -121,3 +135,4 @@ class PearsonCorrelation(_BaseRegression):
 
         r = cov / torch.clamp(torch.sqrt(y_pred_var * y_var), min=self.eps)
         return float(r.item())
+
