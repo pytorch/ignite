@@ -1,0 +1,47 @@
+﻿Perplexity
+==========
+
+.. currentmodule:: ignite.metrics
+
+.. autoclass:: Perplexity
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~Perplexity.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~Perplexity.reset
+   
+   
+   
+   
+   
+   
+   
+      ~Perplexity.update
+   
+   
+   
+   

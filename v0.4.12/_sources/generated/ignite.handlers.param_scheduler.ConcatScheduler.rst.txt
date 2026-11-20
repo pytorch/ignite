@@ -1,0 +1,37 @@
+﻿ConcatScheduler
+===============
+
+.. currentmodule:: ignite.handlers.param_scheduler
+
+.. autoclass:: ConcatScheduler
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+      ~ConcatScheduler.get_param
+   
+   
+   
+      ~ConcatScheduler.load_state_dict
+   
+   
+   
+   
+   
+      ~ConcatScheduler.simulate_values
+   
+   
+   
+      ~ConcatScheduler.state_dict
+   
+   
+   
+   

@@ -1,0 +1,6 @@
+﻿create\_supervised\_evaluator
+=============================
+
+.. currentmodule:: ignite.engine
+
+.. autofunction:: create_supervised_evaluator

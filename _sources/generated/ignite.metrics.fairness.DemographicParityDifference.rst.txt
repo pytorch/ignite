@@ -1,0 +1,41 @@
+﻿DemographicParityDifference
+===========================
+
+.. currentmodule:: ignite.metrics.fairness
+
+.. autoclass:: DemographicParityDifference
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   

@@ -1,0 +1,43 @@
+﻿GeometricAverage
+================
+
+.. currentmodule:: ignite.metrics
+
+.. autoclass:: GeometricAverage
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~GeometricAverage.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   

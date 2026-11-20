@@ -1,0 +1,43 @@
+﻿Average
+=======
+
+.. currentmodule:: ignite.metrics
+
+.. autoclass:: Average
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~Average.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   

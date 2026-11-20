@@ -1,0 +1,6 @@
+﻿IoU
+===
+
+.. currentmodule:: ignite.metrics
+
+.. autofunction:: IoU

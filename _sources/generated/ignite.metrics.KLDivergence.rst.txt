@@ -1,0 +1,47 @@
+﻿KLDivergence
+============
+
+.. currentmodule:: ignite.metrics
+
+.. autoclass:: KLDivergence
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~KLDivergence.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~KLDivergence.reset
+   
+   
+   
+   
+   
+   
+   
+      ~KLDivergence.update
+   
+   
+   
+   
