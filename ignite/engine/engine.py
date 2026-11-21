@@ -269,6 +269,9 @@ class Engine(Serializable):
 
         # setup input handler as parent to make has_event_handler work
         setattr(wrapper, "_parent", weakref.ref(handler))
+        reset = getattr(event_filter, "__dict__", {}).get("_reset")
+        if reset is not None:
+            setattr(wrapper, "_reset_event_filter", reset)
         return wrapper
 
     def _assert_allowed_event(self, event_name: Any) -> None:
@@ -325,6 +328,9 @@ class Engine(Serializable):
             return RemovableEventHandle(event_name, handler, self)
         if isinstance(event_name, CallableEventWithFilter) and event_name.filter is not None:
             event_filter = event_name.filter
+            once = getattr(event_filter, "_once", None)
+            if once is not None:
+                event_filter = Events.once_event_filter(list(once))
             handler = self._handler_wrapper(handler, event_name, event_filter)
 
         self._assert_allowed_event(event_name)
@@ -1009,6 +1015,11 @@ class Engine(Serializable):
             self.state.epoch_length = epoch_length
             # Reset generator if previously used
             self._internal_run_generator = None
+            for handlers in self._event_handlers.values():
+                for handler, _, _ in handlers:
+                    reset = getattr(handler, "__dict__", {}).get("_reset_event_filter")
+                    if reset is not None:
+                        reset()
 
             if self.state.max_iters is not None:
                 self.logger.info(f"Engine run starting with max_iters={self.state.max_iters}.")
