@@ -83,6 +83,21 @@ def test_compute(n_times, test_case: tuple[Tensor, Tensor, int], available_devic
     assert pytest.approx(np_res, rel=1e-4) == res
 
 
+@pytest.mark.parametrize("dtype", [torch.float16, torch.bfloat16])
+def test_low_precision_inputs(dtype, available_device):
+    if available_device == "mps" and dtype == torch.bfloat16:
+        pytest.skip("bfloat16 is not supported on all supported MPS versions.")
+    torch.manual_seed(0)
+    y_pred = torch.randn(2**18, 8).to(dtype)
+    y = torch.randn(2**18, 8).to(dtype)
+
+    kl_div = KLDivergence(device=available_device)
+    kl_div.update((y_pred.to(available_device), y.to(available_device)))
+
+    expected = scipy_kl_div(y_pred.double().numpy(), y.double().numpy())
+    assert kl_div.compute() == pytest.approx(expected, rel=1e-5)
+
+
 def test_accumulator_detached(available_device):
     kl_div = KLDivergence(device=available_device)
     assert kl_div._device == torch.device(available_device)

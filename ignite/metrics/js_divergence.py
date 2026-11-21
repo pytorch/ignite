@@ -77,6 +77,9 @@ class JSDivergence(KLDivergence):
 
     .. versionchanged:: 0.5.1
         ``skip_unrolling`` argument is added.
+
+    .. versionchanged:: 0.6.0
+        Float16 and bfloat16 inputs are evaluated in float32 to avoid low-precision overflow.
     """
 
     def _update(self, y_pred: torch.Tensor, y: torch.Tensor) -> None:
