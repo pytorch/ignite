@@ -45,7 +45,7 @@ from ignite.handlers.checkpoint import BaseSaveHandler
 from ignite.handlers.param_scheduler import ParamScheduler
 from ignite.metrics import GpuInfo, RunningAverage
 from ignite.metrics.metric import RunningBatchWise
-from ignite.utils import deprecated
+
 
 
 def setup_common_training_handlers(
@@ -287,21 +287,7 @@ def empty_cuda_cache(_: Engine) -> None:
     gc.collect()
 
 
-@deprecated(
-    "0.4.0",
-    "0.6.0",
-    ("Please use instead: setup_tb_logging, setup_visdom_logging or setup_mlflow_logging etc.",),
-    raise_exception=True,
-)
-def setup_any_logging(
-    logger: BaseLogger,
-    logger_module: Any,
-    trainer: Engine,
-    optimizers: Optimizer | dict[str, Optimizer] | dict[None, Optimizer] | None,
-    evaluators: Engine | dict[str, Engine] | None,
-    log_every_iters: int,
-) -> None:
-    pass
+
 
 
 get_default_score_fn = Checkpoint.get_default_score_fn
