@@ -8,6 +8,7 @@ from ignite import distributed as idist
 from ignite.engine import Engine
 from ignite.exceptions import NotComputableError
 from ignite.metrics.regression import SpearmanRankCorrelation
+from ignite.metrics.regression.spearman_correlation import _get_ranks
 
 
 def test_zero_sample():
@@ -67,8 +68,10 @@ def test_spearman_correlation(available_device):
         all_preds.append(x)
         all_targets.append(ground_truth)
 
-        pred_cat = torch.cat(all_preds).numpy()
-        target_cat = torch.cat(all_targets).numpy()
+        pred_cat = torch.cat(all_preds).cpu().numpy()
+        target_cat = torch.cat(all_targets).cpu().numpy()
+
+        # Convert only for computing the expected value
         expected = spearmanr(pred_cat, target_cat).statistic
         assert m.compute() == pytest.approx(expected, rel=1e-4)
 
@@ -105,7 +108,7 @@ def test_integration_spearman_correlation(n_times, test_case: tuple[Tensor, Tens
     corr = engine.run(data, max_epochs=1).metrics["spearman_corr"]
 
     # Convert only for computing the expected value
-    expected = spearmanr(y_pred.numpy().ravel(), y.numpy().ravel()).statistic
+    expected = spearmanr(y_pred.cpu().numpy().ravel(), y.cpu().numpy().ravel()).statistic
 
     assert pytest.approx(expected, rel=2e-4) == corr
 
@@ -182,3 +185,33 @@ class TestDistributed:
             np_ans = spearmanr(np_y_pred, np_y).statistic
 
             assert pytest.approx(np_ans, rel=tol) == res
+
+
+def test_nan_inputs():
+    metric = SpearmanRankCorrelation()
+
+    y_pred = torch.tensor([1.0, float("nan"), 3.0])
+    y = torch.tensor([1.0, 2.0, 3.0])
+
+    metric.update((y_pred, y))
+    assert torch.isnan(torch.tensor(metric.compute()))
+
+
+def test_constant_inputs():
+    metric = SpearmanRankCorrelation()
+
+    y_pred = torch.tensor([5.0, 5.0, 5.0, 5.0])
+    y = torch.tensor([1.0, 2.0, 3.0, 4.0])
+
+    metric.update((y_pred, y))
+    assert torch.isnan(torch.tensor(metric.compute()))
+
+
+def test_average_rank_logic():
+    x = torch.tensor([10.0, 20.0, 20.0, 30.0])
+
+    ranks = _get_ranks(x)
+
+    expected = torch.tensor([1.0, 2.5, 2.5, 4.0], dtype=torch.double)
+
+    assert torch.allclose(ranks, expected)
