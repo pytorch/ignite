@@ -11,6 +11,7 @@ pytest-order
 pytest-timeout
 pytest-xdist
 setuptools
+ranx
 fairlearn
 # Test contrib dependencies
 scipy
