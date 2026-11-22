@@ -3,6 +3,7 @@ from typing import cast
 
 import torch
 
+import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
 from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
 
@@ -20,11 +21,15 @@ class _BaseClassification(Metric):
         self._is_multilabel = is_multilabel
         self._type: str | None = None
         self._num_classes: int | None = None
+        self._invalid_y = torch.tensor(0.0, device=device)
+        self._invalid_y_pred = torch.tensor(0.0, device=device)
         super().__init__(output_transform=output_transform, device=device, skip_unrolling=skip_unrolling)
 
     def reset(self) -> None:
         self._type = None
         self._num_classes = None
+        self._invalid_y.fill_(0.0)
+        self._invalid_y_pred.fill_(0.0)
 
     def _check_shape(self, output: Sequence[torch.Tensor]) -> None:
         y_pred, y = output
@@ -50,27 +55,48 @@ class _BaseClassification(Metric):
                 "y and y_pred must have same shape of (batch_size, num_categories, ...) and num_categories > 1."
             )
 
-    def _check_binary_multilabel_cases(self, output: Sequence[torch.Tensor]) -> None:
+    def _check_binary_multilabel_cases(self, output: Sequence[torch.Tensor], check_now: bool = False) -> None:
         y_pred, y = output
 
-        if not torch.equal(y, y**2):
-            raise ValueError("For binary cases, y must be comprised of 0's and 1's.")
+        # Keep the validation on the device: reading these flags back synchronizes
+        # the host with the device and would stall every update() on GPU/TPU.
+        invalid_y = ~torch.eq(y**2, y).all()
+        invalid_y_pred = ~torch.eq(y_pred**2, y_pred).all()
 
-        if not torch.equal(y_pred, y_pred**2):
+        # Reading these flags with ``item()`` would synchronize the host with the
+        # accelerator on every update(). Defer that read to compute() while still
+        # raising immediately on the first call to preserve current behaviour.
+        if check_now:
+            if invalid_y.item():
+                raise ValueError("For binary cases, y must be comprised of 0's and 1's.")
+            if invalid_y_pred.item():
+                raise ValueError("For binary cases, y_pred must be comprised of 0's and 1's.")
+        else:
+            self._invalid_y += invalid_y.float()
+            self._invalid_y_pred += invalid_y_pred.float()
+
+    def _raise_if_invalid_binary_input(self) -> None:
+        flags = torch.stack((self._invalid_y, self._invalid_y_pred))
+        if idist.get_world_size() > 1:
+            flags = cast(torch.Tensor, idist.all_reduce(flags.clone()))
+        if flags[0].item() > 0:
+            raise ValueError("For binary cases, y must be comprised of 0's and 1's.")
+        if flags[1].item() > 0:
             raise ValueError("For binary cases, y_pred must be comprised of 0's and 1's.")
 
     def _check_type(self, output: Sequence[torch.Tensor]) -> None:
         y_pred, y = output
+        check_now = self._type is None
 
         if y.ndimension() + 1 == y_pred.ndimension():
             num_classes = y_pred.shape[1]
             if num_classes == 1:
                 update_type = "binary"
-                self._check_binary_multilabel_cases((y_pred, y))
+                self._check_binary_multilabel_cases((y_pred, y), check_now=check_now)
             else:
                 update_type = "multiclass"
         elif y.ndimension() == y_pred.ndimension():
-            self._check_binary_multilabel_cases((y_pred, y))
+            self._check_binary_multilabel_cases((y_pred, y), check_now=check_now)
 
             if self._is_multilabel:
                 update_type = "multilabel"
@@ -363,6 +389,7 @@ class Accuracy(_BaseClassification):
 
     @sync_all_reduce("_num_examples", "_num_correct")
     def compute(self) -> float | torch.Tensor:
+        self._raise_if_invalid_binary_input()
         if self._num_examples == 0:
             raise NotComputableError("Accuracy must have at least one example before it can be computed.")
         num_correct = self._num_correct if self._per_label else cast(torch.Tensor, self._num_correct).item()

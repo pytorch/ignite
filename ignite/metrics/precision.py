@@ -150,6 +150,7 @@ class _BasePrecisionRecall(_BaseClassification):
         .. math::
             \text{Precision/Recall} = \frac{ numerator }{ denominator }
         """
+        self._raise_if_invalid_binary_input()
 
         if not self._updated:
             raise NotComputableError(

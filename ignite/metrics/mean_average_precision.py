@@ -241,11 +241,15 @@ class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
         self._y_pred = []
         self._y_true = []
 
-    def _check_binary_multilabel_cases(self, output: Sequence[torch.Tensor]) -> None:
+    def _check_binary_multilabel_cases(self, output: Sequence[torch.Tensor], check_now: bool = False) -> None:
         # Ignore the check in `_BaseClassification` since `y_pred` consists of probabilities here.
         _, y = output
-        if not torch.equal(y, y**2):
-            raise ValueError("For binary cases, y must be comprised of 0's and 1's.")
+        invalid_y = ~(((y == 0) | (y == 1)).all())
+        if check_now:
+            if invalid_y.item():
+                raise ValueError("For binary cases, y must be comprised of 0's and 1's.")
+        else:
+            self._invalid_y += invalid_y.float()
 
     def _check_type(self, output: Sequence[torch.Tensor]) -> None:
         super()._check_type(output)
@@ -363,6 +367,7 @@ class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
         """
         Compute method of the metric
         """
+        self._raise_if_invalid_binary_input()
         if self._num_classes is None:
             raise RuntimeError("Metric could not be computed without any update method call")
         num_classes = self._num_classes

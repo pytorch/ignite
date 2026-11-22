@@ -8,7 +8,7 @@ from sklearn.metrics import accuracy_score
 import ignite.distributed as idist
 from ignite.engine import Engine, State
 from ignite.exceptions import NotComputableError
-from ignite.metrics import Accuracy
+from ignite.metrics import Accuracy, MeanAveragePrecision, Precision, Recall
 
 torch.manual_seed(12)
 
@@ -61,6 +61,56 @@ def test_binary_wrong_inputs():
     with pytest.raises(ValueError, match=r"y must have shape of "):
         # incompatible shapes
         acc.update((torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10, 5, 6)).long()))
+
+
+def test_binary_input_check_does_not_sync_on_every_update(monkeypatch):
+    acc = Accuracy()
+    original_item = torch.Tensor.item
+    calls = []
+
+    def counting_item(tensor):
+        calls.append(1)
+        return original_item(tensor)
+
+    monkeypatch.setattr(torch.Tensor, "item", counting_item)
+
+    y_pred = torch.randint(0, 2, size=(64,))
+    y = torch.randint(0, 2, size=(64,))
+    acc.update((y_pred, y))  # first update validates and establishes the input type
+    calls.clear()
+
+    for _ in range(100):
+        acc.update((y_pred, y))
+
+    assert not calls
+
+
+@pytest.mark.parametrize("metric_cls", [Accuracy, Precision, Recall, MeanAveragePrecision])
+def test_invalid_binary_input_in_later_batch_is_reported_at_compute(metric_cls):
+    metric = metric_cls()
+    y_pred = torch.rand(10) if metric_cls is MeanAveragePrecision else torch.randint(0, 2, size=(10,))
+    metric.update((y_pred, torch.randint(0, 2, size=(10,))))
+
+    y = torch.randint(0, 2, size=(10,))
+    y[0] = 2
+    metric.update((y_pred, y))
+
+    with pytest.raises(ValueError, match=r"For binary cases, y must be comprised of 0's and 1's"):
+        metric.compute()
+
+
+@pytest.mark.parametrize("metric_cls", [Accuracy, Precision, Recall])
+def test_invalid_binary_prediction_in_later_batch_is_reported_at_compute(metric_cls):
+    metric = metric_cls()
+    y = torch.randint(0, 2, size=(10,))
+    metric.update((torch.randint(0, 2, size=(10,)), y))
+
+    y_pred = torch.randint(0, 2, size=(10,))
+    y_pred[0] = 2
+    metric.update((y_pred, y))
+
+    with pytest.raises(ValueError, match=r"For binary cases, y_pred must be comprised of 0's and 1's"):
+        metric.compute()
 
 
 @pytest.mark.parametrize("n_times", range(3))
