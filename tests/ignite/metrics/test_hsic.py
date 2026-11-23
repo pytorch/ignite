@@ -112,8 +112,7 @@ def test_compute(n_times, sigma_x: float, sigma_y: float, test_case: tuple[Tenso
 @pytest.mark.parametrize("dtype", [torch.float16, torch.bfloat16])
 def test_low_precision_inputs(dtype):
     # default sigma=-1 uses torch.quantile, which rejects fp16/bf16
-    torch.manual_seed(0)
-    x = torch.randn(20, 5).to(dtype)
+    x = torch.linspace(-2, 2, 100).reshape(20, 5).to(dtype)
     y = torch.sin(x.float() * 2).to(dtype)
 
     hsic = HSIC()

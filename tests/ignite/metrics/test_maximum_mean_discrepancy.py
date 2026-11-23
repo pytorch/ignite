@@ -98,9 +98,9 @@ def test_compute(n_times, test_case: tuple[Tensor, Tensor, float, int], availabl
 
 @pytest.mark.parametrize("dtype", [torch.float16, torch.bfloat16])
 def test_low_precision_inputs(dtype):
-    torch.manual_seed(0)
-    x = (torch.randn(16, 2048) * 8).to(dtype)
-    y = (torch.randn(16, 2048) * 8 + 1).to(dtype)
+    # values up to 24 over 2048 features overflow fp16 in the pairwise products
+    x = torch.linspace(-24, 24, 16 * 2048).reshape(16, 2048).to(dtype)
+    y = (24 * torch.sin(torch.arange(16 * 2048.0))).reshape(16, 2048).to(dtype)
     var = 2.0e5
 
     mmd = MaximumMeanDiscrepancy(var=var)

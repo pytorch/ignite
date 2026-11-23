@@ -82,6 +82,9 @@ class MaximumMeanDiscrepancy(Metric):
 
     .. versionchanged:: 0.5.1
         ``skip_unrolling`` argument is added.
+
+    .. versionchanged:: 0.6.0
+        ``float16`` and ``bfloat16`` inputs are cast to ``float32``.
     """
 
     _state_dict_all_req_keys = ("_xx_sum", "_yy_sum", "_xy_sum", "_num_batches")
