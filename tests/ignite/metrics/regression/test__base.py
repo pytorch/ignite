@@ -43,6 +43,25 @@ def test_base_regression_shapes():
         m.update((y.float(), y))
 
 
+def test_base_regression_bfloat16(available_device):
+    class L1(_BaseRegression):
+        def reset(self):
+            self._sum_of_errors = 0.0
+
+        def _update(self, output):
+            y_pred, y = output
+            self._sum_of_errors += torch.sum(torch.abs(y.view_as(y_pred) - y_pred)).item()
+
+        def compute(self):
+            return self._sum_of_errors
+
+    m = L1(device=available_device)
+    y_pred = torch.tensor([1.0, 2.0, 3.0], dtype=torch.bfloat16, device=available_device)
+    y = torch.tensor([1.5, 2.5, 3.5], dtype=torch.bfloat16, device=available_device)
+    m.update((y_pred, y))
+    assert m.compute() == pytest.approx(1.5, rel=1e-2)
+
+
 @pytest.mark.parametrize("size", [100, 101, (30, 3), (31, 3)])
 def test_torch_median_numpy(size, device: str | None = None):
     data = torch.rand(size).to(device)

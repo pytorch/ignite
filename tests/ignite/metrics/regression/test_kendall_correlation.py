@@ -34,7 +34,7 @@ def test_wrong_y_shape():
 
 
 def test_wrong_y_pred_dtype():
-    with pytest.raises(TypeError, match="Input y_pred dtype should be float 16, 32 or 64, but given"):
+    with pytest.raises(TypeError, match="Input y_pred dtype should be float 16, 32, 64 or bfloat16, but given"):
         metric = KendallRankCorrelation()
         y_pred = torch.arange(3).unsqueeze(1).long()
         y = torch.arange(3).unsqueeze(1).float()
@@ -42,7 +42,7 @@ def test_wrong_y_pred_dtype():
 
 
 def test_wrong_y_dtype():
-    with pytest.raises(TypeError, match="Input y dtype should be float 16, 32 or 64, but given"):
+    with pytest.raises(TypeError, match="Input y dtype should be float 16, 32, 64 or bfloat16, but given"):
         metric = KendallRankCorrelation()
         y_pred = torch.arange(3).unsqueeze(1).float()
         y = torch.arange(3).unsqueeze(1).long()
@@ -75,6 +75,16 @@ def test_kendall_correlation(variant: str, available_device):
 
         expected = kendalltau(concat_preds, concat_targets, variant=variant).statistic
         assert m.compute() == pytest.approx(expected, rel=1e-4)
+
+
+@pytest.mark.parametrize("variant", ["b", "c"])
+def test_kendall_correlation_bfloat16(variant: str, available_device):
+    y_pred = torch.randn(16, dtype=torch.bfloat16, device=available_device)
+    y = torch.randn(16, dtype=torch.bfloat16, device=available_device)
+    m = KendallRankCorrelation(variant=variant, device=available_device)
+    m.update((y_pred, y))
+    expected = kendalltau(y_pred.float().cpu().numpy(), y.float().cpu().numpy(), variant=variant).statistic
+    assert m.compute() == pytest.approx(expected, rel=1e-4)
 
 
 @pytest.fixture(params=list(range(2)))
