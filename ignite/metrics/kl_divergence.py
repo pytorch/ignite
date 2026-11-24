@@ -72,7 +72,7 @@ class KLDivergence(Metric):
     .. versionchanged:: 0.5.1
         ``skip_unrolling`` argument is added.
 
-    .. versionchanged:: 0.6.0
+    .. versionchanged:: 0.5.6
         Float16 and bfloat16 inputs are evaluated in float32 to avoid low-precision overflow.
     """
 

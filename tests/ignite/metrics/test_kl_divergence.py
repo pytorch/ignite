@@ -85,8 +85,6 @@ def test_compute(n_times, test_case: tuple[Tensor, Tensor, int], available_devic
 
 @pytest.mark.parametrize("dtype", [torch.float16, torch.bfloat16])
 def test_low_precision_inputs(dtype, available_device):
-    if available_device == "mps" and dtype == torch.bfloat16:
-        pytest.skip("bfloat16 is not supported on all supported MPS versions.")
     y_pred = torch.linspace(-2, 2, 8).repeat(2**18, 1).to(dtype)
     y = y_pred.flip(1)
 
