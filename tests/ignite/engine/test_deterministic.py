@@ -124,6 +124,43 @@ def test_reproducible_batch_sampler():
         assert all([(b1 == b2).all() for b1, b2 in zip(seen_batches[resume_epoch], resumed_seen_batches)])
 
 
+@pytest.mark.parametrize("num_workers", [0, 2])
+@pytest.mark.parametrize("resume_iteration", [3, 13])
+def test_resume_shuffled_dataloader_with_random_processing(num_workers, resume_iteration):
+    from copy import deepcopy
+
+    data = torch.arange(40)
+
+    def run(state_dict=None):
+        batches = []
+        saved = []
+
+        def process(engine, batch):
+            # Stochastic model operations advance the RNG between batches.
+            torch.rand(7)
+            batches.append(batch.clone())
+
+        engine = DeterministicEngine(process)
+
+        @engine.on(Events.ITERATION_COMPLETED(once=resume_iteration))
+        def save_checkpoint():
+            saved.append(deepcopy(engine.state_dict()))
+
+        if state_dict is not None:
+            engine.load_state_dict(state_dict)
+        loader = DataLoader(data, batch_size=4, shuffle=True, num_workers=num_workers)
+        manual_seed(32)
+        engine.run(loader, max_epochs=2)
+        return batches, saved
+
+    batches, checkpoints = run()
+    resumed, _ = run(checkpoints[0])
+    expected = batches[resume_iteration:]
+    assert len(resumed) == len(expected)
+    for actual, reference in zip(resumed, expected):
+        assert torch.equal(actual, reference)
+
+
 def _test_keep_random_state(with_numpy):
     manual_seed(54)
     true_values = []
