@@ -290,6 +290,32 @@ def test_multilabel_input(n_times, available_device, average, test_data_multilab
 
 
 @pytest.mark.parametrize("average", [None, False, "macro", "micro", "weighted"])
+@pytest.mark.parametrize("data_type", ["binary", "multiclass"])
+@pytest.mark.parametrize("noncontiguous_input", ["predictions", "targets"])
+def test_update_noncontiguous(average, data_type, noncontiguous_input):
+    torch.manual_seed(12)
+    y = torch.randint(0, 3 if data_type == "multiclass" else 2, size=(4, 5, 6))
+    if data_type == "binary":
+        y_pred = torch.randint(0, 2, size=(4, 5, 6))
+    else:
+        y_pred = torch.rand(4, 3, 5, 6)
+    y_pred, y = y_pred.transpose(-1, -2), y.transpose(-1, -2)
+    if noncontiguous_input == "predictions":
+        y = y.contiguous()
+        assert not y_pred.is_contiguous()
+    else:
+        y_pred = y_pred.contiguous()
+        assert not y.is_contiguous()
+
+    reference = Precision(average=average)
+    reference.update((y_pred.contiguous(), y.contiguous()))
+    pr = Precision(average=average)
+    pr.update((y_pred, y))
+
+    assert torch.allclose(torch.as_tensor(pr.compute()), torch.as_tensor(reference.compute()))
+
+
+@pytest.mark.parametrize("average", [None, False, "macro", "micro", "weighted"])
 def test_incorrect_type(average):
     # Tests changing of type during training
 
