@@ -202,6 +202,31 @@ def test_ssim_variable_batchsize(available_device, shape, ndims):
     assert np.allclose(out, expected)
 
 
+def test_ssim_3d_anisotropic_kernel(available_device):
+    # a kernel of depth 1 does not mix slices, so 3D SSIM must match 2D SSIM averaged over the slices
+    y = torch.linspace(0, 1, 6).view(1, 1, 6, 1, 1) * torch.rand(2, 3, 6, 8, 8)
+    y_pred = y * 0.75 + 0.25 * torch.rand_like(y)
+
+    ssim_3d = SSIM(data_range=1.0, kernel_size=[1, 7, 7], ndims=3, device=available_device)
+    ssim_3d.update((y_pred.to(available_device), y.to(available_device)))
+
+    def to_2d(t):
+        return t.permute(0, 2, 1, 3, 4).reshape(-1, 3, 8, 8).to(available_device)
+
+    ssim_2d = SSIM(data_range=1.0, kernel_size=7, device=available_device)
+    ssim_2d.update((to_2d(y_pred), to_2d(y)))
+
+    assert np.allclose(ssim_3d.compute(), ssim_2d.compute())
+
+
+@pytest.mark.parametrize("gaussian", [True, False])
+@pytest.mark.parametrize("kernel_size, sigma", [([3, 5], [0.5, 1.0]), ([3, 5, 7], [0.5, 1.0, 1.5])])
+def test_ssim_kernel_axis_order(kernel_size, sigma, gaussian):
+    # kernel_size is (H, W) for 2D inputs and (D, H, W) for 3D inputs
+    ssim = SSIM(data_range=1.0, kernel_size=kernel_size, sigma=sigma, gaussian=gaussian, ndims=len(kernel_size))
+    assert ssim._kernel_nd.shape == tuple(kernel_size)
+
+
 def test_ssim_variable_channel(available_device):
     y_preds = [
         torch.rand(12, 5, 28, 28, device=available_device),
