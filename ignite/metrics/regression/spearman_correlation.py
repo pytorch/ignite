@@ -13,6 +13,10 @@ from ignite.metrics.regression._base import _check_output_shapes, _check_output_
 def _spearman_r(predictions: Tensor, targets: Tensor) -> float:
     from scipy.stats import spearmanr
 
+    if predictions.dtype == torch.bfloat16:
+        predictions = predictions.float()
+    if targets.dtype == torch.bfloat16:
+        targets = targets.float()
     np_preds = predictions.flatten().cpu().numpy()
     np_targets = targets.flatten().cpu().numpy()
     r = spearmanr(np_preds, np_targets).statistic

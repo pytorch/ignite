@@ -21,11 +21,12 @@ def _check_output_shapes(output: tuple[torch.Tensor, torch.Tensor]) -> None:
 
 def _check_output_types(output: tuple[torch.Tensor, torch.Tensor]) -> None:
     y_pred, y = output
-    if y_pred.dtype not in (torch.float16, torch.float32, torch.float64):
-        raise TypeError(f"Input y_pred dtype should be float 16, 32 or 64, but given {y_pred.dtype}")
+    allowed_dtypes = (torch.float16, torch.float32, torch.float64, torch.bfloat16)
+    if y_pred.dtype not in allowed_dtypes:
+        raise TypeError(f"Input y_pred dtype should be float 16, 32, 64 or bfloat16, but given {y_pred.dtype}")
 
-    if y.dtype not in (torch.float16, torch.float32, torch.float64):
-        raise TypeError(f"Input y dtype should be float 16, 32 or 64, but given {y.dtype}")
+    if y.dtype not in allowed_dtypes:
+        raise TypeError(f"Input y dtype should be float 16, 32, 64 or bfloat16, but given {y.dtype}")
 
 
 def _torch_median(output: torch.Tensor) -> float:
