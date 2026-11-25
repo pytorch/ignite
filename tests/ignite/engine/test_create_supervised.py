@@ -425,14 +425,13 @@ def _test_create_evaluation_step(
 
 
 @pytest.mark.parametrize("trainer_device", [None, "cpu"])
-@pytest.mark.parametrize("trace", [False])
-def test_create_supervised_trainer(trainer_device, trace):
-    _test_create_supervised_trainer_wrong_accumulation(trainer_device=trainer_device, trace=trace)
-    _test_create_supervised_trainer(gradient_accumulation_steps=1, trainer_device=trainer_device, trace=trace)
-    _test_create_supervised_trainer(gradient_accumulation_steps=3, trainer_device=trainer_device, trace=trace)
-    _test_create_supervised_trainer(with_model_transform=True, trainer_device=trainer_device, trace=trace)
-    _test_create_supervised_trainer(with_model_fn=True, trainer_device=trainer_device, trace=trace)
-    _test_create_mocked_supervised_trainer(trainer_device=trainer_device, trace=trace)
+def test_create_supervised_trainer(trainer_device):
+    _test_create_supervised_trainer_wrong_accumulation(trainer_device=trainer_device)
+    _test_create_supervised_trainer(gradient_accumulation_steps=1, trainer_device=trainer_device)
+    _test_create_supervised_trainer(gradient_accumulation_steps=3, trainer_device=trainer_device)
+    _test_create_supervised_trainer(with_model_transform=True, trainer_device=trainer_device)
+    _test_create_supervised_trainer(with_model_fn=True, trainer_device=trainer_device)
+    _test_create_mocked_supervised_trainer(trainer_device=trainer_device)
 
 
 @pytest.mark.skipif(find_spec("apex"), reason="Skip if APEX")
