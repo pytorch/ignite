@@ -106,6 +106,7 @@ def test_to_onehot():
     y2 = torch.argmax(y_ohe, dim=1)
     assert y.equal(y2)
 
+
 def test_dist_setup_logger():
     logger = setup_logger("trainer", level=logging.CRITICAL, distributed_rank=1)
     assert logger.level != logging.CRITICAL
