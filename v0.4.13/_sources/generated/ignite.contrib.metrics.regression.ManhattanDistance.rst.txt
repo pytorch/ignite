@@ -1,0 +1,45 @@
+﻿ManhattanDistance
+=================
+
+.. currentmodule:: ignite.contrib.metrics.regression
+
+.. autoclass:: ManhattanDistance
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~ManhattanDistance.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~ManhattanDistance.reset
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   

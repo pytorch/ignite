@@ -1,0 +1,23 @@
+﻿State
+=====
+
+.. currentmodule:: ignite.engine.events
+
+.. autoclass:: State
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+      ~State.get_event_attrib_value
+   
+   
+   
+   

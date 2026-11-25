@@ -1,0 +1,29 @@
+﻿CyclicalScheduler
+=================
+
+.. currentmodule:: ignite.handlers.param_scheduler
+
+.. autoclass:: CyclicalScheduler
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   

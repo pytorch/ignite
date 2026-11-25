@@ -1,0 +1,33 @@
+﻿PiecewiseLinearStateScheduler
+=============================
+
+.. currentmodule:: ignite.handlers.state_param_scheduler
+
+.. autoclass:: PiecewiseLinearStateScheduler
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+      ~PiecewiseLinearStateScheduler.get_param
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   

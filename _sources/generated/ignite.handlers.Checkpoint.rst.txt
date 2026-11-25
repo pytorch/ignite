@@ -1,0 +1,47 @@
+﻿Checkpoint
+==========
+
+.. currentmodule:: ignite.handlers
+
+.. autoclass:: Checkpoint
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+      ~Checkpoint.get_default_score_fn
+   
+   
+   
+      ~Checkpoint.load_objects
+   
+   
+   
+      ~Checkpoint.load_state_dict
+   
+   
+   
+      ~Checkpoint.reload_objects
+   
+   
+   
+      ~Checkpoint.reset
+   
+   
+   
+      ~Checkpoint.setup_filename_pattern
+   
+   
+   
+      ~Checkpoint.state_dict
+   
+   
+   
+   
