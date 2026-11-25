@@ -425,14 +425,13 @@ def _test_create_evaluation_step(
 
 
 @pytest.mark.parametrize("trainer_device", [None, "cpu"])
-@pytest.mark.parametrize("trace", [False, True])
-def test_create_supervised_trainer(trainer_device, trace):
-    _test_create_supervised_trainer_wrong_accumulation(trainer_device=trainer_device, trace=trace)
-    _test_create_supervised_trainer(gradient_accumulation_steps=1, trainer_device=trainer_device, trace=trace)
-    _test_create_supervised_trainer(gradient_accumulation_steps=3, trainer_device=trainer_device, trace=trace)
-    _test_create_supervised_trainer(with_model_transform=True, trainer_device=trainer_device, trace=trace)
-    _test_create_supervised_trainer(with_model_fn=True, trainer_device=trainer_device, trace=trace)
-    _test_create_mocked_supervised_trainer(trainer_device=trainer_device, trace=trace)
+def test_create_supervised_trainer(trainer_device):
+    _test_create_supervised_trainer_wrong_accumulation(trainer_device=trainer_device)
+    _test_create_supervised_trainer(gradient_accumulation_steps=1, trainer_device=trainer_device)
+    _test_create_supervised_trainer(gradient_accumulation_steps=3, trainer_device=trainer_device)
+    _test_create_supervised_trainer(with_model_transform=True, trainer_device=trainer_device)
+    _test_create_supervised_trainer(with_model_fn=True, trainer_device=trainer_device)
+    _test_create_mocked_supervised_trainer(trainer_device=trainer_device)
 
 
 @pytest.mark.skipif(find_spec("apex"), reason="Skip if APEX")
@@ -648,16 +647,6 @@ def test_create_supervised_evaluator_on_cpu():
         with mock.patch("torch.amp.autocast") as mock_torch_cuda_amp_module:
             _test_create_evaluation_step(mock_torch_cuda_amp_module, evaluator_device="cpu")
             _test_create_evaluation_step_amp(mock_torch_cuda_amp_module, evaluator_device="cpu")
-
-
-def test_create_supervised_evaluator_traced_on_cpu():
-    _test_create_supervised_evaluator(evaluator_device="cpu", trace=True)
-    _test_mocked_supervised_evaluator(evaluator_device="cpu", trace=True)
-
-    # older versions didn't have the autocast method so we skip the test for older builds
-    if Version(torch.__version__) >= Version("1.12.0"):
-        with mock.patch("torch.amp.autocast") as mock_torch_cuda_amp_module:
-            _test_create_evaluation_step(mock_torch_cuda_amp_module, evaluator_device="cpu", trace=True)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
