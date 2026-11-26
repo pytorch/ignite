@@ -5,6 +5,7 @@ import ignite.metrics.regression
 from ignite.metrics.accumulation import Average, GeometricAverage, VariableAccumulation
 from ignite.metrics.accuracy import Accuracy
 from ignite.metrics.average_precision import AveragePrecision
+from ignite.metrics.calibration_error import ExpectedCalibrationError, MaximumCalibrationError
 from ignite.metrics.classification_report import ClassificationReport
 from ignite.metrics.cohen_kappa import CohenKappa
 from ignite.metrics.confusion_matrix import ConfusionMatrix, DiceCoefficient, IoU, JaccardIndex, mIoU
@@ -69,6 +70,8 @@ __all__ = [
     "Average",
     "DiceCoefficient",
     "Entropy",
+    "ExpectedCalibrationError",
+    "MaximumCalibrationError",
     "EpochMetric",
     "Fbeta",
     "FID",
