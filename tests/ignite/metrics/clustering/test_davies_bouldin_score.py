@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import numpy as np
 import pytest
 
@@ -35,6 +37,12 @@ def test_zero_sample():
     ):
         metric = DaviesBouldinScore()
         metric.compute()
+
+
+def test_no_sklearn():
+    with patch.dict("sys.modules", {"sklearn.metrics": None}):
+        with pytest.raises(ModuleNotFoundError, match=r"This module requires scikit-learn to be installed."):
+            DaviesBouldinScore()
 
 
 def test_wrong_output_shape():
