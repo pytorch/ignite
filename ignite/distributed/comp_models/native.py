@@ -134,7 +134,7 @@ if has_native_dist_support:
             dist.init_process_group(backend, init_method=init_method, **init_pg_kwargs)
 
             if torch.cuda.is_available():
-                torch.cuda.set_device(self._local_rank)
+                torch.cuda.set_device(self._get_cuda_device_index())
 
             # Call barrier after init_process_group as in
             # https://github.com/facebookresearch/maskrcnn-benchmark/issues/172
@@ -155,6 +155,14 @@ if has_native_dist_support:
             self._backend = dist.get_backend()
             self._identify_local_rank()
             self._setup_attrs()
+
+        def _get_cuda_device_index(self) -> int:
+            # Launchers can bind a single GPU to each process (e.g. SLURM `--ntasks-per-gpu`), so the local rank
+            # is not a valid device index when the process sees fewer devices than there are tasks on the node.
+            local_rank = self.get_local_rank()
+            if local_rank < torch.cuda.device_count():
+                return local_rank
+            return 0
 
         def _compute_nproc_per_node(self) -> int:
             local_rank = self.get_local_rank()
@@ -295,7 +303,7 @@ if has_native_dist_support:
         def device(self) -> torch.device:
             if torch.cuda.is_available():
                 index = torch.cuda.current_device()
-                if index < self.get_local_rank():
+                if index < self._get_cuda_device_index():
                     warnings.warn(
                         "Current device index is less than current local rank. "
                         "Please, make sure to call torch.cuda.set_device(local_rank)."
