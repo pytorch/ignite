@@ -887,6 +887,47 @@ def test_engine_no_data_asserts():
         trainer.run(max_epochs=10, epoch_length=10)
 
 
+@pytest.mark.parametrize("checkpoint_iteration", [3, 10])
+def test_resave_loaded_rng_state(checkpoint_iteration):
+    from copy import deepcopy
+
+    def run(checkpoint=None):
+        draws = []
+        saved = {}
+
+        def process(engine, batch):
+            draws.append(torch.rand(4))
+
+        engine = DeterministicEngine(process)
+
+        @engine.on(Events.ITERATION_COMPLETED)
+        def save():
+            saved[engine.state.iteration] = deepcopy(engine.state_dict())
+
+        if checkpoint is not None:
+            engine.load_state_dict(checkpoint)
+        manual_seed(32)
+        engine.run(DataLoader(list(range(10)), batch_size=1, num_workers=2), max_epochs=2)
+        return draws, saved
+
+    expected, checkpoints = run()
+    relay = DeterministicEngine(lambda engine, batch: None)
+    relay.load_state_dict(checkpoints[checkpoint_iteration])
+    manual_seed(999)
+    relayed = deepcopy(relay.state_dict())
+    actual, resumed_checkpoints = run(relayed)
+    assert len(actual) == len(expected) - checkpoint_iteration
+    for a, b in zip(actual, expected[checkpoint_iteration:]):
+        assert torch.equal(a, b)
+
+    # Once pending state is consumed or discarded at an epoch boundary,
+    # new checkpoints must capture the running engine's current RNG.
+    resumed_again, _ = run(resumed_checkpoints[checkpoint_iteration + 1])
+    assert len(resumed_again) == len(expected) - checkpoint_iteration - 1
+    for a, b in zip(resumed_again, expected[checkpoint_iteration + 1 :]):
+        assert torch.equal(a, b)
+
+
 def test_state_dict():
     engine = DeterministicEngine(lambda e, b: 1)
     sd = engine.state_dict()

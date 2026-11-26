@@ -186,8 +186,14 @@ class DeterministicEngine(Engine):
         self.add_event_handler(Events.DATALOADER_STOP_ITERATION | Events.TERMINATE_SINGLE_EPOCH, self._setup_seed)
 
     def state_dict(self) -> OrderedDict:
+        """Return engine state, including any RNG state awaiting restoration.
+
+        .. versionchanged:: 0.6.0
+            Preserve loaded RNG state when re-saving a checkpoint before running the engine.
+        """
         state_dict = super().state_dict()
-        state_dict["rng_states"] = _get_rng_states()
+        if state_dict["rng_states"] is None:
+            state_dict["rng_states"] = _get_rng_states()
         return state_dict
 
     def _init_run(self) -> None:
@@ -243,8 +249,9 @@ class DeterministicEngine(Engine):
         # restore rng state if in the middle
         in_the_middle = self.state.iteration % self._dataloader_len > 0 if self._dataloader_len is not None else False
         rng_states = getattr(self.state, "rng_states", None)
-        if rng_states is not None and in_the_middle:
-            _set_rng_states(rng_states)
+        if rng_states is not None:
+            if in_the_middle:
+                _set_rng_states(rng_states)
             setattr(self.state, "rng_states", None)
 
     def _from_iteration(self, iteration: int) -> Iterator:
