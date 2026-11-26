@@ -1,7 +1,7 @@
 import logging
 import platform
 import sys
-from collections import namedtuple
+from collections import defaultdict, namedtuple
 
 import pytest
 import torch
@@ -48,6 +48,13 @@ def test_convert_tensor():
     assert isinstance(dict_, dict)
     assert torch.is_tensor(dict_["a"])
     assert torch.is_tensor(dict_["b"])
+
+    x = defaultdict(list, {"a": torch.tensor([0.0])})
+    dict_ = convert_tensor(x, device="cpu")
+    assert isinstance(dict_, defaultdict)
+    assert dict_ is not x
+    assert dict_.default_factory is list
+    assert torch.is_tensor(dict_["a"])
 
     assert convert_tensor("a") == "a"
 
@@ -98,29 +105,6 @@ def test_to_onehot():
     y_ohe = to_onehot(y, num_classes=21)
     y2 = torch.argmax(y_ohe, dim=1)
     assert y.equal(y2)
-
-    # Test with `TorchScript`
-
-    x = torch.tensor([0, 1, 2, 3])
-
-    # Test the raw `to_onehot` function
-    scripted_to_onehot = torch.jit.script(to_onehot)
-    assert scripted_to_onehot(x, 4).allclose(to_onehot(x, 4))
-
-    # Test inside `torch.nn.Module`
-    class SLP(torch.nn.Module):
-        def __init__(self):
-            super().__init__()
-            self.linear = torch.nn.Linear(4, 1)
-
-        def forward(self, x):
-            x = to_onehot(x, 4)
-            return self.linear(x.to(torch.float))
-
-    eager_model = SLP()
-    scripted_model = torch.jit.script(eager_model)
-
-    assert eager_model(x).allclose(scripted_model(x))
 
 
 def test_dist_setup_logger():

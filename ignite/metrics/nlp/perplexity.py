@@ -40,6 +40,8 @@ class Perplexity(Metric):
         device: specifies which device updates are accumulated on. Setting the
             metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
             non-blocking. By default, CPU.
+        ignore_index: index of the target token to ignore in the loss computation.
+            By default, -100.
 
     Examples:
 
@@ -65,6 +67,9 @@ class Perplexity(Metric):
             <class 'float'>
 
     .. versionadded:: 0.5.5
+
+    .. versionchanged:: 0.5.6
+        Compute cross-entropy in float32 for float16 and bfloat16 logits.
     """
 
     _state_dict_all_req_keys = ("_sum_of_nll", "_num_tokens")
@@ -107,6 +112,8 @@ class Perplexity(Metric):
                 f"(expected y_pred[0] == y[0] and y_pred[2:] == y[1:])."
             )
 
+        if y_pred.dtype in (torch.float16, torch.bfloat16):
+            y_pred = y_pred.float()
         nll = F.cross_entropy(y_pred, y, reduction="sum", ignore_index=self._ignore_index)
         self._sum_of_nll += nll.to(self._device)
         self._num_tokens += (y != self._ignore_index).sum().to(self._device)

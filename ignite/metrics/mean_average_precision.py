@@ -23,7 +23,7 @@ class _BaseAveragePrecision:
         This class contains the methods for setting up the thresholds and computing AP & AR.
 
         Args:
-            rec_thresholds: recall thresholds (sensivity levels) to be considered for computing Mean Average Precision.
+            rec_thresholds: recall thresholds (sensitivity levels) to be considered for computing Mean Average Precision.
                 It could be a 1-dim tensor or a sequence of floats. Its values should be between 0 and 1 and don't need
                 to be sorted. If missing, thresholds are considered automatically using the data.
             class_mean: how to compute mean of the average precision across classes or incorporate class
@@ -162,7 +162,7 @@ class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
             \text{Average Precision} = \sum_{k=1}^{\#rec\_thresholds} (r_k - r_{k-1}) P_k
 
         Mean average precision attempts to give a measure of detector or classifier precision at various
-        sensivity levels a.k.a recall thresholds. This is done by summing precisions at different recall
+        sensitivity levels a.k.a recall thresholds. This is done by summing precisions at different recall
         thresholds weighted by the change in recall, as if the area under precision-recall curve is being computed.
         Mean average precision is then computed by taking the mean of this average precision over different classes.
 
@@ -173,7 +173,7 @@ class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
         determines how to take this mean.
 
         Args:
-            rec_thresholds: recall thresholds (sensivity levels) to be considered for computing Mean Average Precision.
+            rec_thresholds: recall thresholds (sensitivity levels) to be considered for computing Mean Average Precision.
                 It could be a 1-dim tensor or a sequence of floats. Its values should be between 0 and 1 and don't need
                 to be sorted. If missing, thresholds are considered automatically using the data.
             class_mean: how to compute mean of the average precision across classes or incorporate class

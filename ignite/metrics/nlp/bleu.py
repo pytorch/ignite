@@ -250,6 +250,9 @@ class Bleu(Metric):
     def update(self, output: tuple[Sequence[Sequence[Any]], Sequence[Sequence[Sequence[Any]]]]) -> None:
         y_pred, y = output
 
+        if len(y) != len(y_pred):
+            raise ValueError(f"nb of candidates should be equal to nb of reference lists ({len(y_pred)} != {len(y)})")
+
         if self.average == "macro":
             for refs, hyp in zip(y, y_pred):
                 self._sum_of_bleu += self._sentence_bleu(references=refs, candidates=hyp)

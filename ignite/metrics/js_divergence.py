@@ -46,7 +46,7 @@ class JSDivergence(KLDivergence):
     Examples:
         To use with ``Engine`` and ``process_function``, simply attach the metric instance to the engine.
         The output of the engine's ``process_function`` needs to be in the format of
-        ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``. If not, ``output_tranform`` can be added
+        ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``. If not, ``output_transform`` can be added
         to the metric to transform the output into the form expected by the metric.
 
         For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
@@ -77,6 +77,9 @@ class JSDivergence(KLDivergence):
 
     .. versionchanged:: 0.5.1
         ``skip_unrolling`` argument is added.
+
+    .. versionchanged:: 0.5.6
+        Float16 and bfloat16 inputs are evaluated in float32 to avoid low-precision overflow.
     """
 
     def _update(self, y_pred: torch.Tensor, y: torch.Tensor) -> None:

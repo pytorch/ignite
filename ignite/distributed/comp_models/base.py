@@ -101,7 +101,8 @@ class ComputationModel(metaclass=ABCMeta):
         return padded_x.unsqueeze(0)
 
     def _get_max_length(self, x: str, device: torch.device) -> int:
-        size = torch.tensor([len(x)], device=device)
+        # _encode_str pads the UTF-8 bytes of x, so measure bytes rather than characters
+        size = torch.tensor([len(bytearray(x, "utf-8"))], device=device)
         size = self._do_all_reduce(size, op="MAX")
         return cast(int, size.item())
 

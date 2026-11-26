@@ -156,6 +156,10 @@ class _BaseRouge(Metric):
     @reinit__is_reduced
     def update(self, output: tuple[Sequence[Sequence[Any]], Sequence[Sequence[Sequence[Any]]]]) -> None:
         candidates, references = output
+        if len(references) != len(candidates):
+            raise ValueError(
+                f"nb of candidates should be equal to nb of reference lists ({len(candidates)} != {len(references)})"
+            )
         for _candidate, _reference in zip(candidates, references):
             multiref_scores = [self._compute_score(candidate=_candidate, reference=_ref) for _ref in _reference]
             score = self._multiref_reducer(multiref_scores)

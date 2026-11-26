@@ -40,7 +40,7 @@ class KLDivergence(Metric):
     Examples:
         To use with ``Engine`` and ``process_function``, simply attach the metric instance to the engine.
         The output of the engine's ``process_function`` needs to be in the format of
-        ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``. If not, ``output_tranform`` can be added
+        ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``. If not, ``output_transform`` can be added
         to the metric to transform the output into the form expected by the metric.
 
         For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
@@ -71,6 +71,9 @@ class KLDivergence(Metric):
 
     .. versionchanged:: 0.5.1
         ``skip_unrolling`` argument is added.
+
+    .. versionchanged:: 0.5.6
+        Float16 and bfloat16 inputs are evaluated in float32 to avoid low-precision overflow.
     """
 
     _state_dict_all_req_keys = ("_sum_of_kl", "_num_examples")
@@ -94,6 +97,9 @@ class KLDivergence(Metric):
             y = y.movedim(1, -1).reshape(-1, num_classes)
         elif y_pred.ndim == 1:
             raise ValueError(f"y_pred must be in the shape of (B, C) or (B, C, ...), got {y_pred.shape}.")
+
+        if y_pred.dtype in (torch.float16, torch.bfloat16):
+            y_pred, y = y_pred.float(), y.float()
 
         self._num_examples += y_pred.shape[0]
         self._update(y_pred, y)
