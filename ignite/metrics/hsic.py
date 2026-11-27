@@ -90,6 +90,9 @@ class HSIC(Metric):
             0.09226646274328232
 
     .. versionadded:: 0.5.2
+
+    .. versionchanged:: 0.5.6
+        ``float16`` and ``bfloat16`` inputs are cast to ``float32``.
     """
 
     def __init__(
@@ -118,6 +121,10 @@ class HSIC(Metric):
     def update(self, output: Sequence[Tensor]) -> None:
         X = output[0].detach().flatten(start_dim=1)
         Y = output[1].detach().flatten(start_dim=1)
+        if X.dtype in (torch.float16, torch.bfloat16):
+            X = X.float()
+        if Y.dtype in (torch.float16, torch.bfloat16):
+            Y = Y.float()
         b = X.shape[0]
 
         if b <= 3:

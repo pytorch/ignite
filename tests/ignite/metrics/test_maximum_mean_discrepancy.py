@@ -96,6 +96,20 @@ def test_compute(n_times, test_case: tuple[Tensor, Tensor, float, int], availabl
     assert pytest.approx(np_res, abs=1e-4) == res
 
 
+@pytest.mark.parametrize("dtype", [torch.float16, torch.bfloat16])
+def test_low_precision_inputs(dtype):
+    # values up to 24 over 2048 features overflow fp16 in the pairwise products
+    x = torch.linspace(-24, 24, 16 * 2048).reshape(16, 2048).to(dtype)
+    y = (24 * torch.sin(torch.arange(16 * 2048.0))).reshape(16, 2048).to(dtype)
+    var = 2.0e5
+
+    mmd = MaximumMeanDiscrepancy(var=var)
+    mmd.update((x, y))
+
+    np_res = np.sqrt(np_mmd2(x.float().numpy(), y.float().numpy(), var))
+    assert pytest.approx(np_res, abs=1e-4) == mmd.compute()
+
+
 def test_accumulator_detached(available_device):
     mmd = MaximumMeanDiscrepancy(device=available_device)
     assert mmd._device == torch.device(available_device)
