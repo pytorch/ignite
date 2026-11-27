@@ -57,6 +57,9 @@ class ManhattanDistance(_BaseRegression):
 
         - Fixed sklearn compatibility.
         - Works with DDP.
+
+    .. versionchanged:: 0.5.6
+        Float16 and bfloat16 inputs are evaluated in float32 to avoid low-precision overflow.
     """
 
     _state_dict_all_req_keys = ("_sum_of_errors",)
@@ -67,6 +70,9 @@ class ManhattanDistance(_BaseRegression):
 
     def _update(self, output: tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output
+        if y_pred.dtype in (torch.float16, torch.bfloat16):
+            y_pred, y = y_pred.float(), y.float()
+
         errors = torch.abs(y - y_pred)
         self._sum_of_errors += torch.sum(errors).to(self._device)
 
