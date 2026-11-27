@@ -166,6 +166,9 @@ if has_xla_support:
         def _do_new_group(self, ranks: list[int], **kwargs: Any) -> Any:
             return [ranks]
 
+        def _do_broadcast_object_list(self, tensor: Any, src: int) -> Any:
+            raise NotImplementedError("broadcast on object is not implemented for xla")
+
         def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
             # from https://github.com/jysohn23/xla/blob/model-parallel-colab/Gather_Scatter_Broadcast_PyTorch_XLA.ipynb
             if src != self.get_rank():
