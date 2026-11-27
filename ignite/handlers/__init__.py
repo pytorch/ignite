@@ -8,6 +8,7 @@ from ignite.handlers.fbresearch_logger import FBResearchLogger
 from ignite.handlers.lr_finder import FastaiLRFinder
 from ignite.handlers.mlflow_logger import MLflowLogger
 from ignite.handlers.neptune_logger import NeptuneLogger
+from ignite.handlers.gradient_norm_logger import GradientNormLogger
 from ignite.handlers.param_scheduler import (
     BaseParamScheduler,
     BatchSizeScheduler,
