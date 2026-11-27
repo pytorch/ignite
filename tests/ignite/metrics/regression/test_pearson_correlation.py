@@ -137,6 +137,60 @@ def test_integration_pearson_correlation(n_times, test_case: tuple[Tensor, Tenso
     assert pytest.approx(np_ans, rel=2e-4) == corr
 
 
+def test_numerical_stability_large_offset():
+    # float32 accumulators suffer catastrophic cancellation in E[X^2]-(E[X])^2
+    # when values have large magnitude relative to their variance: both E[X^2]
+    # and (E[X])^2 are ~1e16 but their difference (the variance) is ~1, which
+    # falls below float32's ULP at that scale.  float64 accumulators preserve
+    # the precision.  MPS is excluded because it does not support float64.
+    offset = 1e8
+    # y = 2*y_pred => perfect positive correlation; expected r = 1.0
+    y_pred = torch.tensor([1.0, 2.0, 3.0, 4.0, 5.0], dtype=torch.float64) + offset
+    y = torch.tensor([2.0, 4.0, 6.0, 8.0, 10.0], dtype=torch.float64) + offset
+
+    m = PearsonCorrelation()  # CPU device (float64 accumulators)
+    m.update((y_pred, y))
+    result = m.compute()
+
+    assert pytest.approx(1.0, abs=1e-6) == result
+
+
+def test_numerical_stability_float32_inputs():
+    y_pred = torch.tensor([1.0, 2.0, 3.0, 4.0, 5.0], dtype=torch.float32) + 1e4
+    y = torch.tensor([2.0, 4.0, 6.0, 8.0, 10.0], dtype=torch.float32) + 1e4
+
+    m = PearsonCorrelation()
+    m.update((y_pred, y))
+
+    assert m.compute() == pytest.approx(1.0, abs=1e-6)
+
+
+@pytest.mark.parametrize("with_prior_update", [False, True])
+def test_load_legacy_float32_state(with_prior_update):
+    original = PearsonCorrelation()
+    if with_prior_update:
+        original.update((torch.tensor([1.0, 2.0, 3.0]), torch.tensor([2.0, 4.0, 6.0])))
+
+    state = original.state_dict()
+    per_rank_state = next(iter(state.values()))[0]
+    accumulator_keys = original._state_dict_all_req_keys[:-1]
+    for key in accumulator_keys:
+        per_rank_state[key] = per_rank_state[key].float()
+
+    restored = PearsonCorrelation()
+    restored.load_state_dict(state)
+    for key in accumulator_keys:
+        assert getattr(restored, key).dtype == torch.float64
+        assert getattr(restored, key) == getattr(original, key)
+    assert restored._num_examples == original._num_examples
+
+    y_pred = torch.tensor([1.0, 2.0, 3.0, 4.0, 5.0], dtype=torch.float32) + 1e4
+    y = torch.tensor([2.0, 4.0, 6.0, 8.0, 10.0], dtype=torch.float32) + 1e4
+    original.update((y_pred, y))
+    restored.update((y_pred, y))
+    assert restored.compute() == pytest.approx(original.compute(), abs=1e-6)
+
+
 def test_accumulator_detached(available_device):
     corr = PearsonCorrelation(device=available_device)
     assert corr._device == torch.device(available_device)
@@ -263,3 +317,4 @@ class TestDistributed:
             )
             for dev in devices:
                 assert dev == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
+
