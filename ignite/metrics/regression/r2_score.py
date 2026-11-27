@@ -61,9 +61,9 @@ class R2Score(_BaseRegression):
     @reinit__is_reduced
     def reset(self) -> None:
         self._num_examples = 0
-        self._sum_of_errors = torch.tensor(0.0, device=self._device)
-        self._y_sq_sum = torch.tensor(0.0, device=self._device)
-        self._y_sum = torch.tensor(0.0, device=self._device)
+        self._sum_of_errors = torch.tensor(0.0, dtype=self._double_dtype, device=self._device)
+        self._y_sq_sum = torch.tensor(0.0, dtype=self._double_dtype, device=self._device)
+        self._y_sum = torch.tensor(0.0, dtype=self._double_dtype, device=self._device)
 
     def _update(self, output: tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output

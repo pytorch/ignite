@@ -43,6 +43,17 @@ def test_r2_score(available_device):
     assert m.compute() == pytest.approx(expected)
 
 
+def test_r2_score_float64_input():
+    m = R2Score()
+    y_pred = torch.tensor([0.0, 1.0, 2.0, 3.0], dtype=torch.float64)
+    y = torch.tensor([0.5, 1.5, 2.5, 3.5], dtype=torch.float64)
+
+    m.update((y_pred, y))
+
+    expected = 1 - ((y_pred - y) ** 2).sum().item() / ((y - y.mean()) ** 2).sum().item()
+    assert m.compute() == pytest.approx(expected)
+
+
 def test_r2_score_2(available_device):
     torch.manual_seed(1)
     size = 105
