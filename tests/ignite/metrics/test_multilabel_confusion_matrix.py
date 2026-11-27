@@ -141,18 +141,23 @@ def _test_distrib_multiclass_images(device):
         num_classes = 3
         cm = MultiLabelConfusionMatrix(num_classes=num_classes, device=metric_device)
 
-        y_true, y_pred = get_y_true_y_pred()
-
-        # Compute confusion matrix with sklearn
-        sklearn_CM = multilabel_confusion_matrix(
-            y_true.transpose((0, 2, 3, 1)).reshape(-1, 3), y_pred.transpose((0, 2, 3, 1)).reshape(-1, 3)
-        )
+        rng = np.random.default_rng(12 + idist.get_rank())
+        y_true = rng.integers(0, 2, size=(1, num_classes, 30, 30), dtype=np.int64)
+        y_pred = rng.integers(0, 2, size=(1, num_classes, 30, 30), dtype=np.int64)
 
         # Update metric
-        output = (torch.tensor(y_pred).to(device), torch.tensor(y_true).to(device))
+        th_y_true = torch.tensor(y_true).to(device)
+        th_y_pred = torch.tensor(y_pred).to(device)
+        output = (th_y_pred, th_y_true)
         cm.update(output)
 
         ignite_CM = cm.compute().cpu().numpy()
+
+        th_y_true = idist.all_gather(th_y_true)
+        th_y_pred = idist.all_gather(th_y_pred)
+        np_y_true = th_y_true.cpu().numpy().transpose((0, 2, 3, 1)).reshape(-1, num_classes)
+        np_y_pred = th_y_pred.cpu().numpy().transpose((0, 2, 3, 1)).reshape(-1, num_classes)
+        sklearn_CM = multilabel_confusion_matrix(np_y_true, np_y_pred)
 
         assert np.all(ignite_CM == sklearn_CM)
 
@@ -363,23 +368,21 @@ def test_simple_batched(available_device):
         assert np.all(sklearn_CM.astype(np.int64) == ignite_CM.astype(np.int64))
 
 
-# @pytest.mark.distributed
-# @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-# @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-# def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
+@pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
+    device = idist.device()
+    _test_distrib_multiclass_images(device)
+    _test_distrib_accumulator_device(device)
 
-#     device = idist.device()
-#     _test_distrib_multiclass_images(device)
-#     _test_distrib_accumulator_device(device)
 
-
-# @pytest.mark.distributed
-# @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-# def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
-
-#     device = idist.device()
-#     _test_distrib_multiclass_images(device)
-#     _test_distrib_accumulator_device(device)
+@pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
+    device = idist.device()
+    _test_distrib_multiclass_images(device)
+    _test_distrib_accumulator_device(device)
 
 
 # @pytest.mark.distributed
