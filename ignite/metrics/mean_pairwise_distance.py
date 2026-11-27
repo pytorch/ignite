@@ -63,6 +63,9 @@ class MeanPairwiseDistance(Metric):
 
     .. versionchanged:: 0.5.1
         ``skip_unrolling`` argument is added.
+
+    .. versionchanged:: 0.5.6
+        Float16 and bfloat16 inputs are evaluated in float32 to avoid low-precision overflow.
     """
 
     _state_dict_all_req_keys = ("_sum_of_distances", "_num_examples")
@@ -87,6 +90,9 @@ class MeanPairwiseDistance(Metric):
     @reinit__is_reduced
     def update(self, output: Sequence[torch.Tensor]) -> None:
         y_pred, y = output[0].detach(), output[1].detach()
+        if y_pred.dtype in (torch.float16, torch.bfloat16):
+            y_pred, y = y_pred.float(), y.float()
+
         distances = pairwise_distance(y_pred, y, p=self._p, eps=self._eps)
         self._sum_of_distances += torch.sum(distances).to(self._device)
         self._num_examples += y.shape[0]
