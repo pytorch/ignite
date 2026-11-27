@@ -111,8 +111,8 @@ def test_compute(n_times, sigma_x: float, sigma_y: float, test_case: tuple[Tenso
 
 @pytest.mark.parametrize("dtype", [torch.float16, torch.bfloat16])
 def test_low_precision_inputs(dtype):
-  # values up to 24 over 2048 features overflow fp16 in the pairwise products
-  # sigma=-1 uses torch.quantile, which rejects fp16/bf16
+    # values up to 24 over 2048 features overflow fp16 in the pairwise products
+    # sigma=-1 uses torch.quantile, which rejects fp16/bf16
     x = torch.linspace(-24, 24, 16 * 2048).reshape(16, 2048).to(dtype)
     y = (24 * torch.sin(torch.arange(16 * 2048.0))).reshape(16, 2048).to(dtype)
 
