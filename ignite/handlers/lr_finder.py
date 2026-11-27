@@ -76,6 +76,7 @@ class FastaiLRFinder:
     """
 
     _lr_schedule: LRScheduler | PiecewiseLinear | ParamGroupScheduler
+    _optimizer: Optimizer
 
     def __init__(self) -> None:
         self._diverge_flag = False
@@ -98,6 +99,7 @@ class FastaiLRFinder:
         self._history = {"lr": [], "loss": []}
         self._best_loss = None
         self._diverge_flag = False
+        self._optimizer = optimizer
 
         assert trainer.state.epoch_length is not None
         assert trainer.state.max_epochs is not None
@@ -146,11 +148,11 @@ class FastaiLRFinder:
                     ]
                 )
         if not trainer.has_event_handler(self._lr_schedule):
-            trainer.add_event_handler(Events.ITERATION_COMPLETED, self._lr_schedule, num_iter)
+            trainer.add_event_handler(Events.ITERATION_STARTED, self._lr_schedule, num_iter)
 
     def _reset(self, trainer: Engine) -> None:
         self.logger.debug("Completed LR finder run")
-        trainer.remove_event_handler(self._lr_schedule, Events.ITERATION_COMPLETED)
+        trainer.remove_event_handler(self._lr_schedule, Events.ITERATION_STARTED)
         trainer.remove_event_handler(self._log_lr_and_loss, Events.ITERATION_COMPLETED)
         trainer.remove_event_handler(self._reached_num_iterations, Events.ITERATION_COMPLETED)
 
@@ -180,7 +182,8 @@ class FastaiLRFinder:
                     """
                 )
         loss = idist.all_reduce(loss)
-        lr = self._lr_schedule.get_param()
+        lrs = [param_group["lr"] for param_group in self._optimizer.param_groups]
+        lr = lrs[0] if len(lrs) == 1 else lrs
         self._history["lr"].append(lr)
         if trainer.state.iteration != 1 and smooth_f > 0:
             loss = smooth_f * loss + (1 - smooth_f) * self._history["loss"][-1]
@@ -544,6 +547,5 @@ class _ExponentialLR(PyTorchLRScheduler):
         self.base_lrs = start_lrs  # type: ignore[assignment]
 
     def get_lr(self) -> list[torch.Tensor | float]:
-        curr_iter = self.last_epoch + 1
-        r = curr_iter / self.num_iter
+        r = self.last_epoch / self.num_iter
         return [base_lr * (end_lr / base_lr) ** r for end_lr, base_lr in zip(self.end_lrs, self.base_lrs)]  # type: ignore[misc]

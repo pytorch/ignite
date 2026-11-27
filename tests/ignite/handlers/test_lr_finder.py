@@ -1,7 +1,6 @@
 import copy
 import os
 from pathlib import Path
-from unittest.mock import MagicMock
 
 import filelock
 
@@ -381,22 +380,33 @@ def test_different_num_iters(lr_finder, to_save, dummy_engine, dataloader):
 
 
 @pytest.mark.parametrize("step_mode", ["exp", "linear"])
-def test_start_lr(lr_finder, to_save, dummy_engine, dataloader, step_mode):
-    with lr_finder.attach(
-        dummy_engine, to_save, start_lr=0.01, end_lr=10.0, num_iter=5, step_mode=step_mode, diverge_th=1
-    ) as trainer_with_finder:
-        trainer_with_finder.run(dataloader)
-    history = lr_finder.get_results()
+def test_lrs(lr_finder, to_save, dummy_engine, optimizer, dataloader, step_mode):
+    start_lr, end_lr = 0.01, 10.0
+    optimizer_lrs = []
 
-    if step_mode == "exp":
-        assert 0.01 < history["lr"][0] < 0.16
-    else:
-        assert pytest.approx(history["lr"][0]) == 0.01
+    def record_optimizer_lr(engine):
+        optimizer_lrs.append(optimizer.param_groups[0]["lr"])
+
+    with pytest.warns(UserWarning, match=r"Run completed without loss diverging"):
+        with lr_finder.attach(
+            dummy_engine,
+            to_save,
+            start_lr=start_lr,
+            end_lr=end_lr,
+            num_iter=5,
+            step_mode=step_mode,
+            diverge_th=float("inf"),
+        ) as trainer_with_finder:
+            trainer_with_finder.add_event_handler(Events.ITERATION_COMPLETED, record_optimizer_lr)
+            trainer_with_finder.run(dataloader)
+    lrs = lr_finder.get_results()["lr"]
+
+    assert lrs == pytest.approx(optimizer_lrs)
+    assert lrs[0] == pytest.approx(start_lr)
+    assert lrs[-1] == pytest.approx(end_lr)
 
 
 def test_engine_output_type(lr_finder, dummy_engine, optimizer):
-    from ignite.handlers.param_scheduler import PiecewiseLinear
-
     dummy_engine.state.iteration = 1
     dummy_engine.state.output = [10]
     with pytest.raises(TypeError, match=r"output of the engine should be of type float or 0d torch.Tensor"):
@@ -410,9 +420,7 @@ def test_engine_output_type(lr_finder, dummy_engine, optimizer):
     with pytest.raises(ValueError, match=r"if output of the engine is torch.Tensor"):
         lr_finder._log_lr_and_loss(dummy_engine, output_transform=lambda x: x, smooth_f=0, diverge_th=1)
 
-    lr_finder._lr_schedule = PiecewiseLinear(
-        optimizer, param_name="lr", milestones_values=[(0, optimizer.param_groups[0]["lr"]), (100, 10)]
-    )
+    lr_finder._optimizer = optimizer
 
     dummy_engine.state.output = torch.tensor(10.0, dtype=torch.float32)
     lr_finder._history = {"lr": [], "loss": []}
@@ -582,10 +590,8 @@ def test_plot_multiple_param_groups(
 
 
 def _test_distrib_log_lr_and_loss(device):
-    from ignite.handlers import ParamScheduler
-
     lr_finder = FastaiLRFinder()
-    _lr_schedule = MagicMock(spec=ParamScheduler)
+    optimizer = SGD([torch.zeros(1, requires_grad=True)], lr=0.01)
 
     # minimal setup for lr_finder to make _log_lr_and_loss work
     rank = idist.get_rank()
@@ -595,7 +601,7 @@ def _test_distrib_log_lr_and_loss(device):
 
     engine.state.output = loss
     engine.state.iteration = 1
-    lr_finder._lr_schedule = _lr_schedule
+    lr_finder._optimizer = optimizer
     lr_finder._history["loss"] = []
     lr_finder._history["lr"] = []
 
