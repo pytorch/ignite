@@ -91,7 +91,7 @@ class HSIC(Metric):
 
     .. versionadded:: 0.5.2
 
-    .. versionchanged:: 0.6.0
+    .. versionchanged:: 0.5.6
         ``float16`` and ``bfloat16`` inputs are cast to ``float32``.
     """
 

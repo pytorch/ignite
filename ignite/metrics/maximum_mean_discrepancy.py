@@ -83,7 +83,7 @@ class MaximumMeanDiscrepancy(Metric):
     .. versionchanged:: 0.5.1
         ``skip_unrolling`` argument is added.
 
-    .. versionchanged:: 0.6.0
+    .. versionchanged:: 0.5.6
         ``float16`` and ``bfloat16`` inputs are cast to ``float32``.
     """
 
