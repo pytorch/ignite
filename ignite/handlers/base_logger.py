@@ -110,7 +110,11 @@ class BaseOutputHandler(BaseHandler):
         self.state_attributes = state_attributes
 
     def _setup_output_metrics_state_attrs(
-        self, engine: Engine, log_text: bool | None = False, key_tuple: bool | None = True
+        self,
+        engine: Engine,
+        log_text: bool | None = False,
+        key_tuple: bool | None = True,
+        flatten_sequences: bool = True,
     ) -> dict[Any, Any]:
         """Helper method to setup metrics and state attributes to log"""
         metrics_state_attrs = OrderedDict()
@@ -153,12 +157,17 @@ class BaseOutputHandler(BaseHandler):
 
         def handle_value_fn(
             value: str | int | float | numbers.Number | torch.Tensor,
-        ) -> None | str | float | numbers.Number:
+        ) -> None | str | float | numbers.Number | list[numbers.Number]:
             if isinstance(value, numbers.Number):
                 return value
 
             if isinstance(value, torch.Tensor) and value.ndimension() == 0:
                 return value.item()
+
+            if not flatten_sequences and isinstance(value, Sequence):
+                scalar_values = [item.item() if isinstance(item, torch.Tensor) else item for item in value]
+                if all(isinstance(item, numbers.Number) for item in scalar_values):
+                    return scalar_values
 
             if isinstance(value, str) and log_text:
                 return value
@@ -166,7 +175,9 @@ class BaseOutputHandler(BaseHandler):
             warnings.warn(f"Logger output_handler can not log metrics value type {type(value)}")
             return None
 
-        metrics_state_attrs_dict = _flatten_dict(metrics_state_attrs, key_fn, handle_value_fn, parent_key=self.tag)
+        metrics_state_attrs_dict = _flatten_dict(
+            metrics_state_attrs, key_fn, handle_value_fn, parent_key=self.tag, flatten_sequences=flatten_sequences
+        )
         return metrics_state_attrs_dict
 
 
@@ -175,13 +186,14 @@ def _flatten_dict(
     key_fn: Callable,
     value_fn: Callable,
     parent_key: str | tuple[str, ...] | None = None,
+    flatten_sequences: bool = True,
 ) -> dict:
     items = {}
     for key, value in in_dict.items():
         new_key = key_fn(parent_key, key)
         if isinstance(value, Mapping):
-            items.update(_flatten_dict(value, key_fn, value_fn, new_key))
-        elif any(
+            items.update(_flatten_dict(value, key_fn, value_fn, new_key, flatten_sequences))
+        elif flatten_sequences and any(
             [
                 isinstance(value, tuple) and hasattr(value, "_fields"),  # namedtuple
                 not isinstance(value, str) and isinstance(value, Sequence),
