@@ -76,6 +76,18 @@ def test_integration_manhattan_distance(test_case, n_times, available_device):
     assert expected == pytest.approx(result)
 
 
+def test_low_precision_inputs(available_device):
+    # 4096 absolute errors of 20 sum to 81920, above the float16 maximum (65504)
+    y_pred = torch.full((4096,), 20.0, dtype=torch.float16)
+    y = torch.zeros(4096, dtype=torch.float16)
+
+    m = ManhattanDistance(device=available_device)
+    m.update((y_pred.to(available_device), y.to(available_device)))
+
+    expected = torch.sum(torch.abs(y.double() - y_pred.double())).item()
+    assert m.compute() == pytest.approx(expected)
+
+
 def test_error_is_not_nan(available_device):
     m = ManhattanDistance(device=available_device)
     assert m._device == torch.device(available_device)

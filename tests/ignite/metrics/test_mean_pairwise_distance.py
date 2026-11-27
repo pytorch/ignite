@@ -122,6 +122,19 @@ def _test_distrib_accumulator_device(device):
             assert dev == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
 
 
+@pytest.mark.parametrize("dtype", [torch.float16, torch.bfloat16])
+def test_low_precision_inputs(dtype, available_device):
+    # 4096 pairwise distances of 20 sum to 81920, above the float16 maximum (65504)
+    y_pred = torch.full((4096, 1), 20.0, dtype=dtype)
+    y = torch.zeros(4096, 1, dtype=dtype)
+
+    mpd = MeanPairwiseDistance(device=available_device)
+    mpd.update((y_pred.to(available_device), y.to(available_device)))
+
+    expected = torch.pairwise_distance(y_pred.double(), y.double(), eps=1e-6).mean().item()
+    assert mpd.compute() == pytest.approx(expected)
+
+
 def test_accumulator_detached():
     mpd = MeanPairwiseDistance()
 
