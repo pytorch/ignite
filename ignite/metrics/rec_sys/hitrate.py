@@ -134,13 +134,17 @@ class HitRate(Metric):
         device: str | torch.device = torch.device("cpu"),
         skip_unrolling: bool = False,
     ):
-        if not isinstance(top_k, (int, list)):
+        if isinstance(top_k, bool) or not isinstance(top_k, (int, list)):
             raise ValueError("top_k must be either int or a list[int]")
 
         top_k = [top_k] if isinstance(top_k, int) else top_k
 
         if len(top_k) == 0:
             raise ValueError("top_k must have at least one positive value")
+
+        if any(not isinstance(k, int) or isinstance(k, bool) for k in top_k):
+            raise ValueError("top_k must be list of positive integers only.")
+
         if any(k <= 0 for k in top_k):
             raise ValueError("top_k must be list of positive integers only.")
 
