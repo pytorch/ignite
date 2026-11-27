@@ -97,6 +97,40 @@ def test_pearson_correlation(available_device):
 
         assert m.compute() == pytest.approx(expected, rel=1e-4)
 
+def test_large_offset(available_device):
+    # Regression test for Issue #3662
+    offset = 1e8
+    y_true = torch.tensor([1., 2., 3., 4., 5.], dtype=torch.float64) + offset
+    y_pred = torch.tensor([1.1, 2.1, 3.1, 4.1, 5.1], dtype=torch.float64) + offset
+
+    # Test single batch
+    m = PearsonCorrelation(device=available_device)
+    m.update((y_pred, y_true))
+    assert m.compute() == pytest.approx(1.0, rel=1e-4)
+
+    # Test multiple update calls
+    # Test multiple update calls with batch size 1
+    m.reset()
+    for yp, yt in zip(y_pred, y_true):
+        m.update((yp.unsqueeze(0), yt.unsqueeze(0)))
+
+    assert m.compute() == pytest.approx(1.0, rel=1e-4)
+
+    # Test different batch sizes
+    m.reset()
+    m.update((y_pred[:2], y_true[:2]))
+    m.update((y_pred[2:], y_true[2:]))
+
+    assert m.compute() == pytest.approx(1.0, rel=1e-4)
+
+    # Test zero variance edge case (constant inputs)
+    m.reset()
+    y_true_zero_var = torch.tensor([1., 1., 1., 1., 1.], dtype=torch.float64) + offset
+    y_pred_zero_var = torch.tensor([2., 2., 2., 2., 2.], dtype=torch.float64) + offset
+
+    m.update((y_pred_zero_var, y_true_zero_var))
+    assert m.compute() == 0.0
+
 
 @pytest.fixture(params=list(range(2)))
 def test_case(request):
@@ -148,11 +182,11 @@ def test_accumulator_detached(available_device):
     assert all(
         (not accumulator.requires_grad)
         for accumulator in (
-            corr._sum_of_products,
-            corr._sum_of_y_pred_squares,
-            corr._sum_of_y_preds,
-            corr._sum_of_y_squares,
-            corr._sum_of_ys,
+            corr._mean_x,
+            corr._mean_y,
+            corr._var_x,
+            corr._var_y,
+            corr._cov,
         )
     )
 
@@ -240,11 +274,11 @@ class TestDistributed:
 
             devices = (
                 corr._device,
-                corr._sum_of_products.device,
-                corr._sum_of_y_pred_squares.device,
-                corr._sum_of_y_preds.device,
-                corr._sum_of_y_squares.device,
-                corr._sum_of_ys.device,
+                corr._mean_x.device,
+                corr._mean_y.device,
+                corr._var_x.device,
+                corr._var_y.device,
+                corr._cov.device,
             )
             for dev in devices:
                 assert dev == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
@@ -255,11 +289,11 @@ class TestDistributed:
 
             devices = (
                 corr._device,
-                corr._sum_of_products.device,
-                corr._sum_of_y_pred_squares.device,
-                corr._sum_of_y_preds.device,
-                corr._sum_of_y_squares.device,
-                corr._sum_of_ys.device,
+                corr._mean_x.device,
+                corr._mean_y.device,
+                corr._var_x.device,
+                corr._var_y.device,
+                corr._cov.device,
             )
             for dev in devices:
                 assert dev == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
