@@ -231,6 +231,48 @@ def test_auto_methods_nccl(distributed_context_single_node_nccl):
             auto_model(nn.Linear(1, 1), device_ids=[0])
 
 
+def _test_auto_model_fsdp(model, ws, device):
+    try:
+        from torch.distributed._composable.fsdp import FSDPModule
+    except ImportError:
+        pytest.skip("FSDP2 not available in this PyTorch version")
+
+    wrapped = auto_model(model, use_fsdp=True)
+    if ws > 1 and idist.has_native_dist_support and idist.backend() in ("nccl", "gloo"):
+        assert isinstance(wrapped, FSDPModule), f"Expected FSDPModule, got {type(wrapped)}"
+    else:
+        assert isinstance(wrapped, nn.Module)
+
+    assert all(p.device.type == torch.device(device).type for p in wrapped.parameters()), (
+        f"{[p.device.type for p in wrapped.parameters()]} vs {torch.device(device).type}"
+    )
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+@pytest.mark.skipif("WORLD_SIZE" not in os.environ, reason="Skip if WORLD_SIZE not in env vars")
+def test_auto_model_fsdp_gloo(distributed_context_single_node_gloo):
+    ws = distributed_context_single_node_gloo["world_size"]
+    device = idist.device()
+    _test_auto_model_fsdp(nn.Linear(10, 10), ws, device)
+    _test_auto_model_fsdp(nn.Sequential(nn.Linear(20, 100), nn.ReLU(), nn.Linear(100, 10)), ws, device)
+
+    # sync_bn + use_fsdp must raise
+    with pytest.raises(ValueError, match=r"use_fsdp and sync_bn are mutually exclusive"):
+        auto_model(nn.Sequential(nn.Linear(20, 100), nn.BatchNorm1d(100)), sync_bn=True, use_fsdp=True)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+@pytest.mark.skipif("WORLD_SIZE" not in os.environ, reason="Skip if WORLD_SIZE not in env vars")
+def test_auto_model_fsdp_nccl_cuda(distributed_context_single_node_nccl):
+    ws = distributed_context_single_node_nccl["world_size"]
+    device = idist.device()
+    _test_auto_model_fsdp(nn.Linear(10, 10), ws, device)
+    _test_auto_model_fsdp(nn.Sequential(nn.Linear(20, 100), nn.ReLU(), nn.Linear(100, 10)), ws, device)
+
+
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_hvd_support, reason="Skip if no Horovod dist support")
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
