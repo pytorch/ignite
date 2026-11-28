@@ -52,6 +52,20 @@ def test_compute(n_times, test_case, available_device):
     assert mae.compute() == np_res
 
 
+@pytest.mark.parametrize(
+    ("dtype", "num_examples", "error"),
+    [(torch.float16, 4096, 20.0), (torch.bfloat16, 4097, 1.0)],
+)
+def test_compute_half_precision(dtype, num_examples, error):
+    y_pred = torch.full((num_examples,), error, dtype=dtype)
+    y = torch.zeros_like(y_pred)
+    mae = MeanAbsoluteError()
+
+    mae.update((y_pred, y))
+
+    assert mae.compute() == pytest.approx(error)
+
+
 def _test_distrib_integration(device):
     import numpy as np
 
